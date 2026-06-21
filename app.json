@@ -1,0 +1,47 @@
+{
+  "expo": {
+    "name": "WAYFINDER",
+    "slug": "wayfinder",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "dark",
+    "splash": {
+      "image": "./assets/splash-icon.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#071209"
+    },
+    "android": {
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundColor": "#071209"
+      },
+      "package": "com.sacli.wayfinder",
+      "permissions": [
+        "android.permission.CAMERA",
+        "android.permission.ACCESS_FINE_LOCATION",
+        "android.permission.ACCESS_COARSE_LOCATION",
+        "android.permission.RECORD_AUDIO"
+      ]
+    },
+    "plugins": [
+      [
+        "expo-camera",
+        {
+          "cameraPermission": "WAYFINDER needs camera access for AR navigation."
+        }
+      ],
+      [
+        "expo-location",
+        {
+          "locationAlwaysAndWhenInUsePermission": "WAYFINDER needs your location to guide you around campus."
+        }
+      ]
+    ],
+    "extra": {
+      "eas": {
+        "projectId": "28d80ff1-1820-400d-885c-08b37344c4dc"
+      }
+    }
+  }
+}
