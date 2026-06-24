@@ -4,8 +4,8 @@
     "slug": "wayfinder",
     "version": "1.0.0",
     "orientation": "portrait",
-    "icon": "./assets/icon.png",
     "userInterfaceStyle": "dark",
+    "icon": "./assets/icon.png",
     "splash": {
       "image": "./assets/splash-icon.png",
       "resizeMode": "contain",
@@ -36,12 +36,8 @@
         {
           "locationAlwaysAndWhenInUsePermission": "WAYFINDER needs your location to guide you around campus."
         }
-      ]
-    ],
-    "extra": {
-      "eas": {
-        "projectId": "28d80ff1-1820-400d-885c-08b37344c4dc"
-      }
-    }
+      ],
+      "expo-audio"
+    ]
   }
 }
