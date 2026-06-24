@@ -22,7 +22,12 @@
         "android.permission.ACCESS_FINE_LOCATION",
         "android.permission.ACCESS_COARSE_LOCATION",
         "android.permission.RECORD_AUDIO"
-      ]
+      ],
+      "config": {
+        "googleMaps": {
+          "apiKey": ""
+        }
+      }
     },
     "plugins": [
       [
@@ -37,7 +42,8 @@
           "locationAlwaysAndWhenInUsePermission": "WAYFINDER needs your location to guide you around campus."
         }
       ],
-      "expo-audio"
+      "expo-audio",
+      "expo-sensors"
     ]
   }
 }
