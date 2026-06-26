@@ -19,7 +19,7 @@
       "package": "com.sacli.wayfinder",
       "config": {
         "googleMaps": {
-          "apiKey": "YOUR_ACTUAL_KEY_HERE"
+          "apiKey": "AIzaSyBaf5WfvKmZ47pkc9v4XJiLFQa8d7--pOU"
         }
       },
       "permissions": [
