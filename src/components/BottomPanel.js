@@ -184,7 +184,7 @@ export default function BottomPanel({
                           {b.facilities?.slice(0, 3).join(" · ")}
                         </Text>
                       </View>
-                      <Text style={s.listDist}>{b.dist_label ?? b.dist}</Text>
+                      <Text style={s.listDist}>{b.dist_label ?? b.dist ?? "—"}</Text>
                     </TouchableOpacity>
                   ))}
                 </View>
@@ -211,7 +211,7 @@ export default function BottomPanel({
                         />
                       </View>
                       <Text style={s.gridName}>{b.name}</Text>
-                      <Text style={s.gridDist}>{b.dist_label ?? b.dist}</Text>
+                      <Text style={s.gridDist}>{b.dist_label ?? b.dist ?? "—"}</Text>
                     </TouchableOpacity>
                   ))}
                 </View>
@@ -251,7 +251,7 @@ export default function BottomPanel({
                       <Text style={s.destSub}>{selectedBuilding.subtitle}</Text>
                     </View>
                     <Text style={s.destDist}>
-                      {selectedBuilding.dist_label ?? selectedBuilding.dist}
+                      {selectedBuilding.dist_label ?? selectedBuilding.dist ?? "—"}
                     </Text>
                   </View>
 

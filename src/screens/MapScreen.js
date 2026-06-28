@@ -27,6 +27,7 @@ import BottomPanel from "../components/BottomPanel";
 import useVoiceCommand from "../hooks/useVoiceCommand";
 import SearchModal from "../components/SearchModal";
 import { useSettings } from "../context/SettingsContext";
+import useLocation from "../hooks/useLocation";
 
 const { height: H } = Dimensions.get("window");
 
@@ -217,15 +218,21 @@ export default function MapScreen({ navigation, route }) {
   // Settings
   const { settings } = useSettings();
 
+  // Live GPS location (used to compute live distances in BuildingCard)
+  const { location: userLocation } = useLocation();
+
   // Voice command hook
   const { isListening, aiReply, destId, startListening, stopListening } =
     useVoiceCommand();
 
-  // When AI returns a destination, auto-show building card
+  // When AI returns a destination, auto-show building card.
+  // We look up the matching polygon key so the polygon also highlights.
   useEffect(() => {
-    if (destId && BUILDINGS[destId]) {
-      selectBuilding(destId, BUILDINGS[destId]);
-    }
+    if (!destId || !BUILDINGS[destId]) return;
+    const polyKey = Object.entries(BUILDING_POLYGONS).find(
+      ([, p]) => p.buildingId === destId,
+    )?.[0] ?? destId;
+    selectBuilding(polyKey, BUILDINGS[destId]);
   }, [destId]);
 
   // When navigated from Home search with a building pre-selected
@@ -451,6 +458,7 @@ export default function MapScreen({ navigation, route }) {
         >
           <BuildingCard
             building={selectedBuilding}
+            userLocation={userLocation}
             onClose={closeCard}
             onNavigate={startNavigation}
           />

@@ -3,20 +3,53 @@ import {
   View,
   Text,
   TouchableOpacity,
-  ScrollView,
   StyleSheet,
   Animated,
   Dimensions,
 } from "react-native";
 import { colors, radius } from "../constants/theme";
+import BuildingIcon from "./BuildingIcon";
+import { distanceTo } from "../utils/arMath";
 
 const { width } = Dimensions.get("window");
 
-export default function BuildingCard({ building, onClose, onNavigate }) {
+// ── Helpers ───────────────────────────────────────────────────────────────────
+
+/** Format a raw metre value to a human-readable string. */
+function formatDist(metres) {
+  if (metres == null || isNaN(metres)) return "—";
+  if (metres < 1000) return `${Math.round(metres)}m`;
+  return `${(metres / 1000).toFixed(1)}km`;
+}
+
+/** Walking-time estimate based on 1.4 m/s average pace. */
+function formatEta(metres) {
+  if (metres == null || isNaN(metres)) return "";
+  const seconds = metres / 1.4;
+  if (seconds < 60) return "< 1 min";
+  return `~${Math.ceil(seconds / 60)} min`;
+}
+
+// ── Component ─────────────────────────────────────────────────────────────────
+
+/**
+ * BuildingCard
+ *
+ * Props:
+ *   building     — building object from buildings.js
+ *   userLocation — { lat, lng } from useLocation hook (optional).
+ *                  When provided, distance and ETA are computed live.
+ *   onClose      — () => void
+ *   onNavigate   — (building) => void
+ */
+export default function BuildingCard({ building, userLocation, onClose, onNavigate }) {
   const slideY = useRef(new Animated.Value(40)).current;
   const fadeIn = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
+    // Reset and re-animate whenever the selected building changes
+    slideY.setValue(40);
+    fadeIn.setValue(0);
     Animated.parallel([
       Animated.spring(slideY, {
         toValue: 0,
@@ -30,47 +63,77 @@ export default function BuildingCard({ building, onClose, onNavigate }) {
         useNativeDriver: true,
       }),
     ]).start();
-  }, [building]);
+  }, [building?.id]);
 
   if (!building) return null;
+
+  // Compute live distance when GPS is available, otherwise fall back to the
+  // static label baked into the building data.
+  let distLabel = building.dist_label ?? building.dist ?? "—";
+  let etaLabel  = building.eta ?? "";
+
+  if (
+    userLocation?.lat != null &&
+    userLocation?.lng != null &&
+    building.id !== "gate" // avoid showing "0m" for the gate itself
+  ) {
+    const node = require("../constants/campusGraph").NODES[building.id];
+    if (node) {
+      const metres = distanceTo(
+        userLocation.lat, userLocation.lng,
+        node.lat,         node.lng,
+      );
+      distLabel = formatDist(metres);
+      etaLabel  = formatEta(metres);
+    }
+  }
 
   return (
     <Animated.View
       style={[s.card, { opacity: fadeIn, transform: [{ translateY: slideY }] }]}
     >
       {/* Close button */}
-      <TouchableOpacity style={s.close} onPress={onClose}>
+      <TouchableOpacity style={s.close} onPress={onClose} activeOpacity={0.7}>
         <Text style={s.closeText}>✕</Text>
       </TouchableOpacity>
 
       {/* Header */}
       <View style={s.header}>
-        <View style={[s.iconWrap, { backgroundColor: building.color }]}>
-          <Text style={{ fontSize: 22 }}>{building.icon}</Text>
+        <View style={[s.iconWrap, { backgroundColor: (building.color ?? "#1a3a1a") + "cc" }]}>
+          <BuildingIcon iconKey={building.icon} size={22} color={colors.primary} />
         </View>
         <View style={{ flex: 1 }}>
-          <Text style={s.title}>{building.name}</Text>
-          <Text style={s.sub}>{building.subtitle}</Text>
+          <Text style={s.title} numberOfLines={1}>{building.name}</Text>
+          <Text style={s.sub}  numberOfLines={1}>{building.subtitle}</Text>
         </View>
       </View>
 
-      {/* Distance */}
+      {/* Distance row */}
       <View style={s.distRow}>
-        <Text style={s.distVal}>{building.dist}</Text>
-        <Text style={s.distLabel}> away · {building.eta} walk</Text>
+        <Text style={s.distVal}>{distLabel}</Text>
+        {etaLabel ? <Text style={s.distLabel}> away · {etaLabel} walk</Text> : null}
       </View>
 
       {/* Facilities */}
-      <Text style={s.sectionLabel}>FACILITIES</Text>
-      <View style={s.tags}>
-        {building.facilities.map((f) => (
-          <View key={f} style={s.tag}>
-            <Text style={s.tagText}>{f}</Text>
+      {building.facilities?.length > 0 && (
+        <>
+          <Text style={s.sectionLabel}>FACILITIES</Text>
+          <View style={s.tags}>
+            {building.facilities.slice(0, 8).map((f) => (
+              <View key={f} style={s.tag}>
+                <Text style={s.tagText}>{f}</Text>
+              </View>
+            ))}
+            {building.facilities.length > 8 && (
+              <View style={[s.tag, s.tagMore]}>
+                <Text style={s.tagText}>+{building.facilities.length - 8} more</Text>
+              </View>
+            )}
           </View>
-        ))}
-      </View>
+        </>
+      )}
 
-      {/* Actions */}
+      {/* Action buttons */}
       <View style={s.actions}>
         <TouchableOpacity
           style={s.btnPrimary}
@@ -84,7 +147,7 @@ export default function BuildingCard({ building, onClose, onNavigate }) {
           onPress={onClose}
           activeOpacity={0.85}
         >
-          <Text style={s.btnSecondaryText}>Back</Text>
+          <Text style={s.btnSecondaryText}>Close</Text>
         </TouchableOpacity>
       </View>
     </Animated.View>
@@ -120,6 +183,7 @@ const s = StyleSheet.create({
     zIndex: 10,
   },
   closeText: { color: colors.textSecondary, fontSize: 14 },
+
   header: {
     flexDirection: "row",
     alignItems: "center",
@@ -127,17 +191,19 @@ const s = StyleSheet.create({
     marginBottom: 10,
   },
   iconWrap: {
-    width: 44,
-    height: 44,
+    width: 46,
+    height: 46,
     borderRadius: 14,
     alignItems: "center",
     justifyContent: "center",
   },
   title: { fontSize: 15, fontWeight: "800", color: "#fff" },
-  sub: { fontSize: 11, color: colors.textMuted, marginTop: 2 },
+  sub:   { fontSize: 11, color: colors.textMuted, marginTop: 2 },
+
   distRow: { flexDirection: "row", alignItems: "baseline", marginBottom: 12 },
   distVal: { fontSize: 18, fontWeight: "900", color: colors.primary },
   distLabel: { fontSize: 12, color: colors.textMuted },
+
   sectionLabel: {
     fontSize: 10,
     fontWeight: "700",
@@ -154,7 +220,12 @@ const s = StyleSheet.create({
     borderWidth: 1,
     borderColor: "rgba(255,255,255,0.1)",
   },
+  tagMore: {
+    backgroundColor: "rgba(0,200,83,0.08)",
+    borderColor: "rgba(0,200,83,0.2)",
+  },
   tagText: { fontSize: 10, fontWeight: "700", color: colors.textSecondary },
+
   actions: { flexDirection: "row", gap: 8 },
   btnPrimary: {
     flex: 1,
@@ -163,11 +234,7 @@ const s = StyleSheet.create({
     paddingVertical: 12,
     alignItems: "center",
   },
-  btnPrimaryText: {
-    fontSize: 13,
-    fontWeight: "800",
-    color: colors.primaryText,
-  },
+  btnPrimaryText: { fontSize: 13, fontWeight: "800", color: colors.primaryText },
   btnSecondary: {
     flex: 1,
     backgroundColor: "rgba(255,255,255,0.07)",
@@ -177,9 +244,5 @@ const s = StyleSheet.create({
     borderWidth: 1,
     borderColor: colors.border,
   },
-  btnSecondaryText: {
-    fontSize: 13,
-    fontWeight: "700",
-    color: colors.textSecondary,
-  },
+  btnSecondaryText: { fontSize: 13, fontWeight: "700", color: colors.textSecondary },
 });

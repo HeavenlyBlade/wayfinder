@@ -1,31 +1,35 @@
 import { NODES, buildGraph } from '../constants/campusGraph';
+import { distanceTo } from './arMath';
 
-// Haversine straight-line distance (heuristic for A*)
+// ── Haversine heuristic for A* ────────────────────────────────────────────────
 function heuristic(aId, bId) {
-  const a = NODES[aId], b = NODES[bId];
-  const R = 6371000;
-  const dLat = (b.lat - a.lat) * Math.PI / 180;
-  const dLng = (b.lng - a.lng) * Math.PI / 180;
-  const sin2 = Math.sin(dLat / 2) ** 2 +
-    Math.cos(a.lat * Math.PI / 180) *
-    Math.cos(b.lat * Math.PI / 180) *
-    Math.sin(dLng / 2) ** 2;
-  return R * 2 * Math.asin(Math.sqrt(sin2));
+  const a = NODES[aId];
+  const b = NODES[bId];
+  if (!a || !b) return Infinity;
+  return distanceTo(a.lat, a.lng, b.lat, b.lng);
 }
 
-// Returns array of node IDs from startId → goalId
+// ── A* search ─────────────────────────────────────────────────────────────────
+// Returns an array of node IDs forming the shortest path from startId → goalId.
+// Returns [] if no path exists or if either node is unknown.
 export function aStar(startId, goalId) {
-  const graph = buildGraph();
-  const open  = new Set([startId]);
+  if (!NODES[startId] || !NODES[goalId]) return [];
+  if (startId === goalId) return [startId];
+
+  const graph    = buildGraph();
+  const open     = new Set([startId]);
   const cameFrom = {};
-  const gScore = { [startId]: 0 };
-  const fScore = { [startId]: heuristic(startId, goalId) };
+  const gScore   = { [startId]: 0 };
+  const fScore   = { [startId]: heuristic(startId, goalId) };
 
   while (open.size > 0) {
-    // Node in open with lowest fScore
-    let current = [...open].reduce((a, b) =>
-      (fScore[a] ?? Infinity) < (fScore[b] ?? Infinity) ? a : b
-    );
+    // Pick the open node with the lowest fScore
+    let current = null;
+    let bestF   = Infinity;
+    for (const id of open) {
+      const f = fScore[id] ?? Infinity;
+      if (f < bestF) { bestF = f; current = id; }
+    }
 
     if (current === goalId) {
       // Reconstruct path
@@ -53,7 +57,22 @@ export function aStar(startId, goalId) {
   return []; // no path found
 }
 
-// Given user GPS + path node IDs, returns ordered waypoint coords
+// ── Nearest graph node to an arbitrary GPS position ──────────────────────────
+// Used in ARScreen to snap the user's live GPS to the closest node before
+// running A*.
+export function nearestNode(lat, lng) {
+  let bestId   = null;
+  let bestDist = Infinity;
+  for (const [id, node] of Object.entries(NODES)) {
+    const d = distanceTo(lat, lng, node.lat, node.lng);
+    if (d < bestDist) { bestDist = d; bestId = id; }
+  }
+  return bestId;
+}
+
+// ── Convert an array of node IDs → ordered GPS waypoints ─────────────────────
 export function getWaypoints(pathIds) {
-  return pathIds.map(id => NODES[id]);
+  return pathIds
+    .filter(id => NODES[id])          // skip any unknown IDs defensively
+    .map(id => ({ ...NODES[id] }));   // shallow copy so callers can mutate safely
 }
