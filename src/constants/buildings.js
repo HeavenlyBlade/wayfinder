@@ -82,22 +82,27 @@ export const BUILDINGS = {
       "Seating Area",
       "Washing Area",
     ],
-    floors: [
-      {
-        level: "Ground",
-        label: "G",
-        rooms: [
-          "Food Stalls",
-          "Drinks Station",
-          "Seating Area",
-          "Washing Area",
-        ],
-      },
-    ],
-    directions: [
-      { icon: "arrow-up", text: "Head north on Main Walk", dist: "40m" },
-      { icon: "arrow-left", text: "Turn left to Canteen", dist: "30m" },
-    ],
+    floors: [],
+    directions: [],
+  },
+
+  canteen_two: {
+    id: "canteen_two",
+    name: "Canteen Two",
+    shortName: "CANTEEN 2",
+    subtitle: "Dining & Food Services",
+    icon: "coffee",
+    color: "#3a2208",
+    mapX: 0,
+    mapY: 0,
+    mapW: 0,
+    mapH: 0,
+    dist: "80m",
+    dist_label: "80m",
+    eta: "~2 min",
+    facilities: ["Food Stalls", "Drinks Station", "Seating Area"],
+    floors: [],
+    directions: [],
   },
 
   ccss: {

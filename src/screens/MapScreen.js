@@ -33,135 +33,193 @@ const { height: H } = Dimensions.get("window");
 // ── Building polygon footprints ──────────────────────────────────────────────
 // Replace coordinates after campus GPS survey
 const BUILDING_POLYGONS = {
-  gate: {
+  main_gate: {
     buildingId: "gate",
     name: "Main Gate",
     coordinates: [
-      { latitude: 13.960949, longitude: 121.611362 },
-      { latitude: 13.960937, longitude: 121.611389 },
-      { latitude: 13.960906, longitude: 121.611378 },
-      { latitude: 13.960913, longitude: 121.611362 },
+      { latitude: 13.960973, longitude: 121.611242 },
+      { latitude: 13.960945, longitude: 121.611378 },
+      { latitude: 13.960904, longitude: 121.611376 },
+      { latitude: 13.960923, longitude: 121.611214 },
     ],
-    labelCoord: { latitude: 13.96093, longitude: 121.611373 },
+    labelCoord: { latitude: 13.960958, longitude: 121.611279 },
   },
   motor_parkinglot: {
     buildingId: "motorcycle_parking",
     name: "Motorcycle Parking Lot",
     coordinates: [
-      { latitude: 13.961333, longitude: 121.611513 },
-      { latitude: 13.960937, longitude: 121.611389 },
-      { latitude: 13.960906, longitude: 121.611378 },
-      { latitude: 13.960913, longitude: 121.611362 },
+      { latitude: 13.961333, longitude: 121.611508 },
+      { latitude: 13.961294, longitude: 121.611572 },
+      { latitude: 13.961197, longitude: 121.611539 },
+      { latitude: 13.961181, longitude: 121.611431 },
     ],
-    labelCoord: { latitude: 13.96093, longitude: 121.611373 },
+    labelCoord: { latitude: 13.961253, longitude: 121.611517 },
   },
-  potenciano: {
-    buildingId: "main_building",
-    name: "Potenciano Hall",
+  parking_lot: {
+    buildingId: "parking_lot",
+    name: "Parking Area",
     coordinates: [
-      { latitude: 13.93255, longitude: 121.61835 },
-      { latitude: 13.93255, longitude: 121.61875 },
-      { latitude: 13.93235, longitude: 121.61875 },
-      { latitude: 13.93235, longitude: 121.61835 },
+      { latitude: 13.961133, longitude: 121.611678 },
+      { latitude: 13.961108, longitude: 121.612531 },
+      { latitude: 13.961036, longitude: 121.612508 },
+      { latitude: 13.961031, longitude: 121.612394 },
+      { latitude: 13.960892, longitude: 121.612375 },
+      { latitude: 13.960914, longitude: 121.611722 },
     ],
-    labelCoord: { latitude: 13.93245, longitude: 121.61855 },
+    labelCoord: { latitude: 13.961022, longitude: 121.612058 },
   },
-  academic: {
+  main_building: {
+    buildingId: "main_building",
+    name: "Main Building",
+    coordinates: [
+      { latitude: 13.962275, longitude: 121.612361 },
+      { latitude: 13.962236, longitude: 121.612714 },
+      { latitude: 13.962069, longitude: 121.612697 },
+      { latitude: 13.962075, longitude: 121.612522 },
+      { latitude: 13.961722, longitude: 121.612481 },
+      { latitude: 13.961739, longitude: 121.6123 },
+    ],
+    labelCoord: { latitude: 13.962011, longitude: 121.612419 },
+  },
+  new_building: {
     buildingId: "new_building",
     name: "New Building",
     coordinates: [
-      { latitude: 13.93275, longitude: 121.6183 },
-      { latitude: 13.93275, longitude: 121.6186 },
-      { latitude: 13.93258, longitude: 121.6186 },
-      { latitude: 13.93258, longitude: 121.6183 },
+      { latitude: 13.961325, longitude: 121.611739 },
+      { latitude: 13.961303, longitude: 121.612431 },
+      { latitude: 13.961197, longitude: 121.612422 },
+      { latitude: 13.961222, longitude: 121.611717 },
     ],
-    labelCoord: { latitude: 13.93267, longitude: 121.61845 },
+    labelCoord: { latitude: 13.961281, longitude: 121.612078 },
   },
   ea_tower: {
     buildingId: "ea_tower",
     name: "EA Tower Hall",
     coordinates: [
-      { latitude: 13.9329, longitude: 121.61865 },
-      { latitude: 13.9329, longitude: 121.619 },
-      { latitude: 13.93268, longitude: 121.619 },
-      { latitude: 13.93268, longitude: 121.61865 },
+      { latitude: 13.962092, longitude: 121.612728 },
+      { latitude: 13.962053, longitude: 121.612906 },
+      { latitude: 13.961753, longitude: 121.612811 },
+      { latitude: 13.961792, longitude: 121.612653 },
     ],
-    labelCoord: { latitude: 13.93279, longitude: 121.61882 },
+    labelCoord: { latitude: 13.961942, longitude: 121.612789 },
   },
   ibed: {
     buildingId: "ibed",
     name: "IBED Building",
     coordinates: [
-      { latitude: 13.9328, longitude: 121.6182 },
-      { latitude: 13.9328, longitude: 121.61835 },
-      { latitude: 13.9326, longitude: 121.61835 },
-      { latitude: 13.9326, longitude: 121.6182 },
+      { latitude: 13.961578, longitude: 121.611967 },
+      { latitude: 13.961572, longitude: 121.612086 },
+      { latitude: 13.961478, longitude: 121.612083 },
+      { latitude: 13.961472, longitude: 121.612356 },
+      { latitude: 13.961556, longitude: 121.612369 },
+      { latitude: 13.96155, longitude: 121.612453 },
+      { latitude: 13.961317, longitude: 121.612447 },
+      { latitude: 13.961331, longitude: 121.611961 },
     ],
-    labelCoord: { latitude: 13.9327, longitude: 121.61827 },
+    labelCoord: { latitude: 13.961389, longitude: 121.612211 },
   },
-  canteen: {
+  canteen_one: {
     buildingId: "canteen",
-    name: "Big Canteen",
+    name: "Canteen 1",
     coordinates: [
-      { latitude: 13.93228, longitude: 121.61835 },
-      { latitude: 13.93228, longitude: 121.6186 },
-      { latitude: 13.93218, longitude: 121.6186 },
-      { latitude: 13.93218, longitude: 121.61835 },
+      { latitude: 13.961622, longitude: 121.611911 },
+      { latitude: 13.961528, longitude: 121.611944 },
+      { latitude: 13.961331, longitude: 121.611958 },
+      { latitude: 13.961339, longitude: 121.611581 },
     ],
-    labelCoord: { latitude: 13.93223, longitude: 121.61847 },
+    labelCoord: { latitude: 13.961397, longitude: 121.611861 },
+  },
+  kindergarten: {
+    buildingId: "kindergarten",
+    name: "Kindergarten Building",
+    coordinates: [
+      { latitude: 13.962078, longitude: 121.612144 },
+      { latitude: 13.96205, longitude: 121.612256 },
+      { latitude: 13.961672, longitude: 121.612122 },
+      { latitude: 13.961703, longitude: 121.612008 },
+    ],
+    labelCoord: { latitude: 13.961817, longitude: 121.612114 },
+  },
+  chapel: {
+    buildingId: "chapel",
+    name: "Chapel",
+    coordinates: [
+      { latitude: 13.961694, longitude: 121.612006 },
+      { latitude: 13.961672, longitude: 121.612097 },
+      { latitude: 13.961633, longitude: 121.612083 },
+      { latitude: 13.961633, longitude: 121.611989 },
+    ],
+    labelCoord: { latitude: 13.961664, longitude: 121.612053 },
   },
   kitchen_hall: {
     buildingId: "kitchen_hall",
     name: "Kitchen Hall",
     coordinates: [
-      { latitude: 13.9325, longitude: 121.61875 },
-      { latitude: 13.9325, longitude: 121.61895 },
-      { latitude: 13.93232, longitude: 121.61895 },
-      { latitude: 13.93232, longitude: 121.61875 },
+      { latitude: 13.962481, longitude: 121.612853 },
+      { latitude: 13.962472, longitude: 121.612969 },
+      { latitude: 13.962144, longitude: 121.612936 },
+      { latitude: 13.962156, longitude: 121.612822 },
     ],
-    labelCoord: { latitude: 13.93241, longitude: 121.61885 },
+    labelCoord: { latitude: 13.962342, longitude: 121.612903 },
+  },
+  canteen_two: {
+    buildingId: "canteen_two",
+    name: "Canteen 2",
+    coordinates: [
+      { latitude: 13.961736, longitude: 121.612842 },
+      { latitude: 13.961708, longitude: 121.612911 },
+      { latitude: 13.961558, longitude: 121.612836 },
+      { latitude: 13.961578, longitude: 121.61275 },
+    ],
+    labelCoord: { latitude: 13.96165, longitude: 121.612831 },
   },
   sr_building: {
     buildingId: "sr_building",
     name: "SR Building",
     coordinates: [
-      { latitude: 13.93295, longitude: 121.61838 },
-      { latitude: 13.93295, longitude: 121.61858 },
-      { latitude: 13.9328, longitude: 121.61858 },
-      { latitude: 13.9328, longitude: 121.61838 },
+      { latitude: 13.961581, longitude: 121.612667 },
+      { latitude: 13.961561, longitude: 121.612783 },
+      { latitude: 13.961169, longitude: 121.612678 },
+      { latitude: 13.961192, longitude: 121.612569 },
     ],
-    labelCoord: { latitude: 13.93287, longitude: 121.61848 },
+    labelCoord: { latitude: 13.961367, longitude: 121.612669 },
+  },
+  ccss_building: {
+    buildingId: "ccss",
+    name: "CCSS Building",
+    coordinates: [
+      { latitude: 13.961031, longitude: 121.612428 },
+      { latitude: 13.961028, longitude: 121.612486 },
+      { latitude: 13.960922, longitude: 121.612481 },
+      { latitude: 13.960928, longitude: 121.612406 },
+    ],
+    labelCoord: { latitude: 13.960983, longitude: 121.612456 },
   },
 };
 
 // Campus center — map opens here
 const CAMPUS_CENTER = {
-  latitude: 13.93255,
-  longitude: 121.61858,
-  latitudeDelta: 0.0018,
-  longitudeDelta: 0.0015,
+  latitude: 13.961706,
+  longitude: 121.612236,
+  latitudeDelta: 0.018,
+  longitudeDelta: 0.018,
 };
 
 export default function MapScreen({ navigation, route }) {
   const [selectedBuilding, setSelectedBuilding] = useState(null);
-  const [selectedPolygon,  setSelectedPolygon]  = useState(null);
-  const [panelHeight,      setPanelHeight]      = useState(58);
-  const [searchVisible,    setSearchVisible]    = useState(false);
+  const [selectedPolygon, setSelectedPolygon] = useState(null);
+  const [panelHeight, setPanelHeight] = useState(58);
+  const [searchVisible, setSearchVisible] = useState(false);
 
   const cardAnim = useRef(new Animated.Value(0)).current;
-  const mapRef   = useRef(null);
+  const mapRef = useRef(null);
 
   // Settings
   const { settings } = useSettings();
 
   // Voice command hook
-  const {
-    isListening,
-    aiReply,
-    destId,
-    startListening,
-    stopListening,
-  } = useVoiceCommand();
+  const { isListening, aiReply, destId, startListening, stopListening } =
+    useVoiceCommand();
 
   // When AI returns a destination, auto-show building card
   useEffect(() => {
@@ -223,7 +281,6 @@ export default function MapScreen({ navigation, route }) {
 
   return (
     <View style={s.container}>
-
       {/* ── Map ── */}
       <MapView
         ref={mapRef}
@@ -254,9 +311,7 @@ export default function MapScreen({ navigation, route }) {
               strokeColor={isSelected ? "#00C853" : "rgba(0,200,83,0.8)"}
               strokeWidth={isSelected ? 3 : 1.5}
               fillColor={
-                isSelected
-                  ? "rgba(0,200,83,0.35)"
-                  : "rgba(0,200,83,0.12)"
+                isSelected ? "rgba(0,200,83,0.35)" : "rgba(0,200,83,0.12)"
               }
               tappable={true}
               onPress={() => {
@@ -280,10 +335,7 @@ export default function MapScreen({ navigation, route }) {
             }}
           >
             <View
-              style={[
-                s.mapLabel,
-                selectedPolygon === id && s.mapLabelSelected,
-              ]}
+              style={[s.mapLabel, selectedPolygon === id && s.mapLabelSelected]}
             >
               <Text style={s.mapLabelText}>{poly.name}</Text>
             </View>
@@ -294,7 +346,6 @@ export default function MapScreen({ navigation, route }) {
       {/* ── Top overlay ── */}
       <SafeAreaView style={s.topOverlay} edges={["top"]}>
         <View style={s.searchRow}>
-
           {/* Back to Home */}
           <TouchableOpacity
             style={s.backBtn}
@@ -312,17 +363,12 @@ export default function MapScreen({ navigation, route }) {
           >
             <IconSearch size={16} color="rgba(0,0,0,0.4)" />
             <Text style={s.searchText}>
-              {selectedBuilding
-                ? selectedBuilding.name
-                : "Search buildings..."}
+              {selectedBuilding ? selectedBuilding.name : "Search buildings..."}
             </Text>
 
             {/* Mic button — respects voiceCommands setting */}
             <TouchableOpacity
-              style={[
-                s.micBtn,
-                !settings.voiceCommands && s.micBtnDisabled,
-              ]}
+              style={[s.micBtn, !settings.voiceCommands && s.micBtnDisabled]}
               onPress={handleMicPress}
               activeOpacity={settings.voiceCommands ? 0.8 : 1}
             >
@@ -331,11 +377,7 @@ export default function MapScreen({ navigation, route }) {
               ) : (
                 <IconMic
                   size={14}
-                  color={
-                    settings.voiceCommands
-                      ? "#071209"
-                      : "rgba(0,0,0,0.3)"
-                  }
+                  color={settings.voiceCommands ? "#071209" : "rgba(0,0,0,0.3)"}
                 />
               )}
             </TouchableOpacity>
@@ -356,7 +398,6 @@ export default function MapScreen({ navigation, route }) {
       {/* ── FABs — hide when panel is fully expanded ── */}
       {panelHeight < H * 0.75 && (
         <View style={[s.fabs, { bottom: panelHeight + 12 }]}>
-
           {/* Layers button */}
           <TouchableOpacity style={s.fab} activeOpacity={0.8}>
             <IconLayers size={20} color="#1a3a1a" />
@@ -401,7 +442,7 @@ export default function MapScreen({ navigation, route }) {
             transform: [
               {
                 translateY: cardAnim.interpolate({
-                  inputRange:  [0, 1],
+                  inputRange: [0, 1],
                   outputRange: [40, 0],
                 }),
               },
@@ -420,7 +461,7 @@ export default function MapScreen({ navigation, route }) {
       <BottomPanel
         onBuildingSelect={(b) => {
           const polyId = Object.entries(BUILDING_POLYGONS).find(
-            ([, p]) => p.buildingId === b.id
+            ([, p]) => p.buildingId === b.id,
           )?.[0];
           selectBuilding(polyId ?? b.id, b);
         }}
@@ -436,7 +477,7 @@ export default function MapScreen({ navigation, route }) {
         onSelect={(building) => {
           setSearchVisible(false);
           const polyId = Object.entries(BUILDING_POLYGONS).find(
-            ([, p]) => p.buildingId === building.id
+            ([, p]) => p.buildingId === building.id,
           )?.[0];
           selectBuilding(polyId ?? building.id, building);
         }}
@@ -451,7 +492,9 @@ const s = StyleSheet.create({
   // Top overlay
   topOverlay: {
     position: "absolute",
-    top: 0, left: 0, right: 0,
+    top: 0,
+    left: 0,
+    right: 0,
     paddingHorizontal: 14,
     paddingBottom: 10,
     backgroundColor: "rgba(7,18,9,0.88)",
@@ -463,7 +506,8 @@ const s = StyleSheet.create({
     marginBottom: 8,
   },
   backBtn: {
-    width: 38, height: 38,
+    width: 38,
+    height: 38,
     borderRadius: 19,
     backgroundColor: "rgba(255,255,255,0.1)",
     alignItems: "center",
@@ -487,7 +531,8 @@ const s = StyleSheet.create({
     color: "rgba(0,0,0,0.45)",
   },
   micBtn: {
-    width: 28, height: 28,
+    width: 28,
+    height: 28,
     borderRadius: 14,
     backgroundColor: "#00C853",
     alignItems: "center",
@@ -533,7 +578,8 @@ const s = StyleSheet.create({
     gap: 10,
   },
   fab: {
-    width: 46, height: 46,
+    width: 46,
+    height: 46,
     borderRadius: 23,
     backgroundColor: "rgba(255,255,255,0.95)",
     alignItems: "center",
