@@ -125,6 +125,16 @@ export default function SettingsScreen({ navigation }) {
             />
           </View>
 
+          <SectionLabel label="DEV TOOLS" />
+          <View style={s.group}>
+            <ChevronItem
+              icon={<IconPin size={18} color="rgba(255,255,255,0.5)" />}
+              name="GPS Survey Tool"
+              sub="Record campus coordinates for campusGraph.js"
+              onPress={() => navigation.navigate("Survey")}
+            />
+          </View>
+
           {/* Live status preview */}
           <SectionLabel label="CURRENT STATUS" />
           <View style={s.statusCard}>

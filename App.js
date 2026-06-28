@@ -11,6 +11,7 @@ import MapScreen from "./src/screens/MapScreen";
 import ARScreen from "./src/screens/ARScreen";
 import SettingsScreen from "./src/screens/SettingsScreen";
 import AboutScreen from "./src/screens/AboutScreen";
+import SurveyScreen from "./src/screens/SurveyScreen";
 import { SettingsProvider } from "./src/context/SettingsContext";
 
 const Stack = createStackNavigator();
@@ -49,11 +50,12 @@ export default function App() {
           screenOptions={{ headerShown: false, animation: "fade" }}
           initialRouteName="Home"
         >
-          <Stack.Screen name="Home" component={HomeScreen} />
-          <Stack.Screen name="Map" component={MapScreen} />
-          <Stack.Screen name="AR" component={ARScreen} />
+          <Stack.Screen name="Home"     component={HomeScreen} />
+          <Stack.Screen name="Map"      component={MapScreen} />
+          <Stack.Screen name="AR"       component={ARScreen} />
           <Stack.Screen name="Settings" component={SettingsScreen} />
-          <Stack.Screen name="About" component={AboutScreen} />
+          <Stack.Screen name="About"    component={AboutScreen} />
+          <Stack.Screen name="Survey"   component={SurveyScreen} />
         </Stack.Navigator>
       </NavigationContainer>
     </SettingsProvider>
