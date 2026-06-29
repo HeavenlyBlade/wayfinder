@@ -32,13 +32,16 @@ function Chip({ color, label }) {
   );
 }
 
-export default function StatusChips({ arActive }) {
+export default function StatusChips({ arActive, isOffline }) {
   return (
     <View style={s.row}>
       <Chip color={colors.primary} label="GPS Active" />
-      <Chip color="#8aabff" label="AI Ready" />
       <Chip
-        color={arActive ? colors.primary : "#ffc107"}
+        color={isOffline ? colors.warning : "#8aabff"}
+        label={isOffline ? "AI Offline" : "AI Ready"}
+      />
+      <Chip
+        color={arActive ? colors.primary : colors.warning}
         label={arActive ? "AR Active" : "AR Standby"}
       />
     </View>
