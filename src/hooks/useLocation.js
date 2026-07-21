@@ -42,12 +42,12 @@ export default function useLocation() {
         }
       );
 
-      // Compass via magnetometer
-      Magnetometer.setUpdateInterval(100); // 10 times per second
+// ── 1. Fix: compass bearing must be north-referenced (0°=north, clockwise)
+//    atan2(y, x) is east-referenced and gives 90° wrong heading.
+//    Correct formula for compass from magnetometer: atan2(-x, y)
       magRef.current = Magnetometer.addListener(({ x, y }) => {
-        // Convert magnetometer x/y to compass bearing
-        let angle = Math.atan2(y, x) * (180 / Math.PI);
-        angle = (angle + 360) % 360; // normalise to 0-360
+        let angle = Math.atan2(-x, y) * (180 / Math.PI);
+        angle = (angle + 360) % 360;
         if (active) setHeading(angle);
       });
     }

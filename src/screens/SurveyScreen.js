@@ -12,7 +12,6 @@ import { radius } from '../constants/theme';
 const ACCURACY_THRESHOLD = 5;
 
 export default function SurveyScreen({ navigation }) {
-  const [location,     setLocation]     = useState(null);  // eslint-disable-line no-unused-vars
   const [accuracy,     setAccuracy]     = useState(null);
   const [altitude,     setAltitude]     = useState(null);
   const [speed,        setSpeed]        = useState(null);
@@ -42,7 +41,6 @@ export default function SurveyScreen({ navigation }) {
           if (!active) return;
           const { latitude, longitude, accuracy: acc, altitude: alt, speed: spd } = pos.coords;
 
-          setLocation({ lat: latitude, lng: longitude });
           setAccuracy(acc);
           setAltitude(alt);
           setSpeed(spd);
@@ -195,7 +193,7 @@ export default function SurveyScreen({ navigation }) {
           {/* Save button */}
           <TouchableOpacity
             style={[s.saveBtn, !avgLat && s.saveBtnDisabled]}
-            onPress={() => savePoint(label)}
+            onPress={() => savePoint(null)}
             activeOpacity={0.85}
             disabled={!avgLat}
           >

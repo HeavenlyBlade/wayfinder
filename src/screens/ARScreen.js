@@ -80,29 +80,32 @@ function AROrb({ x, y, size, isNext, isDestination }) {
   const glowOp = useRef(new Animated.Value(0.4)).current;
 
   useEffect(() => {
-    // Pulse scale
-    Animated.loop(
+    const pulseLoop = Animated.loop(
       Animated.sequence([
         Animated.timing(pulse,  { toValue: isNext ? 1.35 : 1.2,  duration: 800, useNativeDriver: true }),
         Animated.timing(pulse,  { toValue: 1,                     duration: 800, useNativeDriver: true }),
       ]),
-    ).start();
-
-    // Vertical float
-    Animated.loop(
+    );
+    const floatLoop = Animated.loop(
       Animated.sequence([
         Animated.timing(floatY, { toValue: isNext ? -9 : -5, duration: 1100, useNativeDriver: true }),
         Animated.timing(floatY, { toValue: 0,                duration: 1100, useNativeDriver: true }),
       ]),
-    ).start();
-
-    // Glow ring pulse
-    Animated.loop(
+    );
+    const glowLoop = Animated.loop(
       Animated.sequence([
         Animated.timing(glowOp, { toValue: 0.7, duration: 900, useNativeDriver: true }),
         Animated.timing(glowOp, { toValue: 0.2, duration: 900, useNativeDriver: true }),
       ]),
-    ).start();
+    );
+    pulseLoop.start();
+    floatLoop.start();
+    glowLoop.start();
+    return () => {
+      pulseLoop.stop();
+      floatLoop.stop();
+      glowLoop.stop();
+    };
   }, [isNext]);
 
   // Colour coding: destination = white, next = bright green, rest = softer green

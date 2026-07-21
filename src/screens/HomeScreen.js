@@ -121,31 +121,29 @@ export default function HomeScreen({ navigation }) {
               <TouchableOpacity
                 key={b.id}
                 style={s.quickCard}
-                onPress={() =>
-                  navigation.navigate("Map", { openBuilding: b.id })
-                }
+                onPress={() => navigation.navigate("Map", { openBuilding: b.id })}
                 activeOpacity={0.75}
               >
-                <View
-                  style={[s.quickIcon, { backgroundColor: b.color + "55" }]}
-                >
+                <View style={[s.quickIcon, { backgroundColor: b.color + "55" }]}>
                   <BuildingIcon iconKey={b.icon} size={20} color="#00C853" />
                 </View>
                 <Text style={s.quickName}>{b.name}</Text>
                 <Text style={s.quickDist}>{b.dist_label ?? b.dist} away</Text>
               </TouchableOpacity>
             ))}
-            <SearchModal
-              visible={searchVisible}
-              onClose={() => setSearchVisible(false)}
-              onSelect={(building) => {
-                setSearchVisible(false);
-                navigation.navigate("Map", { openBuilding: building.id });
-              }}
-            />
           </View>
         </ScrollView>
       </SafeAreaView>
+
+      {/* SearchModal lives outside the scroll/grid so it covers the full screen */}
+      <SearchModal
+        visible={searchVisible}
+        onClose={() => setSearchVisible(false)}
+        onSelect={(building) => {
+          setSearchVisible(false);
+          navigation.navigate("Map", { openBuilding: building.id });
+        }}
+      />
     </View>
   );
 }
@@ -162,12 +160,6 @@ const s = StyleSheet.create({
     paddingBottom: 16,
     borderBottomWidth: 1,
     borderBottomColor: "rgba(0,200,83,0.1)",
-  },
-  greeting: {
-    fontSize: 12,
-    color: "rgba(255,255,255,0.4)",
-    fontWeight: "600",
-    marginBottom: 2,
   },
   titleRow: {
     flexDirection: "row",
@@ -248,9 +240,8 @@ const s = StyleSheet.create({
     gap: 12,
     marginBottom: 20,
   },
-  navCTAIcon: { fontSize: 28 },
   navCTATitle: { fontSize: 15, fontWeight: "900", color: "#071209" },
-  navCTASub: { fontSize: 11, color: "rgba(7,18,9,0.6)", marginTop: 2 },
+  navCTASub:   { fontSize: 11, color: "rgba(7,18,9,0.6)", marginTop: 2 },
 
   // Section label
   sectionLabel: {

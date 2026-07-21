@@ -22,44 +22,48 @@ import {
 
 const GREEN = "#00C853";
 
+// ── Sub-components defined OUTSIDE the parent so React never remounts them ───
+
+function SectionLabel({ label }) {
+  return <Text style={s.sectionLabel}>{label}</Text>;
+}
+
+function ToggleItem({ icon, name, sub, value, onValueChange }) {
+  return (
+    <View style={s.item}>
+      <View style={s.itemIcon}>{icon}</View>
+      <View style={s.itemInfo}>
+        <Text style={s.itemName}>{name}</Text>
+        {sub ? <Text style={s.itemSub}>{sub}</Text> : null}
+      </View>
+      <Switch
+        value={value}
+        onValueChange={onValueChange}
+        trackColor={{ false: "rgba(255,255,255,0.15)", true: GREEN }}
+        thumbColor="#ffffff"
+        ios_backgroundColor="rgba(255,255,255,0.15)"
+      />
+    </View>
+  );
+}
+
+function ChevronItem({ icon, name, sub, onPress }) {
+  return (
+    <TouchableOpacity style={s.item} onPress={onPress} activeOpacity={0.7}>
+      <View style={s.itemIcon}>{icon}</View>
+      <View style={s.itemInfo}>
+        <Text style={s.itemName}>{name}</Text>
+        {sub ? <Text style={s.itemSub}>{sub}</Text> : null}
+      </View>
+      <IconChevronRight size={16} color="rgba(255,255,255,0.25)" />
+    </TouchableOpacity>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+
 export default function SettingsScreen({ navigation }) {
   const { settings, updateSetting } = useSettings();
-
-  function SectionLabel({ label }) {
-    return <Text style={s.sectionLabel}>{label}</Text>;
-  }
-
-  function ToggleItem({ icon, name, sub, settingKey }) {
-    return (
-      <View style={s.item}>
-        <View style={s.itemIcon}>{icon}</View>
-        <View style={s.itemInfo}>
-          <Text style={s.itemName}>{name}</Text>
-          {sub ? <Text style={s.itemSub}>{sub}</Text> : null}
-        </View>
-        <Switch
-          value={settings[settingKey]}
-          onValueChange={(val) => updateSetting(settingKey, val)}
-          trackColor={{ false: "rgba(255,255,255,0.15)", true: GREEN }}
-          thumbColor="#ffffff"
-          ios_backgroundColor="rgba(255,255,255,0.15)"
-        />
-      </View>
-    );
-  }
-
-  function ChevronItem({ icon, name, sub, onPress }) {
-    return (
-      <TouchableOpacity style={s.item} onPress={onPress} activeOpacity={0.7}>
-        <View style={s.itemIcon}>{icon}</View>
-        <View style={s.itemInfo}>
-          <Text style={s.itemName}>{name}</Text>
-          {sub ? <Text style={s.itemSub}>{sub}</Text> : null}
-        </View>
-        <IconChevronRight size={16} color="rgba(255,255,255,0.25)" />
-      </TouchableOpacity>
-    );
-  }
 
   return (
     <View style={s.container}>
@@ -87,14 +91,16 @@ export default function SettingsScreen({ navigation }) {
               icon={<IconEye size={18} color="rgba(255,255,255,0.5)" />}
               name="AR Mode"
               sub="Launch AR camera when navigating"
-              settingKey="arMode"
+              value={settings.arMode}
+              onValueChange={(val) => updateSetting("arMode", val)}
             />
             <View style={s.divider} />
             <ToggleItem
               icon={<IconPin size={18} color="rgba(255,255,255,0.5)" />}
               name="GPS Tracking"
               sub="Enable locate-me button on map"
-              settingKey="gpsTracking"
+              value={settings.gpsTracking}
+              onValueChange={(val) => updateSetting("gpsTracking", val)}
             />
           </View>
 
@@ -104,14 +110,16 @@ export default function SettingsScreen({ navigation }) {
               icon={<IconMic size={18} color="rgba(255,255,255,0.5)" />}
               name="Voice Commands"
               sub="Say where you want to go"
-              settingKey="voiceCommands"
+              value={settings.voiceCommands}
+              onValueChange={(val) => updateSetting("voiceCommands", val)}
             />
             <View style={s.divider} />
-            <ChevronItem
+            <ToggleItem
               icon={<IconGlobe size={18} color="rgba(255,255,255,0.5)" />}
-              name="Language"
-              sub="English"
-              onPress={() => {}}
+              name="Offline Mode"
+              sub="Use offline voice when ON, auto-detect when OFF"
+              value={settings.offlineMode}
+              onValueChange={(val) => updateSetting("offlineMode", val)}
             />
           </View>
 
@@ -138,87 +146,46 @@ export default function SettingsScreen({ navigation }) {
           {/* Live status preview */}
           <SectionLabel label="CURRENT STATUS" />
           <View style={s.statusCard}>
-            <View style={s.statusRow}>
-              <Text style={s.statusLabel}>AR Mode</Text>
-              <View
-                style={[
-                  s.statusBadge,
-                  {
-                    backgroundColor: settings.arMode
-                      ? "rgba(0,200,83,0.15)"
-                      : "rgba(255,255,255,0.06)",
-                  },
-                ]}
-              >
-                <Text
-                  style={[
-                    s.statusValue,
-                    {
-                      color: settings.arMode ? GREEN : "rgba(255,255,255,0.3)",
-                    },
-                  ]}
-                >
-                  {settings.arMode ? "ON" : "OFF"}
-                </Text>
-              </View>
-            </View>
+            <StatusRow label="AR Mode"       on={settings.arMode}       />
+            <View style={s.divider} />
+            <StatusRow label="GPS Tracking"  on={settings.gpsTracking}  />
+            <View style={s.divider} />
+            <StatusRow label="Voice Commands" on={settings.voiceCommands} />
             <View style={s.divider} />
             <View style={s.statusRow}>
-              <Text style={s.statusLabel}>GPS Tracking</Text>
-              <View
-                style={[
-                  s.statusBadge,
-                  {
-                    backgroundColor: settings.gpsTracking
-                      ? "rgba(0,200,83,0.15)"
-                      : "rgba(255,255,255,0.06)",
-                  },
-                ]}
-              >
-                <Text
-                  style={[
-                    s.statusValue,
-                    {
-                      color: settings.gpsTracking
-                        ? GREEN
-                        : "rgba(255,255,255,0.3)",
-                    },
-                  ]}
-                >
-                  {settings.gpsTracking ? "ON" : "OFF"}
-                </Text>
-              </View>
-            </View>
-            <View style={s.divider} />
-            <View style={s.statusRow}>
-              <Text style={s.statusLabel}>Voice Commands</Text>
-              <View
-                style={[
-                  s.statusBadge,
-                  {
-                    backgroundColor: settings.voiceCommands
-                      ? "rgba(0,200,83,0.15)"
-                      : "rgba(255,255,255,0.06)",
-                  },
-                ]}
-              >
-                <Text
-                  style={[
-                    s.statusValue,
-                    {
-                      color: settings.voiceCommands
-                        ? GREEN
-                        : "rgba(255,255,255,0.3)",
-                    },
-                  ]}
-                >
-                  {settings.voiceCommands ? "ON" : "OFF"}
+              <Text style={s.statusLabel}>Offline Mode</Text>
+              <View style={[
+                s.statusBadge,
+                { backgroundColor: settings.offlineMode ? "rgba(255,193,7,0.15)" : "rgba(0,200,83,0.15)" },
+              ]}>
+                <Text style={[
+                  s.statusValue,
+                  { color: settings.offlineMode ? "#ffc107" : GREEN },
+                ]}>
+                  {settings.offlineMode ? "OFFLINE" : "AUTO"}
                 </Text>
               </View>
             </View>
           </View>
         </ScrollView>
       </SafeAreaView>
+    </View>
+  );
+}
+
+// Small helper for the ON/OFF status rows — also outside the parent
+function StatusRow({ label, on }) {
+  return (
+    <View style={s.statusRow}>
+      <Text style={s.statusLabel}>{label}</Text>
+      <View style={[
+        s.statusBadge,
+        { backgroundColor: on ? "rgba(0,200,83,0.15)" : "rgba(255,255,255,0.06)" },
+      ]}>
+        <Text style={[s.statusValue, { color: on ? GREEN : "rgba(255,255,255,0.3)" }]}>
+          {on ? "ON" : "OFF"}
+        </Text>
+      </View>
     </View>
   );
 }
@@ -272,7 +239,7 @@ const s = StyleSheet.create({
   itemIcon: { width: 24, alignItems: "center", justifyContent: "center" },
   itemInfo: { flex: 1 },
   itemName: { fontSize: 13, fontWeight: "700", color: "#e0e8e0" },
-  itemSub: { fontSize: 11, color: "rgba(255,255,255,0.3)", marginTop: 2 },
+  itemSub:  { fontSize: 11, color: "rgba(255,255,255,0.3)", marginTop: 2 },
 
   divider: {
     height: 1,
@@ -280,7 +247,6 @@ const s = StyleSheet.create({
     marginLeft: 52,
   },
 
-  // Status preview card
   statusCard: {
     backgroundColor: "rgba(255,255,255,0.04)",
     borderWidth: 1,
@@ -295,15 +261,7 @@ const s = StyleSheet.create({
     justifyContent: "space-between",
     paddingVertical: 12,
   },
-  statusLabel: {
-    fontSize: 13,
-    fontWeight: "600",
-    color: "rgba(255,255,255,0.5)",
-  },
-  statusBadge: {
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: 20,
-  },
+  statusLabel: { fontSize: 13, fontWeight: "600", color: "rgba(255,255,255,0.5)" },
+  statusBadge: { paddingHorizontal: 10, paddingVertical: 4, borderRadius: 20 },
   statusValue: { fontSize: 11, fontWeight: "800", letterSpacing: 0.5 },
 });

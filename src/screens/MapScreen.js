@@ -6,13 +6,14 @@ import {
 } from "react-native";
 import {
   IconSearch, IconMic, IconMicOff,
-  IconEye, IconLocate, IconLayers, IconArrowLeft,
+  IconEye, IconLayers, IconArrowLeft,
 } from "../components/icons/index";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 import CampusMapSVG     from "../components/CampusMapSVG";
 import { BUILDINGS }    from "../constants/buildings";
 import { NODES }        from "../constants/campusGraph";
+import { distanceTo }   from "../utils/arMath";
 import { aStar, getWaypoints, nearestNode } from "../utils/pathfinding";
 import { fetchRoute }   from "../services/api";
 import StatusChips      from "../components/StatusChips";
@@ -66,11 +67,29 @@ export default function MapScreen({ navigation, route }) {
     isOffline, startListening, stopListening,
   } = useVoiceCommand();
 
+  // ── Building selection helpers (defined first — used by effects below) ─────
+  const selectBuilding = useCallback((idOrPolyKey, building) => {
+    setSelectedPolygon(idOrPolyKey);
+    setSelectedBuilding(building);
+    Animated.spring(cardAnim, {
+      toValue: 1, useNativeDriver: true, tension: 80, friction: 10,
+    }).start();
+  }, [cardAnim]);
+
+  const closeCard = useCallback(() => {
+    Animated.timing(cardAnim, {
+      toValue: 0, duration: 180, useNativeDriver: true,
+    }).start(() => {
+      setSelectedBuilding(null);
+      setSelectedPolygon(null);
+    });
+  }, [cardAnim]);
+
   // ── Voice command → auto-select building ──────────────────────────────────
   useEffect(() => {
     if (!destId || !BUILDINGS[destId]) return;
     selectBuilding(destId, BUILDINGS[destId]);
-  }, [destId]);
+  }, [destId, selectBuilding]);
 
   // ── Deep-link from Home search ────────────────────────────────────────────
   useEffect(() => {
@@ -78,37 +97,18 @@ export default function MapScreen({ navigation, route }) {
     if (openId && BUILDINGS[openId]) {
       setTimeout(() => selectBuilding(openId, BUILDINGS[openId]), 300);
     }
-  }, [route?.params?.openBuilding]);
+  }, [route?.params?.openBuilding, selectBuilding]);
 
   // ── Auto-clear route on arrival ───────────────────────────────────────────
   useEffect(() => {
     if (!userLocation || !selectedBuilding) return;
     const node = NODES[selectedBuilding.id];
     if (!node) return;
-    const { distanceTo } = require('../utils/arMath');
     const d = distanceTo(userLocation.lat, userLocation.lng, node.lat, node.lng);
     if (d < ARRIVAL_DIST) {
       setRouteWaypoints(null);
     }
   }, [userLocation, selectedBuilding]);
-
-  // ── Building selection helpers ────────────────────────────────────────────
-  function selectBuilding(idOrPolyKey, building) {
-    setSelectedPolygon(idOrPolyKey);
-    setSelectedBuilding(building);
-    Animated.spring(cardAnim, {
-      toValue: 1, useNativeDriver: true, tension: 80, friction: 10,
-    }).start();
-  }
-
-  function closeCard() {
-    Animated.timing(cardAnim, {
-      toValue: 0, duration: 180, useNativeDriver: true,
-    }).start(() => {
-      setSelectedBuilding(null);
-      setSelectedPolygon(null);
-    });
-  }
 
   // ── Start navigation ──────────────────────────────────────────────────────
   const startNavigation = useCallback(async (building) => {
@@ -126,7 +126,7 @@ export default function MapScreen({ navigation, route }) {
       navigation.navigate("AR", { destinationId: building.id });
     }
     // If AR off — user sees the route line on the SVG map
-  }, [userLocation, settings.arMode, navigation]);
+  }, [userLocation, settings.arMode, navigation, closeCard]);
 
   function handleMicPress() {
     if (!settings.voiceCommands) return;
@@ -182,7 +182,11 @@ export default function MapScreen({ navigation, route }) {
         </View>
 
         {/* Status chips */}
-        <StatusChips arActive={settings.arMode} isOffline={isOffline} />
+        <StatusChips 
+          arActive={settings.arMode} 
+          isOffline={isOffline} 
+          offlineModeEnabled={settings.offlineMode}
+        />
 
         {/* AI / voice reply bubble */}
         {aiReply ? (

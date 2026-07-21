@@ -1,4 +1,4 @@
-import React, { useEffect, useRef } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import {
   View,
   Text,
@@ -10,6 +10,8 @@ import {
 import { colors, radius } from "../constants/theme";
 import BuildingIcon from "./BuildingIcon";
 import { distanceTo } from "../utils/arMath";
+import { NODES } from "../constants/campusGraph";
+import FloorBrowser from "./FloorBrowser";
 
 const { width } = Dimensions.get("window");
 
@@ -45,6 +47,7 @@ function formatEta(metres) {
 export default function BuildingCard({ building, userLocation, onClose, onNavigate }) {
   const slideY = useRef(new Animated.Value(40)).current;
   const fadeIn = useRef(new Animated.Value(0)).current;
+  const [floorBrowserVisible, setFloorBrowserVisible] = useState(false);
 
   useEffect(() => {
     // Reset and re-animate whenever the selected building changes
@@ -77,7 +80,7 @@ export default function BuildingCard({ building, userLocation, onClose, onNaviga
     userLocation?.lng != null &&
     building.id !== "gate" // avoid showing "0m" for the gate itself
   ) {
-    const node = require("../constants/campusGraph").NODES[building.id];
+    const node = NODES[building.id];
     if (node) {
       const metres = distanceTo(
         userLocation.lat, userLocation.lng,
@@ -135,21 +138,42 @@ export default function BuildingCard({ building, userLocation, onClose, onNaviga
 
       {/* Action buttons */}
       <View style={s.actions}>
-        <TouchableOpacity
-          style={s.btnPrimary}
-          onPress={() => onNavigate(building)}
-          activeOpacity={0.85}
-        >
-          <Text style={s.btnPrimaryText}>▶ Navigate Here</Text>
-        </TouchableOpacity>
-        <TouchableOpacity
-          style={s.btnSecondary}
-          onPress={onClose}
-          activeOpacity={0.85}
-        >
-          <Text style={s.btnSecondaryText}>Close</Text>
-        </TouchableOpacity>
+        {/* View Floors — only shown when floor data exists */}
+        {building.floors?.length > 0 && (
+          <TouchableOpacity
+            style={s.btnFloors}
+            onPress={() => setFloorBrowserVisible(true)}
+            activeOpacity={0.85}
+          >
+            <Text style={s.btnFloorsText}>🏢 View Floors</Text>
+          </TouchableOpacity>
+        )}
+
+        {/* Navigate + Close row */}
+        <View style={s.actionsRow}>
+          <TouchableOpacity
+            style={s.btnPrimary}
+            onPress={() => onNavigate(building)}
+            activeOpacity={0.85}
+          >
+            <Text style={s.btnPrimaryText}>▶ Navigate Here</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={s.btnSecondary}
+            onPress={onClose}
+            activeOpacity={0.85}
+          >
+            <Text style={s.btnSecondaryText}>Close</Text>
+          </TouchableOpacity>
+        </View>
       </View>
+
+      {/* Floor browser sheet */}
+      <FloorBrowser
+        building={building}
+        visible={floorBrowserVisible}
+        onClose={() => setFloorBrowserVisible(false)}
+      />
     </Animated.View>
   );
 }
@@ -226,7 +250,22 @@ const s = StyleSheet.create({
   },
   tagText: { fontSize: 10, fontWeight: "700", color: colors.textSecondary },
 
-  actions: { flexDirection: "row", gap: 8 },
+  actions: { flexDirection: "column", gap: 8 },
+  actionsRow: { flexDirection: "row", gap: 8 },
+  btnFloors: {
+    width: "100%",
+    backgroundColor: "rgba(0,200,83,0.1)",
+    borderRadius: radius.md,
+    paddingVertical: 12,
+    alignItems: "center",
+    borderWidth: 1,
+    borderColor: "rgba(0,200,83,0.25)",
+  },
+  btnFloorsText: {
+    fontSize: 12,
+    fontWeight: "800",
+    color: colors.primary,
+  },
   btnPrimary: {
     flex: 1,
     backgroundColor: colors.primary,

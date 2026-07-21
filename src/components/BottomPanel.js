@@ -41,7 +41,7 @@ export default function BottomPanel({
   // Notify parent of height changes so FABs can reposition
   useEffect(() => {
     onPanelChange?.(panelHeight);
-  }, [panelHeight]);
+  }, [panelHeight, onPanelChange]);
 
   const panResponder = useRef(
     PanResponder.create({

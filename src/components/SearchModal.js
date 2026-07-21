@@ -195,8 +195,7 @@ export default function SearchModal({ visible, onClose, onSelect }) {
 
 const s = StyleSheet.create({
   backdrop: {
-    position: "absolute",
-    inset: 0,
+    ...StyleSheet.absoluteFillObject,
     backgroundColor: "rgba(0,0,0,0.6)",
   },
   sheet: {

@@ -19,14 +19,18 @@ const Stack = createStackNavigator();
 export default function App() {
   const [appState, setAppState] = useState("splash");
   const [hasOnboarded, setHasOnboarded] = useState(false);
+  const [onboardChecked, setOnboardChecked] = useState(false);
 
   useEffect(() => {
     AsyncStorage.getItem("wayfinder_onboarded").then((val) => {
       setHasOnboarded(val === "true");
+      setOnboardChecked(true);
     });
   }, []);
 
   function handleSplashFinish() {
+    // Don't transition until the AsyncStorage read is complete
+    if (!onboardChecked) return;
     setAppState(hasOnboarded ? "ready" : "onboarding");
   }
 

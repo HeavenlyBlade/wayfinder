@@ -6,20 +6,14 @@ function Chip({ color, label }) {
   const pulse = useRef(new Animated.Value(1)).current;
 
   useEffect(() => {
-    Animated.loop(
+    const loop = Animated.loop(
       Animated.sequence([
-        Animated.timing(pulse, {
-          toValue: 0.3,
-          duration: 800,
-          useNativeDriver: true,
-        }),
-        Animated.timing(pulse, {
-          toValue: 1,
-          duration: 800,
-          useNativeDriver: true,
-        }),
+        Animated.timing(pulse, { toValue: 0.3, duration: 800, useNativeDriver: true }),
+        Animated.timing(pulse, { toValue: 1,   duration: 800, useNativeDriver: true }),
       ]),
-    ).start();
+    );
+    loop.start();
+    return () => loop.stop();
   }, []);
 
   return (
@@ -32,13 +26,19 @@ function Chip({ color, label }) {
   );
 }
 
-export default function StatusChips({ arActive, isOffline }) {
+export default function StatusChips({ arActive, isOffline, offlineModeEnabled }) {
   return (
     <View style={s.row}>
       <Chip color={colors.primary} label="GPS Active" />
       <Chip
-        color={isOffline ? colors.warning : "#8aabff"}
-        label={isOffline ? "AI Offline" : "AI Ready"}
+        color={isOffline || offlineModeEnabled ? colors.warning : "#8aabff"}
+        label={
+          offlineModeEnabled 
+            ? "Offline Mode" 
+            : isOffline 
+              ? "No Internet" 
+              : "AI Online"
+        }
       />
       <Chip
         color={arActive ? colors.primary : colors.warning}

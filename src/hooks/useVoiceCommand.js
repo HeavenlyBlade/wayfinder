@@ -1,20 +1,24 @@
 // ─────────────────────────────────────────────────────────────────────────────
-// useVoiceCommand — offline-first voice navigation hook
+// useVoiceCommand — intelligent voice navigation hook with offline/online modes
 //
 // Flow:
 //   1. Record audio on-device via expo-audio
-//   2. Try to POST to backend (Whisper STT + LLaMA) — best quality
-//   3. If server unreachable or times out → fall back to expo-speech
-//      recognition stub + offline keyword matcher
+//   2. Check settings.offlineMode:
+//      - If ON (forced offline): Use local keyword matcher immediately
+//      - If OFF (auto): Check internet connectivity
+//        → Online: POST to backend (Whisper STT + LLaMA) — best quality
+//        → Offline: Fall back to local keyword matcher
+//   3. Server timeout (6s) also triggers offline fallback
 //
 // The hook exposes the same API as before so no screen changes are needed.
 // ─────────────────────────────────────────────────────────────────────────────
 
-import { useState, useRef } from 'react';
+import { useState } from 'react';
 import { useAudioRecorder, AudioModule, RecordingPresets } from 'expo-audio';
-import * as Speech from 'expo-speech';
 import { API_BASE } from '../constants/api';
 import { resolveDestination, buildReply } from '../utils/offlineVoice';
+import { checkInternetConnection } from '../utils/networkStatus';
+import { useSettings } from '../context/SettingsContext';
 
 // How long to wait for the server before giving up (ms)
 const SERVER_TIMEOUT_MS = 6000;
@@ -42,6 +46,7 @@ export default function useVoiceCommand() {
   const [destId,      setDestId]      = useState(null);
   const [isOffline,   setIsOffline]   = useState(false); // true when using offline fallback
 
+  const { settings } = useSettings();
   const audioRecorder = useAudioRecorder(RecordingPresets.HIGH_QUALITY);
 
   async function startListening() {
@@ -66,7 +71,28 @@ export default function useVoiceCommand() {
       const uri = audioRecorder.uri;
       if (!uri) return;
 
-      // ── 1. Try server (Whisper + LLaMA) ─────────────────────────────────
+      // ── 1. Check if we should use offline mode ──────────────────────────
+      const forceOffline = settings.offlineMode; // User explicitly enabled offline mode
+      let shouldUseOffline = forceOffline;
+
+      // If not forced offline, check internet connectivity
+      if (!forceOffline) {
+        const hasInternet = await checkInternetConnection(3000);
+        shouldUseOffline = !hasInternet;
+        
+        if (!hasInternet) {
+          console.log('⚠️ No internet detected, using offline voice processing');
+        }
+      } else {
+        console.log('📵 Offline mode enabled in settings, skipping server');
+      }
+
+      // ── 2. If offline mode (forced or no internet), use local matcher ───
+      if (shouldUseOffline) {
+        return _resolveOffline('');
+      }
+
+      // ── 3. Try server (Whisper + LLaMA) ─────────────────────────────────
       try {
         const formData = new FormData();
         formData.append('audio', { uri, type: 'audio/m4a', name: 'command.m4a' });
@@ -92,6 +118,7 @@ export default function useVoiceCommand() {
 
       } catch (_serverErr) {
         // Server unreachable / timed out — go fully offline
+        console.log('❌ Server timeout, falling back to offline mode');
         return _resolveOffline('');
       }
 

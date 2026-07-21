@@ -21,24 +21,16 @@ export default function SplashScreen({ onFinish }) {
     // Step 1 — rings expand from center
     Animated.parallel([
       Animated.timing(ringOpacity1, {
-        toValue: 1,
-        duration: 600,
-        useNativeDriver: true,
+        toValue: 1, duration: 600, useNativeDriver: true,
       }),
       Animated.timing(ringScale1, {
-        toValue: 1,
-        duration: 600,
-        useNativeDriver: true,
+        toValue: 1, duration: 600, useNativeDriver: true,
       }),
       Animated.timing(ringOpacity2, {
-        toValue: 1,
-        duration: 800,
-        useNativeDriver: true,
+        toValue: 1, duration: 800, useNativeDriver: true,
       }),
       Animated.timing(ringScale2, {
-        toValue: 1,
-        duration: 800,
-        useNativeDriver: true,
+        toValue: 1, duration: 800, useNativeDriver: true,
       }),
     ]).start();
 
@@ -47,15 +39,10 @@ export default function SplashScreen({ onFinish }) {
       Animated.delay(300),
       Animated.parallel([
         Animated.spring(logoScale, {
-          toValue: 1,
-          tension: 80,
-          friction: 7,
-          useNativeDriver: true,
+          toValue: 1, tension: 80, friction: 7, useNativeDriver: true,
         }),
         Animated.timing(logoOpacity, {
-          toValue: 1,
-          duration: 300,
-          useNativeDriver: true,
+          toValue: 1, duration: 300, useNativeDriver: true,
         }),
       ]),
     ]).start();
@@ -64,61 +51,38 @@ export default function SplashScreen({ onFinish }) {
     Animated.sequence([
       Animated.delay(600),
       Animated.timing(textOpacity, {
-        toValue: 1,
-        duration: 400,
-        useNativeDriver: true,
+        toValue: 1, duration: 400, useNativeDriver: true,
       }),
     ]).start();
 
-    // Step 4 — loading dots pulse
-    Animated.sequence([
-      Animated.delay(900),
-      Animated.loop(
-        Animated.stagger(180, [
-          Animated.sequence([
-            Animated.timing(dotAnim1, {
-              toValue: 1,
-              duration: 300,
-              useNativeDriver: true,
-            }),
-            Animated.timing(dotAnim1, {
-              toValue: 0.3,
-              duration: 300,
-              useNativeDriver: true,
-            }),
-          ]),
-          Animated.sequence([
-            Animated.timing(dotAnim2, {
-              toValue: 1,
-              duration: 300,
-              useNativeDriver: true,
-            }),
-            Animated.timing(dotAnim2, {
-              toValue: 0.3,
-              duration: 300,
-              useNativeDriver: true,
-            }),
-          ]),
-          Animated.sequence([
-            Animated.timing(dotAnim3, {
-              toValue: 1,
-              duration: 300,
-              useNativeDriver: true,
-            }),
-            Animated.timing(dotAnim3, {
-              toValue: 0.3,
-              duration: 300,
-              useNativeDriver: true,
-            }),
-          ]),
+    // Step 4 — loading dots pulse (store ref so we can stop it on unmount)
+    const dotLoop = Animated.loop(
+      Animated.stagger(180, [
+        Animated.sequence([
+          Animated.timing(dotAnim1, { toValue: 1, duration: 300, useNativeDriver: true }),
+          Animated.timing(dotAnim1, { toValue: 0.3, duration: 300, useNativeDriver: true }),
         ]),
-      ),
-    ]).start();
+        Animated.sequence([
+          Animated.timing(dotAnim2, { toValue: 1, duration: 300, useNativeDriver: true }),
+          Animated.timing(dotAnim2, { toValue: 0.3, duration: 300, useNativeDriver: true }),
+        ]),
+        Animated.sequence([
+          Animated.timing(dotAnim3, { toValue: 1, duration: 300, useNativeDriver: true }),
+          Animated.timing(dotAnim3, { toValue: 0.3, duration: 300, useNativeDriver: true }),
+        ]),
+      ]),
+    );
+    const dotDelayedLoop = Animated.sequence([Animated.delay(900), dotLoop]);
+    dotDelayedLoop.start();
 
-    // Step 5 — navigate to onboarding after 3 seconds
+    // Step 5 — navigate after 3 seconds
     const timer = setTimeout(() => onFinish(), 3000);
-    return () => clearTimeout(timer);
-  }, []);
+
+    return () => {
+      clearTimeout(timer);
+      dotLoop.stop();
+    };
+  }, [onFinish]);
 
   return (
     <View style={s.container}>

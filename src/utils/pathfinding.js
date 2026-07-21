@@ -1,6 +1,10 @@
 import { NODES, buildGraph } from '../constants/campusGraph';
 import { distanceTo } from './arMath';
 
+// Build the graph once at module load — NODES and EDGES are static constants
+// so there is no reason to recompute Haversine distances on every A* call.
+const GRAPH = buildGraph();
+
 // ── Haversine heuristic for A* ────────────────────────────────────────────────
 function heuristic(aId, bId) {
   const a = NODES[aId];
@@ -16,7 +20,7 @@ export function aStar(startId, goalId) {
   if (!NODES[startId] || !NODES[goalId]) return [];
   if (startId === goalId) return [startId];
 
-  const graph    = buildGraph();
+  const graph    = GRAPH;
   const open     = new Set([startId]);
   const cameFrom = {};
   const gScore   = { [startId]: 0 };

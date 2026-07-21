@@ -21,7 +21,7 @@ const ALIASES = {
                    'registrar', 'cashier', 'library', 'clinic', 'guidance',
                    'presidents office', 'comlab', 'computer lab'],
   new_building:   ['new building', 'new bldg', 'admission', 'admissions',
-                   'cashier', 'registrar', 'ibed library'],
+                   'ibed library', 'physical therapy'],
   ea_tower:       ['ea tower', 'ea', 'tower', 'the hub', 'restaurant',
                    'hospitality', 'tourism', 'hrm tower'],
   ibed:           ['ibed', 'ibed building', 'integrated basic education',
@@ -36,8 +36,8 @@ const ALIASES = {
   kindergarten:   ['kindergarten', 'kinder', 'kinder building', 'nursery'],
   ccss:           ['ccss', 'criminology', 'criminal justice'],
   gate:           ['gate', 'main gate', 'entrance', 'exit'],
-  parking_lot:    ['parking', 'parking lot', 'car park'],
-  motorcycle_parking: ['motorcycle parking', 'moto parking', 'motor parking', 'parking'],
+  parking_lot:    ['parking', 'parking lot', 'car park', 'car parking'],
+  motorcycle_parking: ['motorcycle parking', 'moto parking', 'motor parking', 'motorbike'],
 };
 
 // ── Normalise text ────────────────────────────────────────────────────────────

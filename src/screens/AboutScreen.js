@@ -138,7 +138,6 @@ const s = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
-  backText: { fontSize: 16, color: "#fff", fontWeight: "700" },
   headerTitle: { fontSize: 16, fontWeight: "900", color: "#ffffff" },
 
   identityCard: {
