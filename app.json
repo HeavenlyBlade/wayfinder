@@ -40,7 +40,14 @@
       ],
       "expo-audio",
       "expo-sensors",
-      "expo-asset"
+      "expo-asset",
+      [
+        "expo-navigation-bar",
+        {
+          "position": "absolute",
+          "visibility": "hidden"
+        }
+      ]
     ],
     "extra": {
       "eas": {
