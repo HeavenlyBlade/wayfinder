@@ -4,13 +4,15 @@ import {
   View, Text, TouchableOpacity, StyleSheet,
   Dimensions, Animated,
 } from "react-native";
+import MapView, {
+  Polygon, Polyline, Marker, PROVIDER_GOOGLE,
+} from "react-native-maps";
 import {
   IconSearch, IconMic, IconMicOff,
   IconEye, IconLayers, IconArrowLeft,
 } from "../components/icons/index";
 import { SafeAreaView } from "react-native-safe-area-context";
 
-import CampusMapSVG     from "../components/CampusMapSVG";
 import { BUILDINGS }    from "../constants/buildings";
 import { NODES }        from "../constants/campusGraph";
 import { distanceTo }   from "../utils/arMath";
@@ -26,23 +28,63 @@ import { useSettings }  from "../context/SettingsContext";
 
 const { height: H } = Dimensions.get("window");
 
+// Campus center — used as initial map region
+const CAMPUS_CENTER = {
+  latitude:       13.961706,
+  longitude:      121.612236,
+  latitudeDelta:  0.0035,
+  longitudeDelta: 0.0030,
+};
+
 // How close (metres) to destination before auto-clearing route on map
 const ARRIVAL_DIST = 10;
 
+// ── Building polygon overlay data ─────────────────────────────────────────────
+// Coordinates mirror BUILDING_POLYGONS in CampusMapSVG.
+// color    = fill (semi-transparent)
+// stroke   = border
+const BUILDING_OVERLAYS = [
+  { id: 'gate',               name: 'Main Gate',    fillColor: 'rgba(74,103,65,0.45)',  strokeColor: '#4a6741',
+    coordinates: [{ latitude: 13.960973, longitude: 121.611242 },{ latitude: 13.960945, longitude: 121.611378 },{ latitude: 13.960904, longitude: 121.611376 },{ latitude: 13.960923, longitude: 121.611214 }] },
+  { id: 'motorcycle_parking', name: 'Moto Parking', fillColor: 'rgba(58,58,46,0.45)',   strokeColor: '#3a3a2e',
+    coordinates: [{ latitude: 13.961333, longitude: 121.611508 },{ latitude: 13.961294, longitude: 121.611572 },{ latitude: 13.961197, longitude: 121.611539 },{ latitude: 13.961181, longitude: 121.611431 }] },
+  { id: 'parking_lot',        name: 'Parking Lot',  fillColor: 'rgba(46,46,36,0.45)',   strokeColor: '#2e2e24',
+    coordinates: [{ latitude: 13.961133, longitude: 121.611678 },{ latitude: 13.961108, longitude: 121.612531 },{ latitude: 13.961036, longitude: 121.612508 },{ latitude: 13.961031, longitude: 121.612394 },{ latitude: 13.960892, longitude: 121.612375 },{ latitude: 13.960914, longitude: 121.611722 }] },
+  { id: 'main_building',      name: 'Main Building',fillColor: 'rgba(30,58,106,0.55)',  strokeColor: '#3a6acc',
+    coordinates: [{ latitude: 13.962275, longitude: 121.612361 },{ latitude: 13.962236, longitude: 121.612714 },{ latitude: 13.962069, longitude: 121.612697 },{ latitude: 13.962075, longitude: 121.612522 },{ latitude: 13.961722, longitude: 121.612481 },{ latitude: 13.961739, longitude: 121.6123 }] },
+  { id: 'new_building',       name: 'New Building', fillColor: 'rgba(26,53,80,0.55)',   strokeColor: '#2a6090',
+    coordinates: [{ latitude: 13.961325, longitude: 121.611739 },{ latitude: 13.961303, longitude: 121.612431 },{ latitude: 13.961197, longitude: 121.612422 },{ latitude: 13.961222, longitude: 121.611717 }] },
+  { id: 'ea_tower',           name: 'EA Tower',     fillColor: 'rgba(42,58,26,0.55)',   strokeColor: '#5a8a30',
+    coordinates: [{ latitude: 13.962092, longitude: 121.612728 },{ latitude: 13.962053, longitude: 121.612906 },{ latitude: 13.961753, longitude: 121.612811 },{ latitude: 13.961792, longitude: 121.612653 }] },
+  { id: 'ibed',               name: 'IBED',         fillColor: 'rgba(26,58,40,0.55)',   strokeColor: '#2a8050',
+    coordinates: [{ latitude: 13.961578, longitude: 121.611967 },{ latitude: 13.961572, longitude: 121.612086 },{ latitude: 13.961478, longitude: 121.612083 },{ latitude: 13.961472, longitude: 121.612356 },{ latitude: 13.961556, longitude: 121.612369 },{ latitude: 13.96155, longitude: 121.612453 },{ latitude: 13.961317, longitude: 121.612447 },{ latitude: 13.961331, longitude: 121.611961 }] },
+  { id: 'canteen',            name: 'Canteen 1',    fillColor: 'rgba(74,48,16,0.55)',   strokeColor: '#c07820',
+    coordinates: [{ latitude: 13.961622, longitude: 121.611911 },{ latitude: 13.961528, longitude: 121.611944 },{ latitude: 13.961331, longitude: 121.611958 },{ latitude: 13.961339, longitude: 121.611581 }] },
+  { id: 'kindergarten',       name: 'Kindergarten', fillColor: 'rgba(58,46,20,0.55)',   strokeColor: '#b08030',
+    coordinates: [{ latitude: 13.962078, longitude: 121.612144 },{ latitude: 13.96205, longitude: 121.612256 },{ latitude: 13.961672, longitude: 121.612122 },{ latitude: 13.961703, longitude: 121.612008 }] },
+  { id: 'chapel',             name: 'Chapel',       fillColor: 'rgba(74,32,32,0.55)',   strokeColor: '#cc4444',
+    coordinates: [{ latitude: 13.961694, longitude: 121.612006 },{ latitude: 13.961672, longitude: 121.612097 },{ latitude: 13.961633, longitude: 121.612083 },{ latitude: 13.961633, longitude: 121.611989 }] },
+  { id: 'kitchen_hall',       name: 'Kitchen Hall', fillColor: 'rgba(74,56,24,0.55)',   strokeColor: '#c09030',
+    coordinates: [{ latitude: 13.962481, longitude: 121.612853 },{ latitude: 13.962472, longitude: 121.612969 },{ latitude: 13.962144, longitude: 121.612936 },{ latitude: 13.962156, longitude: 121.612822 }] },
+  { id: 'canteen_two',        name: 'Canteen 2',    fillColor: 'rgba(74,48,16,0.55)',   strokeColor: '#c07820',
+    coordinates: [{ latitude: 13.961736, longitude: 121.612842 },{ latitude: 13.961708, longitude: 121.612911 },{ latitude: 13.961558, longitude: 121.612836 },{ latitude: 13.961578, longitude: 121.61275 }] },
+  { id: 'sr_building',        name: 'SR Building',  fillColor: 'rgba(58,26,48,0.55)',   strokeColor: '#9a3a80',
+    coordinates: [{ latitude: 13.961581, longitude: 121.612667 },{ latitude: 13.961561, longitude: 121.612783 },{ latitude: 13.961169, longitude: 121.612678 },{ latitude: 13.961192, longitude: 121.612569 }] },
+  { id: 'ccss',               name: 'CCSS',         fillColor: 'rgba(26,26,58,0.55)',   strokeColor: '#3a3acc',
+    coordinates: [{ latitude: 13.961031, longitude: 121.612428 },{ latitude: 13.961028, longitude: 121.612486 },{ latitude: 13.960922, longitude: 121.612481 },{ latitude: 13.960928, longitude: 121.612406 }] },
+];
+
 // ── Resolve route waypoints (server → local A* fallback) ────────────────────
 async function resolveRoute(userLat, userLng, destinationId) {
-  // 1. Try server
   try {
     const wps = await fetchRoute(userLat, userLng, destinationId);
     if (wps && wps.length > 0) return wps;
   } catch (_) {}
 
-  // 2. Local A*
   const startNode = nearestNode(userLat, userLng);
   const pathIds   = aStar(startNode, destinationId);
   if (pathIds.length > 0) return getWaypoints(pathIds);
 
-  // 3. Straight line to destination node
   const dest = NODES[destinationId];
   if (dest) return [{ lat: userLat, lng: userLng }, { lat: dest.lat, lng: dest.lng }];
 
@@ -53,27 +95,38 @@ async function resolveRoute(userLat, userLng, destinationId) {
 
 export default function MapScreen({ navigation, route }) {
   const [selectedBuilding, setSelectedBuilding] = useState(null);
-  const [selectedPolygon,  setSelectedPolygon]  = useState(null);
+  const [selectedPolygonId, setSelectedPolygonId] = useState(null);
   const [panelHeight,      setPanelHeight]      = useState(58);
   const [searchVisible,    setSearchVisible]    = useState(false);
-  const [routeWaypoints,   setRouteWaypoints]   = useState(null); // drawn on SVG map
+  const [routeWaypoints,   setRouteWaypoints]   = useState(null);
 
+  const mapRef   = useRef(null);
   const cardAnim = useRef(new Animated.Value(0)).current;
 
-  const { settings }                    = useSettings();
-  const { location: userLocation }      = useLocation();
+  const { settings }               = useSettings();
+  const { location: userLocation } = useLocation();
   const {
     isListening, aiReply, destId,
     isOffline, startListening, stopListening,
   } = useVoiceCommand();
 
-  // ── Building selection helpers (defined first — used by effects below) ─────
-  const selectBuilding = useCallback((idOrPolyKey, building) => {
-    setSelectedPolygon(idOrPolyKey);
+  // ── Building selection helpers ────────────────────────────────────────────
+  const selectBuilding = useCallback((buildingId, building) => {
+    setSelectedPolygonId(buildingId);
     setSelectedBuilding(building);
     Animated.spring(cardAnim, {
       toValue: 1, useNativeDriver: true, tension: 80, friction: 10,
     }).start();
+    // Animate map camera to the building
+    const node = NODES[buildingId];
+    if (node && mapRef.current) {
+      mapRef.current.animateToRegion({
+        latitude:      node.lat,
+        longitude:     node.lng,
+        latitudeDelta:  0.0015,
+        longitudeDelta: 0.0015,
+      }, 600);
+    }
   }, [cardAnim]);
 
   const closeCard = useCallback(() => {
@@ -81,7 +134,7 @@ export default function MapScreen({ navigation, route }) {
       toValue: 0, duration: 180, useNativeDriver: true,
     }).start(() => {
       setSelectedBuilding(null);
-      setSelectedPolygon(null);
+      setSelectedPolygonId(null);
     });
   }, [cardAnim]);
 
@@ -105,27 +158,26 @@ export default function MapScreen({ navigation, route }) {
     const node = NODES[selectedBuilding.id];
     if (!node) return;
     const d = distanceTo(userLocation.lat, userLocation.lng, node.lat, node.lng);
-    if (d < ARRIVAL_DIST) {
-      setRouteWaypoints(null);
-    }
+    if (d < ARRIVAL_DIST) setRouteWaypoints(null);
   }, [userLocation, selectedBuilding]);
 
   // ── Start navigation ──────────────────────────────────────────────────────
   const startNavigation = useCallback(async (building) => {
     closeCard();
-
-    // Draw route on SVG map regardless of AR setting
     if (userLocation) {
-      const wps = await resolveRoute(
-        userLocation.lat, userLocation.lng, building.id,
-      );
+      const wps = await resolveRoute(userLocation.lat, userLocation.lng, building.id);
       setRouteWaypoints(wps.length > 0 ? wps : null);
+      // Fit map to show full route
+      if (wps.length > 0 && mapRef.current) {
+        mapRef.current.fitToCoordinates(
+          wps.map(w => ({ latitude: w.lat, longitude: w.lng })),
+          { edgePadding: { top: 120, right: 40, bottom: 200, left: 40 }, animated: true },
+        );
+      }
     }
-
     if (settings.arMode) {
       navigation.navigate("AR", { destinationId: building.id });
     }
-    // If AR off — user sees the route line on the SVG map
   }, [userLocation, settings.arMode, navigation, closeCard]);
 
   function handleMicPress() {
@@ -133,24 +185,113 @@ export default function MapScreen({ navigation, route }) {
     isListening ? stopListening() : startListening();
   }
 
+  // Convert route waypoints to MapView coordinate format
+  const routeCoords = routeWaypoints
+    ? routeWaypoints.map(w => ({ latitude: w.lat, longitude: w.lng }))
+    : null;
+
   return (
     <View style={s.container}>
 
-      {/* ── Offline SVG Campus Map ── */}
-      <CampusMapSVG
-        userLocation={settings.gpsTracking ? userLocation : null}
-        routeWaypoints={routeWaypoints}
-        selectedBuildingId={selectedPolygon}
-        onBuildingPress={(buildingId) => {
-          const building = BUILDINGS[buildingId];
-          if (building) selectBuilding(buildingId, building);
-        }}
-      />
+      {/* ── Real Map ── */}
+      <MapView
+        ref={mapRef}
+        style={StyleSheet.absoluteFill}
+        provider={PROVIDER_GOOGLE}
+        mapType="satellite"
+        initialRegion={CAMPUS_CENTER}
+        showsUserLocation={settings.gpsTracking}
+        showsMyLocationButton={false}
+        showsCompass={true}
+        showsScale={false}
+        toolbarEnabled={false}
+        rotateEnabled={true}
+        pitchEnabled={false}
+      >
+        {/* Building polygon overlays */}
+        {BUILDING_OVERLAYS.map(b => {
+          const sel = selectedPolygonId === b.id;
+          return (
+            <Polygon
+              key={b.id}
+              coordinates={b.coordinates}
+              fillColor={sel ? b.fillColor.replace('0.45', '0.75').replace('0.55', '0.85') : b.fillColor}
+              strokeColor={sel ? '#00C853' : b.strokeColor}
+              strokeWidth={sel ? 3 : 1.5}
+              tappable
+              onPress={() => {
+                const building = BUILDINGS[b.id];
+                if (building) selectBuilding(b.id, building);
+              }}
+            />
+          );
+        })}
+
+        {/* Building label markers */}
+        {BUILDING_OVERLAYS.map(b => {
+          const node = NODES[b.id];
+          if (!node) return null;
+          const sel = selectedPolygonId === b.id;
+          return (
+            <Marker
+              key={`m-${b.id}`}
+              coordinate={{ latitude: node.lat, longitude: node.lng }}
+              anchor={{ x: 0.5, y: 0.5 }}
+              tracksViewChanges={false}
+              onPress={() => {
+                const building = BUILDINGS[b.id];
+                if (building) selectBuilding(b.id, building);
+              }}
+            >
+              <View style={[s.markerLabel, sel && s.markerLabelSel]}>
+                <Text style={[s.markerText, sel && s.markerTextSel]} numberOfLines={1}>
+                  {b.name}
+                </Text>
+              </View>
+            </Marker>
+          );
+        })}
+
+        {/* Route polyline */}
+        {routeCoords && routeCoords.length > 1 && (
+          <>
+            {/* Shadow */}
+            <Polyline
+              coordinates={routeCoords}
+              strokeColor="rgba(0,0,0,0.4)"
+              strokeWidth={8}
+              lineCap="round"
+              lineJoin="round"
+            />
+            {/* Main route line */}
+            <Polyline
+              coordinates={routeCoords}
+              strokeColor="#00C853"
+              strokeWidth={4}
+              lineDashPattern={[16, 10]}
+              lineCap="round"
+              lineJoin="round"
+            />
+          </>
+        )}
+
+        {/* Route destination pin */}
+        {routeCoords && routeCoords.length > 0 && (
+          <Marker
+            coordinate={routeCoords[routeCoords.length - 1]}
+            anchor={{ x: 0.5, y: 1 }}
+            tracksViewChanges={false}
+          >
+            <View style={s.destPin}>
+              <View style={s.destPinInner} />
+            </View>
+          </Marker>
+        )}
+      </MapView>
 
       {/* ── Top overlay ── */}
       <SafeAreaView style={s.topOverlay} edges={["top"]}>
         <View style={s.searchRow}>
-          {/* Back */}
           <TouchableOpacity
             style={s.backBtn}
             onPress={() => navigation.goBack()}
@@ -159,7 +300,6 @@ export default function MapScreen({ navigation, route }) {
             <IconArrowLeft size={18} color="#ffffff" />
           </TouchableOpacity>
 
-          {/* Search pill */}
           <TouchableOpacity
             style={s.searchPill}
             onPress={() => setSearchVisible(true)}
@@ -181,19 +321,15 @@ export default function MapScreen({ navigation, route }) {
           </TouchableOpacity>
         </View>
 
-        {/* Status chips */}
-        <StatusChips 
-          arActive={settings.arMode} 
-          isOffline={isOffline} 
+        <StatusChips
+          arActive={settings.arMode}
+          isOffline={isOffline}
           offlineModeEnabled={settings.offlineMode}
         />
 
-        {/* AI / voice reply bubble */}
         {aiReply ? (
           <View style={s.aiBubble}>
-            <Text style={s.aiText}>
-              {isOffline ? "📵" : "🤖"} {aiReply}
-            </Text>
+            <Text style={s.aiText}>{isOffline ? "📵" : "🤖"} {aiReply}</Text>
           </View>
         ) : null}
       </SafeAreaView>
@@ -201,18 +337,18 @@ export default function MapScreen({ navigation, route }) {
       {/* ── FABs ── */}
       {panelHeight < H * 0.75 && (
         <View style={[s.fabs, { bottom: panelHeight + 12 }]}>
-          {/* Clear route */}
           {routeWaypoints && (
             <TouchableOpacity
               style={s.fab}
-              onPress={() => setRouteWaypoints(null)}
+              onPress={() => {
+                setRouteWaypoints(null);
+                mapRef.current?.animateToRegion(CAMPUS_CENTER, 500);
+              }}
               activeOpacity={0.8}
             >
               <IconLayers size={20} color="#1a3a1a" />
             </TouchableOpacity>
           )}
-
-          {/* AR toggle */}
           <TouchableOpacity
             style={[s.fab, s.fabAR, !settings.arMode && s.fabAROff]}
             onPress={() => {
@@ -223,10 +359,7 @@ export default function MapScreen({ navigation, route }) {
             }}
             activeOpacity={settings.arMode ? 0.8 : 1}
           >
-            <IconEye
-              size={20}
-              color={settings.arMode ? "#071209" : "rgba(255,255,255,0.4)"}
-            />
+            <IconEye size={20} color={settings.arMode ? "#071209" : "rgba(255,255,255,0.4)"} />
           </TouchableOpacity>
         </View>
       )}
@@ -322,6 +455,46 @@ const s = StyleSheet.create({
     alignItems: "center", justifyContent: "center",
     shadowColor: "#000", shadowOpacity: 0.3, shadowRadius: 8, elevation: 6,
   },
-  fabAR:  { backgroundColor: "#00C853" },
+  fabAR:    { backgroundColor: "#00C853" },
   fabAROff: { backgroundColor: "rgba(0,200,83,0.3)" },
+
+  // Building label markers
+  markerLabel: {
+    backgroundColor: "rgba(0,0,0,0.65)",
+    borderRadius: 6,
+    paddingHorizontal: 6,
+    paddingVertical: 3,
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.2)",
+  },
+  markerLabelSel: {
+    backgroundColor: "rgba(0,200,83,0.85)",
+    borderColor: "#fff",
+  },
+  markerText: {
+    fontSize: 10,
+    fontWeight: "700",
+    color: "rgba(255,255,255,0.9)",
+  },
+  markerTextSel: {
+    color: "#071209",
+  },
+
+  // Route destination pin
+  destPin: {
+    width: 20,
+    height: 20,
+    borderRadius: 10,
+    backgroundColor: "#00C853",
+    borderWidth: 2,
+    borderColor: "#fff",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  destPinInner: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: "#fff",
+  },
 });

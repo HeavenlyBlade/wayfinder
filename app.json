@@ -17,6 +17,11 @@
         "backgroundColor": "#071209"
       },
       "package": "com.sacli.wayfinder",
+      "config": {
+        "googleMaps": {
+          "apiKey": "AIzaSyBaf5WfvKmZ47pkc9v4XJiLFQa8d7--pOU"
+        }
+      },
       "permissions": [
         "android.permission.CAMERA",
         "android.permission.ACCESS_FINE_LOCATION",
