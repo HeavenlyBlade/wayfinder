@@ -19,6 +19,7 @@ import { NODES } from "../constants/campusGraph";
 import { BUILDINGS } from "../constants/buildings";
 import { fetchRoute } from "../services/api";
 import { colors, radius } from "../constants/theme";
+import { IconArrowLeft } from "../components/icons/index";
 
 const { width: W, height: H } = Dimensions.get("window");
 
@@ -448,7 +449,7 @@ export default function ARScreen({ route, navigation }) {
       {!arrived && (
         <SafeAreaView style={s.backWrap} edges={["top"]}>
           <TouchableOpacity style={s.backBtn} onPress={() => navigation.goBack()} activeOpacity={0.8}>
-            <Text style={s.backText}>← Map</Text>
+            <IconArrowLeft size={18} color="#ffffff" />
           </TouchableOpacity>
         </SafeAreaView>
       )}
@@ -592,19 +593,20 @@ const s = StyleSheet.create({
   },
   arrivalBtnText: { fontSize: 14, fontWeight: "800", color: colors.primaryText },
 
-  // Back button
+  // Back button — same circle style used across all screens
   backWrap: { position: "absolute", top: 0, left: 0 },
   backBtn: {
     marginTop: Platform.OS === "android" ? 40 : 10,
     marginLeft: 16,
-    backgroundColor: "rgba(0,0,0,0.78)",
-    borderRadius: radius.full,
-    paddingHorizontal: 16,
-    paddingVertical: 10,
+    width: 38,
+    height: 38,
+    borderRadius: 19,
+    backgroundColor: "rgba(0,0,0,0.6)",
     borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.1)",
+    borderColor: "rgba(255,255,255,0.15)",
+    alignItems: "center",
+    justifyContent: "center",
   },
-  backText: { fontSize: 14, fontWeight: "700", color: "#fff" },
 
   // Permission / error screen
   permIcon: { fontSize: 52 },

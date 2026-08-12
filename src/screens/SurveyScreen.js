@@ -1,12 +1,13 @@
 import React, { useState, useEffect, useRef } from 'react';
 import {
   View, Text, StyleSheet, TouchableOpacity,
-  ScrollView, Alert, Vibration,
+  ScrollView, Alert, Vibration, TextInput,
 } from 'react-native';
 import * as Clipboard from 'expo-clipboard';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import * as Location from 'expo-location';
 import { radius } from '../constants/theme';
+import { IconArrowLeft } from '../components/icons/index';
 
 // Accuracy threshold — only accept readings this good or better (metres)
 const ACCURACY_THRESHOLD = 5;
@@ -21,6 +22,8 @@ export default function SurveyScreen({ navigation }) {
   const [avgLat,       setAvgLat]       = useState(null);
   const [avgLng,       setAvgLng]       = useState(null);
   const [avgAcc,       setAvgAcc]       = useState(null);
+  const [editingId,    setEditingId]    = useState(null);   // id of point being renamed
+  const [editingName,  setEditingName]  = useState('');     // current text in rename input
 
   const subRef     = useRef(null);
   const readingBuf = useRef([]); // rolling buffer of last N readings for averaging
@@ -106,6 +109,20 @@ export default function SurveyScreen({ navigation }) {
     setSavedPoints(prev => prev.filter(p => p.id !== id));
   }
 
+  function startEdit(point) {
+    setEditingId(point.id);
+    setEditingName(point.name);
+  }
+
+  function commitEdit(id) {
+    const trimmed = editingName.trim();
+    if (trimmed) {
+      setSavedPoints(prev => prev.map(p => p.id === id ? { ...p, name: trimmed } : p));
+    }
+    setEditingId(null);
+    setEditingName('');
+  }
+
   function clearAll() {
     Alert.alert('Clear all?', 'This removes all saved points.', [
       { text: 'Cancel', style: 'cancel' },
@@ -131,7 +148,7 @@ export default function SurveyScreen({ navigation }) {
             onPress={() => navigation.goBack()}
             activeOpacity={0.8}
           >
-            <Text style={s.backText}>←</Text>
+            <IconArrowLeft size={18} color="#ffffff" />
           </TouchableOpacity>
           <Text style={s.headerTitle}>GPS Survey Tool</Text>
           <View style={[s.lockBadge, { backgroundColor: isLocked ? 'rgba(0,200,83,0.2)' : 'rgba(255,193,7,0.15)' }]}>
@@ -244,7 +261,24 @@ export default function SurveyScreen({ navigation }) {
               {savedPoints.map(point => (
                 <View key={point.id} style={s.pointRow}>
                   <View style={s.pointInfo}>
-                    <Text style={s.pointName}>{point.name}</Text>
+                    {editingId === point.id ? (
+                      <TextInput
+                        style={s.pointNameInput}
+                        value={editingName}
+                        onChangeText={setEditingName}
+                        onSubmitEditing={() => commitEdit(point.id)}
+                        onBlur={() => commitEdit(point.id)}
+                        autoFocus
+                        selectTextOnFocus
+                        returnKeyType="done"
+                      />
+                    ) : (
+                      <TouchableOpacity onPress={() => startEdit(point)} activeOpacity={0.7}>
+                        <Text style={s.pointName}>
+                          {point.name} <Text style={s.editHint}>✎</Text>
+                        </Text>
+                      </TouchableOpacity>
+                    )}
                     <Text style={s.pointCoord}>
                       {point.lat.toFixed(7)}, {point.lng.toFixed(7)}
                     </Text>
@@ -296,7 +330,6 @@ const s = StyleSheet.create({
     backgroundColor: 'rgba(255,255,255,0.06)',
     alignItems: 'center', justifyContent: 'center',
   },
-  backText:    { fontSize: 16, color: '#fff', fontWeight: '700' },
   headerTitle: { fontSize: 15, fontWeight: '900', color: '#fff', flex: 1 },
   lockBadge: {
     paddingHorizontal: 10, paddingVertical: 4,
@@ -396,6 +429,12 @@ const s = StyleSheet.create({
   },
   pointInfo:  { flex: 1 },
   pointName:  { fontSize: 13, fontWeight: '800', color: '#e0e8e0' },
+  editHint:   { fontSize: 11, color: 'rgba(0,200,83,0.5)', fontWeight: '400' },
+  pointNameInput: {
+    fontSize: 13, fontWeight: '800', color: '#e0e8e0',
+    borderBottomWidth: 1, borderBottomColor: '#00C853',
+    paddingVertical: 2, minWidth: 120,
+  },
   pointCoord: { fontSize: 10, color: '#00C853', marginTop: 2, fontVariant: ['tabular-nums'] },
   pointMeta:  { fontSize: 10, color: 'rgba(255,255,255,0.3)', marginTop: 2 },
   pointBtns:  { gap: 6 },
