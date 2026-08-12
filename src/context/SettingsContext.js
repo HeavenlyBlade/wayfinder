@@ -7,7 +7,7 @@ const DEFAULTS = {
   arMode: true,
   gpsTracking: true,
   voiceCommands: true,
-  offlineMode: false,  // When ON, force offline voice processing even if internet available
+  offlineMode: true,  // ON by default — uses offline keyword matcher, no server call
 };
 
 const SettingsContext = createContext(null);

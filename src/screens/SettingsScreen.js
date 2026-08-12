@@ -14,7 +14,6 @@ import {
   IconArrowLeft,
   IconEye,
   IconPin,
-  IconMic,
   IconGlobe,
   IconInfo,
   IconChevronRight,
@@ -107,14 +106,6 @@ export default function SettingsScreen({ navigation }) {
           <SectionLabel label="AI ASSISTANT" />
           <View style={s.group}>
             <ToggleItem
-              icon={<IconMic size={18} color="rgba(255,255,255,0.5)" />}
-              name="Voice Commands"
-              sub="Say where you want to go"
-              value={settings.voiceCommands}
-              onValueChange={(val) => updateSetting("voiceCommands", val)}
-            />
-            <View style={s.divider} />
-            <ToggleItem
               icon={<IconGlobe size={18} color="rgba(255,255,255,0.5)" />}
               name="Offline Mode"
               sub="Use offline voice when ON, auto-detect when OFF"
@@ -149,8 +140,6 @@ export default function SettingsScreen({ navigation }) {
             <StatusRow label="AR Mode"       on={settings.arMode}       />
             <View style={s.divider} />
             <StatusRow label="GPS Tracking"  on={settings.gpsTracking}  />
-            <View style={s.divider} />
-            <StatusRow label="Voice Commands" on={settings.voiceCommands} />
             <View style={s.divider} />
             <View style={s.statusRow}>
               <Text style={s.statusLabel}>Offline Mode</Text>

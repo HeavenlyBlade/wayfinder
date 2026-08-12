@@ -8,7 +8,7 @@ import MapView, {
   Polygon, Polyline, Marker, PROVIDER_GOOGLE,
 } from "react-native-maps";
 import {
-  IconSearch, IconMic, IconMicOff,
+  IconSearch,
   IconEye, IconLayers, IconArrowLeft,
 } from "../components/icons/index";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -106,8 +106,8 @@ export default function MapScreen({ navigation, route }) {
   const { settings }               = useSettings();
   const { location: userLocation } = useLocation();
   const {
-    isListening, aiReply, destId,
-    isOffline, startListening, stopListening,
+    aiReply, destId,
+    isOffline,
   } = useVoiceCommand();
 
   // ── Building selection helpers ────────────────────────────────────────────
@@ -179,11 +179,6 @@ export default function MapScreen({ navigation, route }) {
       navigation.navigate("AR", { destinationId: building.id });
     }
   }, [userLocation, settings.arMode, navigation, closeCard]);
-
-  function handleMicPress() {
-    if (!settings.voiceCommands) return;
-    isListening ? stopListening() : startListening();
-  }
 
   // Convert route waypoints to MapView coordinate format
   const routeCoords = routeWaypoints
@@ -309,15 +304,6 @@ export default function MapScreen({ navigation, route }) {
             <Text style={s.searchText}>
               {selectedBuilding ? selectedBuilding.name : "Search buildings..."}
             </Text>
-            <TouchableOpacity
-              style={[s.micBtn, !settings.voiceCommands && s.micBtnDisabled]}
-              onPress={handleMicPress}
-              activeOpacity={settings.voiceCommands ? 0.8 : 1}
-            >
-              {isListening
-                ? <IconMicOff size={14} color="#071209" />
-                : <IconMic   size={14} color={settings.voiceCommands ? "#071209" : "rgba(0,0,0,0.3)"} />}
-            </TouchableOpacity>
           </TouchableOpacity>
         </View>
 
@@ -434,13 +420,6 @@ const s = StyleSheet.create({
   searchText: {
     flex: 1, fontSize: 13, fontWeight: "600", color: "rgba(0,0,0,0.45)",
   },
-  micBtn: {
-    width: 28, height: 28, borderRadius: 14,
-    backgroundColor: "#00C853",
-    alignItems: "center", justifyContent: "center",
-  },
-  micBtnDisabled: { backgroundColor: "rgba(0,200,83,0.3)" },
-
   aiBubble: {
     backgroundColor: "rgba(0,200,83,0.1)",
     borderWidth: 1, borderColor: "rgba(0,200,83,0.25)",

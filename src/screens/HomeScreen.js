@@ -9,7 +9,6 @@ import {
 } from "react-native";
 import {
   IconSearch,
-  IconMic,
   IconCompass,
   IconSettings,
 } from "../components/icons/index";
@@ -69,9 +68,6 @@ export default function HomeScreen({ navigation }) {
           >
             <IconSearch size={18} color="rgba(255,255,255,0.3)" />
             <Text style={s.searchPlaceholder}>Where do you want to go?</Text>
-            <View style={s.micBtn}>
-              <IconMic size={14} color="#071209" />
-            </View>
           </TouchableOpacity>
         </View>
 
@@ -199,14 +195,6 @@ const s = StyleSheet.create({
     fontSize: 13,
     color: "rgba(255,255,255,0.3)",
     fontWeight: "600",
-  },
-  micBtn: {
-    width: 28,
-    height: 28,
-    borderRadius: 14,
-    backgroundColor: GREEN,
-    alignItems: "center",
-    justifyContent: "center",
   },
 
   // Status chips
