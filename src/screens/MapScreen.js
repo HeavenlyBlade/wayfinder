@@ -1,15 +1,14 @@
 import "react-native-gesture-handler";
-import React, { useState, useEffect, useRef, useCallback } from "react";
-import {
+import React, { useState, useEffect, useRef, useCallback } from "react";import {
   View, Text, TouchableOpacity, StyleSheet,
-  Dimensions, Animated,
+  Dimensions,
 } from "react-native";
 import MapView, {
   Polygon, Polyline, Marker, PROVIDER_GOOGLE,
 } from "react-native-maps";
 import {
   IconSearch,
-  IconEye, IconLayers, IconArrowLeft,
+  IconPin, IconLayers, IconArrowLeft,
 } from "../components/icons/index";
 import { SafeAreaView } from "react-native-safe-area-context";
 
@@ -19,7 +18,6 @@ import { distanceTo }   from "../utils/arMath";
 import { aStar, getWaypoints, nearestNode } from "../utils/pathfinding";
 import { fetchRoute }   from "../services/api";
 import StatusChips      from "../components/StatusChips";
-import BuildingCard     from "../components/BuildingCard";
 import BottomPanel      from "../components/BottomPanel";
 import SearchModal      from "../components/SearchModal";
 import useVoiceCommand  from "../hooks/useVoiceCommand";
@@ -44,33 +42,33 @@ const ARRIVAL_DIST = 10;
 // color    = fill (semi-transparent)
 // stroke   = border
 const BUILDING_OVERLAYS = [
-  { id: 'gate',               name: 'Main Gate',    fillColor: 'rgba(74,103,65,0.45)',  strokeColor: '#4a6741',
+  { id: 'gate',               name: 'Main Gate',
     coordinates: [{ latitude: 13.960973, longitude: 121.611242 },{ latitude: 13.960945, longitude: 121.611378 },{ latitude: 13.960904, longitude: 121.611376 },{ latitude: 13.960923, longitude: 121.611214 }] },
-  { id: 'motorcycle_parking', name: 'Moto Parking', fillColor: 'rgba(58,58,46,0.45)',   strokeColor: '#3a3a2e',
+  { id: 'motorcycle_parking', name: 'Moto Parking',
     coordinates: [{ latitude: 13.961333, longitude: 121.611508 },{ latitude: 13.961294, longitude: 121.611572 },{ latitude: 13.961197, longitude: 121.611539 },{ latitude: 13.961181, longitude: 121.611431 }] },
-  { id: 'parking_lot',        name: 'Parking Lot',  fillColor: 'rgba(46,46,36,0.45)',   strokeColor: '#2e2e24',
+  { id: 'parking_lot',        name: 'Parking Lot',
     coordinates: [{ latitude: 13.961133, longitude: 121.611678 },{ latitude: 13.961108, longitude: 121.612531 },{ latitude: 13.961036, longitude: 121.612508 },{ latitude: 13.961031, longitude: 121.612394 },{ latitude: 13.960892, longitude: 121.612375 },{ latitude: 13.960914, longitude: 121.611722 }] },
-  { id: 'main_building',      name: 'Main Building',fillColor: 'rgba(30,58,106,0.55)',  strokeColor: '#3a6acc',
+  { id: 'main_building',      name: 'Main Building',
     coordinates: [{ latitude: 13.962275, longitude: 121.612361 },{ latitude: 13.962236, longitude: 121.612714 },{ latitude: 13.962069, longitude: 121.612697 },{ latitude: 13.962075, longitude: 121.612522 },{ latitude: 13.961722, longitude: 121.612481 },{ latitude: 13.961739, longitude: 121.6123 }] },
-  { id: 'new_building',       name: 'New Building', fillColor: 'rgba(26,53,80,0.55)',   strokeColor: '#2a6090',
+  { id: 'new_building',       name: 'New Building',
     coordinates: [{ latitude: 13.961325, longitude: 121.611739 },{ latitude: 13.961303, longitude: 121.612431 },{ latitude: 13.961197, longitude: 121.612422 },{ latitude: 13.961222, longitude: 121.611717 }] },
-  { id: 'ea_tower',           name: 'EA Tower',     fillColor: 'rgba(42,58,26,0.55)',   strokeColor: '#5a8a30',
+  { id: 'ea_tower',           name: 'EA Tower',
     coordinates: [{ latitude: 13.962092, longitude: 121.612728 },{ latitude: 13.962053, longitude: 121.612906 },{ latitude: 13.961753, longitude: 121.612811 },{ latitude: 13.961792, longitude: 121.612653 }] },
-  { id: 'ibed',               name: 'IBED',         fillColor: 'rgba(26,58,40,0.55)',   strokeColor: '#2a8050',
+  { id: 'ibed',               name: 'IBED',
     coordinates: [{ latitude: 13.961578, longitude: 121.611967 },{ latitude: 13.961572, longitude: 121.612086 },{ latitude: 13.961478, longitude: 121.612083 },{ latitude: 13.961472, longitude: 121.612356 },{ latitude: 13.961556, longitude: 121.612369 },{ latitude: 13.96155, longitude: 121.612453 },{ latitude: 13.961317, longitude: 121.612447 },{ latitude: 13.961331, longitude: 121.611961 }] },
-  { id: 'canteen',            name: 'Canteen 1',    fillColor: 'rgba(74,48,16,0.55)',   strokeColor: '#c07820',
+  { id: 'canteen',            name: 'Canteen 1',
     coordinates: [{ latitude: 13.961622, longitude: 121.611911 },{ latitude: 13.961528, longitude: 121.611944 },{ latitude: 13.961331, longitude: 121.611958 },{ latitude: 13.961339, longitude: 121.611581 }] },
-  { id: 'kindergarten',       name: 'Kindergarten', fillColor: 'rgba(58,46,20,0.55)',   strokeColor: '#b08030',
+  { id: 'kindergarten',       name: 'Kindergarten',
     coordinates: [{ latitude: 13.962078, longitude: 121.612144 },{ latitude: 13.96205, longitude: 121.612256 },{ latitude: 13.961672, longitude: 121.612122 },{ latitude: 13.961703, longitude: 121.612008 }] },
-  { id: 'chapel',             name: 'Chapel',       fillColor: 'rgba(74,32,32,0.55)',   strokeColor: '#cc4444',
+  { id: 'chapel',             name: 'Chapel',
     coordinates: [{ latitude: 13.961694, longitude: 121.612006 },{ latitude: 13.961672, longitude: 121.612097 },{ latitude: 13.961633, longitude: 121.612083 },{ latitude: 13.961633, longitude: 121.611989 }] },
-  { id: 'kitchen_hall',       name: 'Kitchen Hall', fillColor: 'rgba(74,56,24,0.55)',   strokeColor: '#c09030',
+  { id: 'kitchen_hall',       name: 'Kitchen Hall',
     coordinates: [{ latitude: 13.962481, longitude: 121.612853 },{ latitude: 13.962472, longitude: 121.612969 },{ latitude: 13.962144, longitude: 121.612936 },{ latitude: 13.962156, longitude: 121.612822 }] },
-  { id: 'canteen_two',        name: 'Canteen 2',    fillColor: 'rgba(74,48,16,0.55)',   strokeColor: '#c07820',
+  { id: 'canteen_two',        name: 'Canteen 2',
     coordinates: [{ latitude: 13.961736, longitude: 121.612842 },{ latitude: 13.961708, longitude: 121.612911 },{ latitude: 13.961558, longitude: 121.612836 },{ latitude: 13.961578, longitude: 121.61275 }] },
-  { id: 'sr_building',        name: 'SR Building',  fillColor: 'rgba(58,26,48,0.55)',   strokeColor: '#9a3a80',
+  { id: 'sr_building',        name: 'SR Building',
     coordinates: [{ latitude: 13.961581, longitude: 121.612667 },{ latitude: 13.961561, longitude: 121.612783 },{ latitude: 13.961169, longitude: 121.612678 },{ latitude: 13.961192, longitude: 121.612569 }] },
-  { id: 'ccss',               name: 'CCSS',         fillColor: 'rgba(26,26,58,0.55)',   strokeColor: '#3a3acc',
+  { id: 'ccss',               name: 'CCSS',
     coordinates: [{ latitude: 13.961031, longitude: 121.612428 },{ latitude: 13.961028, longitude: 121.612486 },{ latitude: 13.960922, longitude: 121.612481 },{ latitude: 13.960928, longitude: 121.612406 }] },
 ];
 
@@ -100,8 +98,8 @@ export default function MapScreen({ navigation, route }) {
   const [searchVisible,    setSearchVisible]    = useState(false);
   const [routeWaypoints,   setRouteWaypoints]   = useState(null);
 
-  const mapRef   = useRef(null);
-  const cardAnim = useRef(new Animated.Value(0)).current;
+  const mapRef    = useRef(null);
+  const panelRef  = useRef(null);
 
   const { settings }               = useSettings();
   const { location: userLocation } = useLocation();
@@ -114,10 +112,6 @@ export default function MapScreen({ navigation, route }) {
   const selectBuilding = useCallback((buildingId, building) => {
     setSelectedPolygonId(buildingId);
     setSelectedBuilding(building);
-    Animated.spring(cardAnim, {
-      toValue: 1, useNativeDriver: true, tension: 80, friction: 10,
-    }).start();
-    // Animate map camera to the building
     const node = NODES[buildingId];
     if (node && mapRef.current) {
       mapRef.current.animateToRegion({
@@ -127,16 +121,13 @@ export default function MapScreen({ navigation, route }) {
         longitudeDelta: 0.0015,
       }, 600);
     }
-  }, [cardAnim]);
+    panelRef.current?.openRoute();
+  }, []);
 
   const closeCard = useCallback(() => {
-    Animated.timing(cardAnim, {
-      toValue: 0, duration: 180, useNativeDriver: true,
-    }).start(() => {
-      setSelectedBuilding(null);
-      setSelectedPolygonId(null);
-    });
-  }, [cardAnim]);
+    setSelectedBuilding(null);
+    setSelectedPolygonId(null);
+  }, []);
 
   // ── Voice command → auto-select building ──────────────────────────────────
   useEffect(() => {
@@ -210,8 +201,8 @@ export default function MapScreen({ navigation, route }) {
             <Polygon
               key={b.id}
               coordinates={b.coordinates}
-              fillColor={sel ? b.fillColor.replace('0.45', '0.75').replace('0.55', '0.85') : b.fillColor}
-              strokeColor={sel ? '#00C853' : b.strokeColor}
+              fillColor={sel ? 'rgba(0,200,83,0.55)' : 'rgba(0,200,83,0.25)'}
+              strokeColor='#00C853'
               strokeWidth={sel ? 3 : 1.5}
               tappable
               onPress={() => {
@@ -335,44 +326,29 @@ export default function MapScreen({ navigation, route }) {
               <IconLayers size={20} color="#1a3a1a" />
             </TouchableOpacity>
           )}
+          {/* Locate me — re-centres map on user's current GPS position */}
           <TouchableOpacity
-            style={[s.fab, s.fabAR, !settings.arMode && s.fabAROff]}
+            style={[s.fab, s.fabLocate]}
             onPress={() => {
-              if (!settings.arMode) return;
-              navigation.navigate("AR", {
-                destinationId: selectedBuilding?.id ?? "main_building",
-              });
+              if (userLocation && mapRef.current) {
+                mapRef.current.animateToRegion({
+                  latitude:      userLocation.lat,
+                  longitude:     userLocation.lng,
+                  latitudeDelta:  0.0015,
+                  longitudeDelta: 0.0015,
+                }, 600);
+              }
             }}
-            activeOpacity={settings.arMode ? 0.8 : 1}
+            activeOpacity={0.8}
           >
-            <IconEye size={20} color={settings.arMode ? "#071209" : "rgba(255,255,255,0.4)"} />
+            <IconPin size={20} color="#071209" />
           </TouchableOpacity>
         </View>
       )}
 
-      {/* ── Building card ── */}
-      {selectedBuilding && (
-        <Animated.View
-          style={{
-            opacity: cardAnim,
-            transform: [{
-              translateY: cardAnim.interpolate({
-                inputRange: [0, 1], outputRange: [40, 0],
-              }),
-            }],
-          }}
-        >
-          <BuildingCard
-            building={selectedBuilding}
-            userLocation={userLocation}
-            onClose={closeCard}
-            onNavigate={startNavigation}
-          />
-        </Animated.View>
-      )}
-
       {/* ── Bottom panel ── */}
       <BottomPanel
+        ref={panelRef}
         onBuildingSelect={(b) => selectBuilding(b.id, b)}
         selectedBuilding={selectedBuilding}
         onStartNav={startNavigation}
@@ -434,8 +410,7 @@ const s = StyleSheet.create({
     alignItems: "center", justifyContent: "center",
     shadowColor: "#000", shadowOpacity: 0.3, shadowRadius: 8, elevation: 6,
   },
-  fabAR:    { backgroundColor: "#00C853" },
-  fabAROff: { backgroundColor: "rgba(0,200,83,0.3)" },
+  fabLocate: { backgroundColor: "#00C853" },
 
   // Building label markers
   markerLabel: {

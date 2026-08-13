@@ -1,4 +1,4 @@
-import React, { useRef, useState, useEffect } from "react";
+import React, { useRef, useState, useEffect, useImperativeHandle, forwardRef } from "react";
 import {
   View,
   Text,
@@ -27,16 +27,24 @@ const GREEN = "#00C853";
 
 const TABS = ["EXPLORE", "ROUTE", "ABOUT"];
 
-export default function BottomPanel({
+const BottomPanel = forwardRef(function BottomPanel({
   onBuildingSelect,
   selectedBuilding,
   onStartNav,
-  onPanelChange, // callback so MapScreen knows panel height → move FABs
-}) {
+  onPanelChange,
+}, ref) {
   const [activeTab, setActiveTab] = useState("EXPLORE");
   const [panelHeight, setPanelHeight] = useState(SNAP.collapsed);
   const animHeight = useRef(new Animated.Value(SNAP.collapsed)).current;
   const lastHeight = useRef(SNAP.collapsed);
+
+  // Expose snapToRoute so MapScreen can open the ROUTE tab on polygon tap
+  useImperativeHandle(ref, () => ({
+    openRoute() {
+      setActiveTab("ROUTE");
+      snapTo(SNAP.half);
+    },
+  }));
 
   // Notify parent of height changes so FABs can reposition
   useEffect(() => {
@@ -302,7 +310,9 @@ export default function BottomPanel({
       )}
     </Animated.View>
   );
-}
+});
+
+export default BottomPanel;
 
 const s = StyleSheet.create({
   panel: {
