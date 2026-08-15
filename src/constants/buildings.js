@@ -623,6 +623,31 @@ export const BUILDINGS = {
     ],
     directions: [],
   },
+
+  gymnasium: {
+    id: "gymnasium",
+    name: "Gymnasium",
+    shortName: "GYM",
+    subtitle: "Sports & Events Venue",
+    icon: "activity",
+    color: "#1a2a3a",
+    mapX: 0,
+    mapY: 0,
+    mapW: 0,
+    mapH: 0,
+    dist: "160m",
+    dist_label: "160m",
+    eta: "~3 min",
+    facilities: [
+      "Basketball Court",
+      "Volleyball Court",
+      "Sports Events",
+      "School Programs",
+      "Graduation Ceremonies",
+    ],
+    floors: [],
+    directions: [],
+  },
 };
 
 // Flat list for search and quick destinations

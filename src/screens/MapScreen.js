@@ -70,6 +70,13 @@ const BUILDING_OVERLAYS = [
     coordinates: [{ latitude: 13.961581, longitude: 121.612667 },{ latitude: 13.961561, longitude: 121.612783 },{ latitude: 13.961169, longitude: 121.612678 },{ latitude: 13.961192, longitude: 121.612569 }] },
   { id: 'ccss',               name: 'CCSS',
     coordinates: [{ latitude: 13.961031, longitude: 121.612428 },{ latitude: 13.961028, longitude: 121.612486 },{ latitude: 13.960922, longitude: 121.612481 },{ latitude: 13.960928, longitude: 121.612406 }] },
+  { id: 'gymnasium',          name: 'Gymnasium',
+    coordinates: [
+      { latitude: 13.962278, longitude: 121.612417 },
+      { latitude: 13.962472, longitude: 121.612417 },
+      { latitude: 13.962472, longitude: 121.612806 },
+      { latitude: 13.962278, longitude: 121.612778 },
+    ] },
 ];
 
 // ── Resolve route waypoints (server → local A* fallback) ────────────────────

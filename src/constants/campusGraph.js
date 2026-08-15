@@ -41,6 +41,7 @@ export const NODES = {
   canteen:        { id: 'canteen',        lat: 13.961397, lng: 121.611861 },
   canteen_two:    { id: 'canteen_two',    lat: 13.96165,  lng: 121.612831 },
   kitchen_hall:   { id: 'kitchen_hall',   lat: 13.962342, lng: 121.612903 },
+  gymnasium:      { id: 'gymnasium',      lat: 13.962375, lng: 121.612702 },
   chapel:         { id: 'chapel',         lat: 13.961664, lng: 121.612053 },
   ccss:           { id: 'ccss',           lat: 13.960983, lng: 121.612456 },
   kindergarten:   { id: 'kindergarten',   lat: 13.961817, lng: 121.612114 },
@@ -95,6 +96,8 @@ const EDGES = [
   // Direct building shortcuts where paths allow
   ['main_building',   'ea_tower'],
   ['main_building',   'kitchen_hall'],
+  ['main_building',   'gymnasium'],
+  ['kitchen_hall',    'gymnasium'],
   ['ea_tower',        'canteen_two'],
   ['ibed',            'new_building'],
   ['ibed',            'sr_building'],
