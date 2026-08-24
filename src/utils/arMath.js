@@ -24,48 +24,65 @@ export function distanceTo(lat1, lng1, lat2, lng2) {
 }
 
 // Project a GPS waypoint onto the AR camera screen
-// Returns { x, y, visible, distance } where x/y are 0-1 normalised screen coords
+// Returns { x, y, visible, distance } where x/y are pixel screen coordinates
 //
 // compassHeading  = device compass in degrees (0 = north)
+// userAltitude    = device GPS altitude in metres (from useLocation)
+// targetAltitude  = target waypoint altitude in metres (0 if unknown — assumes ground level)
 // hFov            = horizontal field of view of the camera in degrees (typically 60-70)
+// vFov            = vertical field of view (derived from hFov and screen aspect ratio)
 // screenW/H       = screen pixel dimensions
 export function projectToScreen({
-  userLat, userLng,
-  targetLat, targetLng,
+  userLat, userLng, userAltitude = 0,
+  targetLat, targetLng, targetAltitude = 0,
   compassHeading,
   hFov = 65,
   screenW, screenH,
 }) {
-  const bearing  = bearingTo(userLat, userLng, targetLat, targetLng);
-  const distance = distanceTo(userLat, userLng, targetLat, targetLng);
+  const bearing          = bearingTo(userLat, userLng, targetLat, targetLng);
+  const groundDistance   = distanceTo(userLat, userLng, targetLat, targetLng);
+  const altitudeDiff     = targetAltitude - userAltitude; // positive = target is above user
 
-  // Angle between the direction you're facing and the direction to the target
+  // Total 3D distance to orb
+  const distance3D = Math.sqrt(groundDistance ** 2 + altitudeDiff ** 2);
+
+  // Horizontal angle between facing direction and target bearing
   let angleDiff = bearing - compassHeading;
-  // Normalise to -180..180
   if (angleDiff >  180) angleDiff -= 360;
   if (angleDiff < -180) angleDiff += 360;
 
-  // Is the target within the camera's field of view?
-  const halfFov = hFov / 2;
-  const visible = Math.abs(angleDiff) < halfFov + 10; // +10 = soft edge
+  // Vertical angle to target:
+  // Positive = above horizon (look up), negative = below (look down)
+  // For ground-level navigation, orbs slightly below eye level feel natural
+  const EYE_HEIGHT_M = 1.5; // approximate eye level above ground
+  const effectiveAltDiff = altitudeDiff - EYE_HEIGHT_M;
+  const verticalAngle = groundDistance > 0
+    ? Math.atan2(effectiveAltDiff, groundDistance) * (180 / Math.PI)
+    : 0;
 
-  // Map angle to horizontal screen position
+  // Is the target within horizontal FOV?
+  const halfHFov = hFov / 2;
+  const visible  = Math.abs(angleDiff) < halfHFov + 10; // +10 soft edge
+
+  // Map horizontal angle → screen X
   const xNorm = 0.5 + (angleDiff / hFov);
 
-  // Vertical position: closer = lower on screen (floor perspective)
-  // Objects further away appear higher up
-  const MAX_DIST = 50; // metres — beyond this orb sits near top
-  const depthRatio = Math.min(distance / MAX_DIST, 1);
-  const yNorm = 0.82 - depthRatio * 0.48;
+  // Map vertical angle → screen Y
+  // vFov derived from hFov and screen aspect ratio
+  const aspectRatio = screenH / screenW;
+  const vFov = hFov * aspectRatio;
+  // 0.5 = horizon centre; positive verticalAngle = above horizon = smaller Y (higher on screen)
+  const yNorm = 0.5 - (verticalAngle / vFov);
 
   // Orb size: bigger when closer
+  const depthRatio = Math.min(distance3D / 50, 1);
   const orbSize = Math.max(14, 44 - depthRatio * 30);
 
   return {
     x: xNorm * screenW,
-    y: yNorm * screenH,
+    y: Math.max(0.1 * screenH, Math.min(0.9 * screenH, yNorm * screenH)), // clamp on screen
     visible,
-    distance: Math.round(distance),
+    distance: Math.round(groundDistance),
     orbSize,
     angleDiff,
   };

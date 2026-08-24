@@ -25,19 +25,27 @@ export default function useLocation() {
         accuracy: Location.Accuracy.High,
       });
       if (active) {
-        setLocation({ lat: pos.coords.latitude, lng: pos.coords.longitude });
+        setLocation({
+          lat:      pos.coords.latitude,
+          lng:      pos.coords.longitude,
+          altitude: pos.coords.altitude ?? 0,
+        });
       }
 
       // Watch position continuously
       subRef.current = await Location.watchPositionAsync(
         {
           accuracy: Location.Accuracy.BestForNavigation,
-          timeInterval: 1000,       // update every 1 second
-          distanceInterval: 0.5,    // or every 0.5 metres
+          timeInterval: 1000,
+          distanceInterval: 0.5,
         },
         pos => {
           if (active) {
-            setLocation({ lat: pos.coords.latitude, lng: pos.coords.longitude });
+            setLocation({
+              lat:      pos.coords.latitude,
+              lng:      pos.coords.longitude,
+              altitude: pos.coords.altitude ?? 0,  // metres above sea level
+            });
           }
         }
       );

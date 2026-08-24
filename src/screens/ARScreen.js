@@ -289,8 +289,10 @@ export default function ARScreen({ route, navigation }) {
         const proj = projectToScreen({
           userLat:        location.lat,
           userLng:        location.lng,
+          userAltitude:   location.altitude ?? 0,
           targetLat:      orb.lat,
           targetLng:      orb.lng,
+          targetAltitude: orb.altitude ?? 0,
           compassHeading: heading,
           hFov:           H_FOV,
           screenW:        W,
