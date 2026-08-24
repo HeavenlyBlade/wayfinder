@@ -4,13 +4,14 @@ import {
   ScrollView, Alert, Vibration, TextInput,
 } from 'react-native';
 import * as Clipboard from 'expo-clipboard';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import * as Location from 'expo-location';
 import { radius } from '../constants/theme';
 import { IconArrowLeft } from '../components/icons/index';
 
-// Accuracy threshold — only accept readings this good or better (metres)
 const ACCURACY_THRESHOLD = 5;
+const STORAGE_KEY = 'wayfinder_survey_points';
 
 export default function SurveyScreen({ navigation }) {
   const [accuracy,     setAccuracy]     = useState(null);
@@ -27,7 +28,21 @@ export default function SurveyScreen({ navigation }) {
   const [editingName,  setEditingName]  = useState('');     // current text in rename input
 
   const subRef     = useRef(null);
-  const readingBuf = useRef([]); // rolling buffer of last N readings for averaging
+  const readingBuf = useRef([]);
+
+  // ── Load saved points from storage on mount ──────────────────────────────
+  useEffect(() => {
+    AsyncStorage.getItem(STORAGE_KEY).then(raw => {
+      if (raw) {
+        try { setSavedPoints(JSON.parse(raw)); } catch (_) {}
+      }
+    });
+  }, []);
+
+  // ── Persist saved points whenever they change ─────────────────────────────
+  useEffect(() => {
+    AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(savedPoints));
+  }, [savedPoints]);
 
   useEffect(() => {
     let active = true;
