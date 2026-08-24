@@ -22,6 +22,7 @@ export default function SurveyScreen({ navigation }) {
   const [avgLat,       setAvgLat]       = useState(null);
   const [avgLng,       setAvgLng]       = useState(null);
   const [avgAcc,       setAvgAcc]       = useState(null);
+  const [avgAlt,       setAvgAlt]       = useState(null);
   const [editingId,    setEditingId]    = useState(null);   // id of point being renamed
   const [editingName,  setEditingName]  = useState('');     // current text in rename input
 
@@ -49,16 +50,18 @@ export default function SurveyScreen({ navigation }) {
           setSpeed(spd);
 
           // Rolling average over last 10 readings for stable coordinate
-          readingBuf.current.push({ lat: latitude, lng: longitude, acc });
+          readingBuf.current.push({ lat: latitude, lng: longitude, acc, alt: alt ?? 0 });
           if (readingBuf.current.length > 10) readingBuf.current.shift();
 
           const buf = readingBuf.current;
           const meanLat = buf.reduce((s, r) => s + r.lat, 0) / buf.length;
           const meanLng = buf.reduce((s, r) => s + r.lng, 0) / buf.length;
           const meanAcc = buf.reduce((s, r) => s + r.acc, 0) / buf.length;
+          const meanAlt = buf.reduce((s, r) => s + r.alt, 0) / buf.length;
           setAvgLat(meanLat);
           setAvgLng(meanLng);
           setAvgAcc(meanAcc);
+          setAvgAlt(meanAlt);
           setReadings([...buf]);
 
           if (acc <= ACCURACY_THRESHOLD) setIsLocked(true);
@@ -73,12 +76,13 @@ export default function SurveyScreen({ navigation }) {
     if (!avgLat || !avgLng) return;
     const name = pointLabel || `Point ${savedPoints.length + 1}`;
     const point = {
-      id:   Date.now(),
+      id:       Date.now(),
       name,
-      lat:  avgLat,
-      lng:  avgLng,
-      acc:  avgAcc,
-      time: new Date().toLocaleTimeString(),
+      lat:      avgLat,
+      lng:      avgLng,
+      altitude: avgAlt,
+      acc:      avgAcc,
+      time:     new Date().toLocaleTimeString(),
     };
     setSavedPoints(prev => [point, ...prev]);
     Vibration.vibrate(200);
@@ -94,10 +98,11 @@ export default function SurveyScreen({ navigation }) {
   function copyAllAsJSON() {
     const json = JSON.stringify(
       savedPoints.map(p => ({
-        name: p.name,
-        lat:  parseFloat(p.lat.toFixed(7)),
-        lng:  parseFloat(p.lng.toFixed(7)),
-        acc:  parseFloat(p.acc?.toFixed(1)),
+        name:     p.name,
+        lat:      parseFloat(p.lat.toFixed(7)),
+        lng:      parseFloat(p.lng.toFixed(7)),
+        altitude: parseFloat(p.altitude?.toFixed(2) ?? 0),
+        acc:      parseFloat(p.acc?.toFixed(1)),
       })),
       null, 2,
     );
@@ -283,7 +288,7 @@ export default function SurveyScreen({ navigation }) {
                       {point.lat.toFixed(7)}, {point.lng.toFixed(7)}
                     </Text>
                     <Text style={s.pointMeta}>
-                      ±{point.acc?.toFixed(1)}m · {point.time}
+                      ±{point.acc?.toFixed(1)}m accuracy · alt {point.altitude?.toFixed(1)}m · {point.time}
                     </Text>
                   </View>
                   <View style={s.pointBtns}>
