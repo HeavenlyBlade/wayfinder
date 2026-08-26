@@ -2,6 +2,11 @@
   "name": "wayfinder",
   "version": "1.0.0",
   "main": "index.js",
+  "expo": {
+    "install": {
+      "exclude": ["expo-constants"]
+    }
+  },
   "scripts": {
     "start": "expo start",
     "android": "expo run:android",
