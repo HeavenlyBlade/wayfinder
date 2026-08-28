@@ -246,11 +246,14 @@ export default function SurveyScreen({ navigation }) {
           <Text style={s.quickLabel}>QUICK SAVE</Text>
           <ScrollView horizontal showsHorizontalScrollIndicator={false} style={s.quickScroll}>
             {[
-              'Gate', 'Junction', 'Main Bldg', 'New Bldg',
-              'EA Tower', 'IBED', 'SR Bldg', 'Canteen',
-              'Canteen 2', 'Kitchen', 'Chapel', 'CCSS',
-              'Kinder', 'Parking', 'Corner NW', 'Corner NE',
-              'Corner SW', 'Corner SE', 'Entrance',
+              // Junction nodes (match campusGraph.js A-series IDs)
+              'A1', 'A2', 'A3', 'A4', 'A5', 'A6', 'A7', 'A8',
+              // Building nodes
+              'gate', 'motorcycle_parking', 'parking_lot',
+              'main_building', 'new_building', 'ea_tower',
+              'ibed', 'sr_building', 'canteen', 'canteen_two',
+              'kitchen_hall', 'chapel', 'ccss', 'kindergarten',
+              'gymnasium',
             ].map(name => (
               <TouchableOpacity
                 key={name}
