@@ -105,7 +105,7 @@ export default function SurveyScreen({ navigation }) {
   }
 
   function copyPoint(point) {
-    const text = `{ latitude: ${point.lat.toFixed(7)}, longitude: ${point.lng.toFixed(7)} }`;
+    const text = `{ latitude: ${point.lat.toFixed(7)}, longitude: ${point.lng.toFixed(7)}, altitude: ${point.altitude?.toFixed(2) ?? 0} }`;
     Clipboard.setStringAsync(text);
     Alert.alert('Copied', text);
   }
