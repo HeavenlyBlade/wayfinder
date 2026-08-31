@@ -1,10 +1,11 @@
 import "react-native-gesture-handler";
-import React, { useState, useEffect, useRef, useCallback } from "react";import {
+import React, { useState, useEffect, useRef, useCallback } from "react";
+import {
   View, Text, TouchableOpacity, StyleSheet,
   Dimensions,
 } from "react-native";
 import MapView, {
-  Polygon, Polyline, Marker, PROVIDER_GOOGLE,
+  Polygon, Polyline, Marker, UrlTile, PROVIDER_GOOGLE, PROVIDER_DEFAULT,
 } from "react-native-maps";
 import {
   IconSearch,
@@ -17,6 +18,7 @@ import { NODES }        from "../constants/campusGraph";
 import { distanceTo }   from "../utils/arMath";
 import { aStar, getWaypoints, nearestNode } from "../utils/pathfinding";
 import { fetchRoute }   from "../services/api";
+import { checkInternetConnection } from "../utils/networkStatus";
 import StatusChips      from "../components/StatusChips";
 import BottomPanel      from "../components/BottomPanel";
 import SearchModal      from "../components/SearchModal";
@@ -25,6 +27,11 @@ import useLocation      from "../hooks/useLocation";
 import { useSettings }  from "../context/SettingsContext";
 
 const { height: H } = Dimensions.get("window");
+
+// OSM tile URL — used as offline fallback (no API key, open license)
+// When online: Google Maps satellite (beautiful)
+// When offline: OSM street tiles from bundled tile server proxy
+const OSM_TILE_URL = "https://tile.openstreetmap.org/{z}/{x}/{y}.png";
 
 // Campus center — used as initial map region
 const CAMPUS_CENTER = {
@@ -115,6 +122,21 @@ export default function MapScreen({ navigation, route }) {
     isOffline,
   } = useVoiceCommand();
 
+  // ── Connectivity state for hybrid map ────────────────────────────────────
+  const [isOnline, setIsOnline] = useState(true);
+
+  // Check connectivity on mount then every 30s
+  useEffect(() => {
+    let cancelled = false;
+    async function check() {
+      const online = await checkInternetConnection(3000);
+      if (!cancelled) setIsOnline(online);
+    }
+    check();
+    const interval = setInterval(check, 30000);
+    return () => { cancelled = true; clearInterval(interval); };
+  }, []);
+
   // ── Building selection helpers ────────────────────────────────────────────
   const selectBuilding = useCallback((buildingId, building) => {
     setSelectedPolygonId(buildingId);
@@ -186,12 +208,12 @@ export default function MapScreen({ navigation, route }) {
   return (
     <View style={s.container}>
 
-      {/* ── Real Map ── */}
+      {/* ── Map — Google satellite online, OSM street tiles offline ── */}
       <MapView
         ref={mapRef}
         style={StyleSheet.absoluteFill}
-        provider={PROVIDER_GOOGLE}
-        mapType="satellite"
+        provider={isOnline ? PROVIDER_GOOGLE : PROVIDER_DEFAULT}
+        mapType={isOnline ? "satellite" : "none"}
         initialRegion={CAMPUS_CENTER}
         showsUserLocation={settings.gpsTracking}
         showsMyLocationButton={false}
@@ -201,6 +223,17 @@ export default function MapScreen({ navigation, route }) {
         rotateEnabled={true}
         pitchEnabled={false}
       >
+        {/* OSM tile layer — shown when offline instead of Google satellite */}
+        {!isOnline && (
+          <UrlTile
+            urlTemplate={OSM_TILE_URL}
+            maximumZ={19}
+            minimumZ={14}
+            tileSize={256}
+            flipY={false}
+            zIndex={-1}
+          />
+        )}
         {/* Building polygon overlays */}
         {BUILDING_OVERLAYS.map(b => {
           const sel = selectedPolygonId === b.id;
