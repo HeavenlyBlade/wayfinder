@@ -145,7 +145,7 @@ export const NODES = {
   kitchen_hall:   { id: 'kitchen_hall',   lat: 13.9624, lng: 121.6129 },
   gymnasium:      { id: 'gymnasium',      lat: 13.9624, lng: 121.6128 },
   chapel:         { id: 'chapel',         lat: 13.9616, lng: 121.6121 },
-  ccss:           { id: 'ccss',           lat: 13.9610, lng: 121.6125 },
+  ccss:           { id: 'ccss',           lat: 13.961008, lng: 121.612466 }, // ✅ matched to R30 entrance node
   kindergarten:   { id: 'kindergarten',   lat: 13.9618, lng: 121.6121 },
 };
 
