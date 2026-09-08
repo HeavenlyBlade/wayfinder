@@ -144,9 +144,9 @@ export const NODES = {
   canteen_two:    { id: 'canteen_two',    lat: 13.9617, lng: 121.6128 },
   kitchen_hall:   { id: 'kitchen_hall',   lat: 13.9624, lng: 121.6129 },
   gymnasium:      { id: 'gymnasium',      lat: 13.9624, lng: 121.6128 },
-  chapel:         { id: 'chapel',         lat: 13.9616, lng: 121.6121 },
+  chapel:         { id: 'chapel',         lat: 13.961650, lng: 121.612098 }, // ✅ beside kindergarten
   ccss:           { id: 'ccss',           lat: 13.961008, lng: 121.612466 }, // ✅ matched to R30 entrance node
-  kindergarten:   { id: 'kindergarten',   lat: 13.9618, lng: 121.6121 },
+  kindergarten:   { id: 'kindergarten',   lat: 13.961689, lng: 121.612115 }, // ✅ beside chapel
 };
 
 const EDGES = [
