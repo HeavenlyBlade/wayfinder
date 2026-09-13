@@ -1,4 +1,5 @@
 import React from "react";
+import React from "react";
 import {
   View,
   Text,
@@ -6,7 +7,9 @@ import {
   TouchableOpacity,
   ScrollView,
   Switch,
+  Alert,
 } from "react-native";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { StatusBar } from "expo-status-bar";
 import { useSettings } from "../context/SettingsContext";
@@ -131,6 +134,27 @@ export default function SettingsScreen({ navigation }) {
               name="GPS Survey Tool"
               sub="Record campus coordinates for campusGraph.js"
               onPress={() => navigation.navigate("Survey")}
+            />
+            <ChevronItem
+              icon={<IconInfo size={18} color="rgba(255,255,255,0.5)" />}
+              name="Show App Tutorial"
+              sub="Replay the first-launch guide"
+              onPress={() => {
+                Alert.alert(
+                  "Replay Tutorial",
+                  "This will show the tutorial guide next time you open the Home screen.",
+                  [
+                    { text: "Cancel", style: "cancel" },
+                    {
+                      text: "Reset",
+                      onPress: async () => {
+                        await AsyncStorage.removeItem("wayfinder_tutorial_done");
+                        Alert.alert("Done", "Tutorial will appear on your next visit to Home.");
+                      },
+                    },
+                  ]
+                );
+              }}
             />
           </View>
 
