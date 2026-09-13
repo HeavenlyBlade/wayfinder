@@ -178,7 +178,7 @@ const EDGES = [
   ['R22',              'R23'],
   ['R23',              'R26'],
 
-  // Perimeter road south branch (CCSS / parking / SR south side)
+  // Perimeter road south branch (CCSS / parking only — east path is BLOCKED)
   ['R21',              'R24'],
   ['R24',              'R25'],
   ['R25',              'parking_lot'],
@@ -187,18 +187,8 @@ const EDGES = [
   ['R28',              'R29'],
   ['R29',              'R30'],
   ['R30',              'ccss'],
-  ['R26',              'R31'],
-
-  // East spine going north (SR south -> canteen_two)
-  ['R31',              'R32'],
-  ['R32',              'R33'],
-  ['R33',              'R34'],
-  ['R34',              'R35'],
-  ['R35',              'R36'],
-  ['R36',              'canteen_two'],
-  ['R36',              'R73'],
-  ['R32',              'sr_building'],
-  ['R35',              'sr_building'],
+  // R26 -> R31 east spine REMOVED — path physically blocked
+  // SR Building is only accessible via new_building internal paths
 
   // Gate -> J1 -> main internal spine
   ['gate',             'J1'],
@@ -207,8 +197,7 @@ const EDGES = [
   ['W1',               'J2'],
   ['J2',               'W2'],
   ['W2',               'J3'],
-  ['J3',               'W3'],
-  ['W3',               'J5'],
+  // J3 -> W3 -> J5 REMOVED — east path blocked, no longer reachable from south
 
   // J1 -> J8 -> canteen / internal paths
   ['J1',               'J8'],
@@ -287,7 +276,7 @@ const EDGES = [
 
   // J-node connections bridging old and new graph
   ['J2',               'R37'],
-  ['J3',               'R23'],
+  // J3 -> R23 REMOVED — east path blocked
   ['J4',               'chapel'],
   ['J4',               'kindergarten'],
   ['J4',               'W4'],
@@ -301,6 +290,10 @@ const EDGES = [
   ['J6',               'J7'],
   ['J7',               'gymnasium'],
   ['J7',               'kitchen_hall'],
+
+  // SR Building — only reachable via new_building internal paths
+  ['R46',              'sr_building'],  // internal east branch connects to SR Building
+  ['R59',              'sr_building'],  // internal east branch also connects
 ];
 
 export function buildGraph() {
