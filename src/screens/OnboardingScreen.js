@@ -154,6 +154,20 @@ const SLIDES = [
     desc: 'Tap the mic and say "Take me to the library" — AI understands you and navigates instantly.',
     bg: '#102a20',
   },
+  {
+    id: '4',
+    Illustration: IllustrationMap,
+    title: 'Explore Floors & Rooms',
+    desc: 'Browse building floors and room lists so you always know exactly where to go inside.',
+    bg: '#0d2015',
+  },
+  {
+    id: '5',
+    Illustration: IllustrationVoice,
+    title: 'Works Offline Too',
+    desc: 'No internet? No problem. The map and pathfinding work fully offline, always ready on campus.',
+    bg: '#102a20',
+  },
 ];
 
 export default function OnboardingScreen({ onFinish }) {
@@ -271,7 +285,7 @@ const s = StyleSheet.create({
   dots:      { flexDirection: 'row', gap: 6 , justifyContent: 'center'},
   dot:       { width: 7, height: 7, borderRadius: 4,
                backgroundColor: 'rgba(0,200,83,0.25)' },
-  dotActive: { width: 22, backgroundColor: GREEN },
+  dotActive: { width: 7, backgroundColor: GREEN },
   title: {
     fontSize: 24, fontWeight: '900',
     color: '#ffffff', marginBottom: 10, lineHeight: 30,

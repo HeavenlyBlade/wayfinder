@@ -7,7 +7,6 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import * as NavigationBar from "expo-navigation-bar";
 
 import SplashScreen from "./src/screens/SplashScreen";
-import OnboardingScreen from "./src/screens/OnboardingScreen";
 import HomeScreen from "./src/screens/HomeScreen";
 import MapScreen from "./src/screens/MapScreen";
 import ARScreen from "./src/screens/ARScreen";
@@ -31,8 +30,6 @@ async function hideNavBar() {
 
 export default function App() {
   const [appState, setAppState] = useState("splash");
-  const [hasOnboarded, setHasOnboarded] = useState(false);
-  const [onboardChecked, setOnboardChecked] = useState(false);
 
   // Hide nav bar on mount and every time the app comes back to foreground
   useEffect(() => {
@@ -43,27 +40,12 @@ export default function App() {
     return () => sub.remove();
   }, []);
 
-  useEffect(() => {
-    AsyncStorage.getItem("wayfinder_onboarded").then((val) => {
-      setHasOnboarded(val === "true");
-      setOnboardChecked(true);
-    });
-  }, []);
-
   function handleSplashFinish() {
-    if (!onboardChecked) return;
-    setAppState(hasOnboarded ? "ready" : "onboarding");
-  }
-
-  async function handleOnboardingFinish() {
-    await AsyncStorage.setItem("wayfinder_onboarded", "true");
     setAppState("ready");
   }
 
   if (appState === "splash")
     return <SplashScreen onFinish={handleSplashFinish} />;
-  if (appState === "onboarding")
-    return <OnboardingScreen onFinish={handleOnboardingFinish} />;
 
   return (
     <SettingsProvider>
