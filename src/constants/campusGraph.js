@@ -135,7 +135,8 @@ export const NODES = {
   R85: { id: 'R85', lat: 13.962447, lng: 121.612821 }, // top of campus - near gymnasium
 
   // Building entrance nodes
-  main_building:  { id: 'main_building',  lat: 13.9617, lng: 121.6124 },
+  main_building:  { id: 'main_building',  lat: 13.9617,    lng: 121.6124   }, // 1st entrance (front)
+  main_building_2:{ id: 'main_building_2',lat: 13.962135,  lng: 121.612759 }, // 2nd entrance (no GF access)
   new_building:   { id: 'new_building',   lat: 13.9613, lng: 121.6121 },
   ea_tower:       { id: 'ea_tower',       lat: 13.9618, lng: 121.6128 }, // 1st entrance
   ibed:           { id: 'ibed',           lat: 13.9614, lng: 121.6121 },
@@ -265,6 +266,7 @@ const EDGES = [
   ['R78',              'ea_tower'],
   ['R78',              'R79'],
   ['R79',              'R80'],
+  ['R80',              'main_building_2'], // 2nd entrance off north spine
   ['R80',              'R81'],
   ['R81',              'R82'],
   ['R82',              'kitchen_hall'],
