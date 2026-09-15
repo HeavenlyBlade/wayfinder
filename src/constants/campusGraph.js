@@ -2,13 +2,12 @@
 //
 // NODE NAMING CONVENTION:
 //   J1-J8   = major intersections (pinpointed on Google Maps)
-//   W1-W9   = original walkable waypoints
-//   R01-R85 = new detailed road/path nodes (perimeter road, internal paths)
+//   R01-R85 = detailed road/path nodes (perimeter road, internal paths)
 //   others  = building entrance nodes
 //
+// W-nodes removed — R-nodes provide full coverage of those paths.
 // All nodes pinpointed on Google Maps.
 // Bad shortcut edges (crossing buildings) have been removed.
-// EA Tower uses 1st (south) entrance. SR Building uses 1st (south) entrance.
 
 import { distanceTo } from '../utils/arMath';
 
@@ -21,26 +20,15 @@ export const NODES = {
   // Major intersection nodes
   J1: { id: 'J1', lat: 13.9612, lng: 121.6116 }, // south - near gate / motorcycle parking
   J2: { id: 'J2', lat: 13.9612, lng: 121.6121 }, // south-central
-  J3: { id: 'J3', lat: 13.9612, lng: 121.6126 }, // south-east - SR / CCSS / parking lot
+  J3: { id: 'J3', lat: 13.9612, lng: 121.6126 }, // south-east
   J4: { id: 'J4', lat: 13.9616, lng: 121.6121 }, // mid - chapel / kindergarten / ibed / new_building
-  J5: { id: 'J5', lat: 13.9616, lng: 121.6126 }, // mid-east - canteen_two / SR 2nd entrance
-  J6: { id: 'J6', lat: 13.9621, lng: 121.6128 }, // north-east - EA Tower 2nd entrance area
+  J5: { id: 'J5', lat: 13.9616, lng: 121.6126 }, // mid-east - canteen_two / SR area
+  J6: { id: 'J6', lat: 13.9621, lng: 121.6128 }, // north-east - EA Tower area
   J7: { id: 'J7', lat: 13.9624, lng: 121.6128 }, // far north - gymnasium / kitchen_hall
   J8: { id: 'J8', lat: 13.9614, lng: 121.6116 }, // south-west - canteen branch
 
-  // Original walkable waypoints
-  W1: { id: 'W1', lat: 13.9612, lng: 121.6119 }, // between J1 and J2
-  W2: { id: 'W2', lat: 13.9612, lng: 121.6123 }, // between J2 and J3
-  W3: { id: 'W3', lat: 13.9614, lng: 121.6126 }, // between J3 and J5
-  W4: { id: 'W4', lat: 13.9616, lng: 121.6122 }, // just east of J4
-  W5: { id: 'W5', lat: 13.9616, lng: 121.6119 }, // west of J4 - canteen side
-  W6: { id: 'W6', lat: 13.9615, lng: 121.6117 }, // between J8 and W5
-  W7: { id: 'W7', lat: 13.9616, lng: 121.6125 }, // between J4/J5 area
-  W8: { id: 'W8', lat: 13.9617, lng: 121.6127 }, // between J5 and J6
-  W9: { id: 'W9', lat: 13.9619, lng: 121.6127 }, // between J6 and canteen_two/ea_tower
-
   // R-nodes: Bottom perimeter road (southwest to east)
-  R01: { id: 'R01', lat: 13.960943, lng: 121.611350 }, // far southwest - start of perimeter road
+  R01: { id: 'R01', lat: 13.960943, lng: 121.611350 },
   R02: { id: 'R02', lat: 13.961004, lng: 121.611368 },
   R03: { id: 'R03', lat: 13.961056, lng: 121.611389 },
   R04: { id: 'R04', lat: 13.961089, lng: 121.611411 },
@@ -64,8 +52,8 @@ export const NODES = {
   R22: { id: 'R22', lat: 13.961189, lng: 121.612502 },
   R23: { id: 'R23', lat: 13.961186, lng: 121.612533 }, // perimeter road east end
 
-  // R-nodes: South branch paths (below main road, toward CCSS)
-  R24: { id: 'R24', lat: 13.961158, lng: 121.612311 }, // branch toward CCSS
+  // R-nodes: South branch paths (toward CCSS)
+  R24: { id: 'R24', lat: 13.961158, lng: 121.612311 },
   R25: { id: 'R25', lat: 13.961113, lng: 121.612313 }, // car parking entrance
   R26: { id: 'R26', lat: 13.961122, lng: 121.612547 }, // east of CCSS
   R27: { id: 'R27', lat: 13.961085, lng: 121.612536 },
@@ -73,47 +61,47 @@ export const NODES = {
   R29: { id: 'R29', lat: 13.961028, lng: 121.612516 },
   R30: { id: 'R30', lat: 13.961008, lng: 121.612466 }, // CCSS entrance
 
-  // R-nodes: East spine going north (toward canteen_two / EA Tower)
+  // R-nodes: East spine (disconnected — path blocked)
   R31: { id: 'R31', lat: 13.961269, lng: 121.612575 },
   R32: { id: 'R32', lat: 13.961325, lng: 121.612593 },
   R33: { id: 'R33', lat: 13.961406, lng: 121.612612 },
   R34: { id: 'R34', lat: 13.961491, lng: 121.612628 },
   R35: { id: 'R35', lat: 13.961548, lng: 121.612632 },
-  R36: { id: 'R36', lat: 13.961602, lng: 121.612638 }, // near canteen_two
+  R36: { id: 'R36', lat: 13.961602, lng: 121.612638 },
 
   // R-nodes: Internal cross paths (New Building / IBED area)
-  R37: { id: 'R37', lat: 13.961224, lng: 121.612080 }, // south of new_building
+  R37: { id: 'R37', lat: 13.961224, lng: 121.612080 },
   R38: { id: 'R38', lat: 13.961301, lng: 121.612075 }, // internal cross path hub
   R39: { id: 'R39', lat: 13.961302, lng: 121.612005 },
   R40: { id: 'R40', lat: 13.961303, lng: 121.611947 },
   R41: { id: 'R41', lat: 13.961305, lng: 121.611887 },
-  R42: { id: 'R42', lat: 13.961309, lng: 121.611813 }, // west side going south
+  R42: { id: 'R42', lat: 13.961309, lng: 121.611813 },
   R43: { id: 'R43', lat: 13.961298, lng: 121.612193 },
   R44: { id: 'R44', lat: 13.961296, lng: 121.612244 },
   R45: { id: 'R45', lat: 13.961294, lng: 121.612303 }, // near ibed
   R46: { id: 'R46', lat: 13.961294, lng: 121.612365 },
-  R47: { id: 'R47', lat: 13.961350, lng: 121.612069 }, // internal horizontal
+  R47: { id: 'R47', lat: 13.961350, lng: 121.612069 },
   R48: { id: 'R48', lat: 13.961439, lng: 121.612069 },
   R49: { id: 'R49', lat: 13.961496, lng: 121.612067 },
   R50: { id: 'R50', lat: 13.961555, lng: 121.612068 },
-  R51: { id: 'R51', lat: 13.961596, lng: 121.612076 }, // horizontal east end
-  R52: { id: 'R52', lat: 13.961409, lng: 121.612120 }, // vertical connector mid
+  R51: { id: 'R51', lat: 13.961596, lng: 121.612076 },
+  R52: { id: 'R52', lat: 13.961409, lng: 121.612120 },
   R53: { id: 'R53', lat: 13.961409, lng: 121.612179 },
   R54: { id: 'R54', lat: 13.961411, lng: 121.612271 },
   R55: { id: 'R55', lat: 13.961414, lng: 121.612361 },
   R56: { id: 'R56', lat: 13.961417, lng: 121.612381 },
-  R57: { id: 'R57', lat: 13.961465, lng: 121.612389 }, // east branch
+  R57: { id: 'R57', lat: 13.961465, lng: 121.612389 },
   R58: { id: 'R58', lat: 13.961518, lng: 121.612389 },
   R59: { id: 'R59', lat: 13.961546, lng: 121.612393 },
-  R60: { id: 'R60', lat: 13.961598, lng: 121.612011 }, // internal northeast
+  R60: { id: 'R60', lat: 13.961598, lng: 121.612011 },
   R61: { id: 'R61', lat: 13.961591, lng: 121.611942 },
   R62: { id: 'R62', lat: 13.961573, lng: 121.611896 },
 
-  // R-nodes: Canteen benches area + north spine to top of campus
-  R63: { id: 'R63', lat: 13.961559, lng: 121.611866 }, // canteen benches area
+  // R-nodes: Canteen benches area + north spine
+  R63: { id: 'R63', lat: 13.961559, lng: 121.611866 }, // canteen benches
   R64: { id: 'R64', lat: 13.961428, lng: 121.611660 },
-  R65: { id: 'R65', lat: 13.961394, lng: 121.611624 }, // canteen bench path south
-  R66: { id: 'R66', lat: 13.961592, lng: 121.612153 }, // north spine start
+  R65: { id: 'R65', lat: 13.961394, lng: 121.611624 },
+  R66: { id: 'R66', lat: 13.961592, lng: 121.612153 },
   R67: { id: 'R67', lat: 13.961589, lng: 121.612210 },
   R68: { id: 'R68', lat: 13.961589, lng: 121.612279 },
   R69: { id: 'R69', lat: 13.961586, lng: 121.612338 },
@@ -125,31 +113,31 @@ export const NODES = {
   R75: { id: 'R75', lat: 13.961732, lng: 121.612685 },
   R76: { id: 'R76', lat: 13.961780, lng: 121.612697 },
   R77: { id: 'R77', lat: 13.961870, lng: 121.612718 },
-  R78: { id: 'R78', lat: 13.961927, lng: 121.612731 }, // near main_building
+  R78: { id: 'R78', lat: 13.961927, lng: 121.612731 },
   R79: { id: 'R79', lat: 13.962003, lng: 121.612751 },
   R80: { id: 'R80', lat: 13.962088, lng: 121.612775 },
   R81: { id: 'R81', lat: 13.962168, lng: 121.612798 },
-  R82: { id: 'R82', lat: 13.962226, lng: 121.612804 }, // near ea_tower / canteen_two
-  R83: { id: 'R83', lat: 13.962317, lng: 121.612814 }, // near kitchen_hall
+  R82: { id: 'R82', lat: 13.962226, lng: 121.612804 },
+  R83: { id: 'R83', lat: 13.962317, lng: 121.612814 },
   R84: { id: 'R84', lat: 13.962384, lng: 121.612815 },
-  R85: { id: 'R85', lat: 13.962447, lng: 121.612821 }, // top of campus - near gymnasium
+  R85: { id: 'R85', lat: 13.962447, lng: 121.612821 }, // top of campus
 
   // Building entrance nodes
   main_building:  { id: 'main_building',  lat: 13.9617,    lng: 121.6124   }, // 1st entrance (front)
   main_building_2:{ id: 'main_building_2',lat: 13.962135,  lng: 121.612759 }, // 2nd entrance (no GF access)
-  new_building:   { id: 'new_building',   lat: 13.9613,    lng: 121.6121   }, // sole entrance (RFID) — primary campus entry
-  ea_tower:       { id: 'ea_tower',       lat: 13.961744,  lng: 121.612746 }, // ✅ 1st entrance
-  ea_tower_2:     { id: 'ea_tower_2',     lat: 13.962093,  lng: 121.612822 }, // ✅ 2nd entrance
+  new_building:   { id: 'new_building',   lat: 13.9613,    lng: 121.6121   }, // sole entrance (RFID)
+  ea_tower:       { id: 'ea_tower',       lat: 13.961744,  lng: 121.612746 }, // 1st entrance
+  ea_tower_2:     { id: 'ea_tower_2',     lat: 13.962093,  lng: 121.612822 }, // 2nd entrance
   ibed:           { id: 'ibed',           lat: 13.9614,    lng: 121.6121   },
-  sr_building:    { id: 'sr_building',    lat: 13.961530,  lng: 121.612643 }, // ✅ 1st entrance
-  sr_building_2:  { id: 'sr_building_2',  lat: 13.961188,  lng: 121.612581 }, // 2nd entrance — OUTDOOR ACCESS BLOCKED (indoor only)
+  sr_building:    { id: 'sr_building',    lat: 13.961530,  lng: 121.612643 }, // 1st entrance
+  sr_building_2:  { id: 'sr_building_2',  lat: 13.961188,  lng: 121.612581 }, // 2nd entrance - outdoor BLOCKED
   canteen:        { id: 'canteen',        lat: 13.9614,    lng: 121.6119   },
   canteen_two:    { id: 'canteen_two',    lat: 13.9617,    lng: 121.6128   },
   kitchen_hall:   { id: 'kitchen_hall',   lat: 13.9624,    lng: 121.6129   },
   gymnasium:      { id: 'gymnasium',      lat: 13.9624,    lng: 121.6128   },
-  chapel:         { id: 'chapel',         lat: 13.961650,  lng: 121.612098 }, // ✅ beside kindergarten
-  ccss:           { id: 'ccss',           lat: 13.961008,  lng: 121.612466 }, // ✅ matched to R30 entrance node
-  kindergarten:   { id: 'kindergarten',   lat: 13.961689,  lng: 121.612115 }, // ✅ beside chapel
+  chapel:         { id: 'chapel',         lat: 13.961650,  lng: 121.612098 },
+  ccss:           { id: 'ccss',           lat: 13.961008,  lng: 121.612466 },
+  kindergarten:   { id: 'kindergarten',   lat: 13.961689,  lng: 121.612115 },
 };
 
 const EDGES = [
@@ -181,7 +169,7 @@ const EDGES = [
   ['R22',              'R23'],
   ['R23',              'R26'],
 
-  // Perimeter road south branch (CCSS / parking only — east path is BLOCKED)
+  // Perimeter road south branch (CCSS / parking — east spine BLOCKED)
   ['R21',              'R24'],
   ['R24',              'R25'],
   ['R25',              'parking_lot'],
@@ -190,24 +178,31 @@ const EDGES = [
   ['R28',              'R29'],
   ['R29',              'R30'],
   ['R30',              'ccss'],
-  // R26 -> R31 east spine REMOVED — path physically blocked
-  // SR Building is only accessible via new_building internal paths
 
-  // Gate -> J1 -> main internal spine
+  // Gate -> J1 -> south spine (J-node intersections)
   ['gate',             'J1'],
   ['J1',               'motorcycle_parking'],
-  ['J1',               'W1'],
-  ['W1',               'J2'],
-  ['J2',               'W2'],
-  ['W2',               'J3'],
-  // J3 -> W3 -> J5 REMOVED — east path blocked, no longer reachable from south
+  ['J1',               'J2'],
+  ['J2',               'J3'],
 
-  // J1 -> J8 -> canteen / internal paths
+  // J1 -> J8 -> canteen
   ['J1',               'J8'],
-  ['J8',               'W6'],
-  ['W6',               'W5'],
-  ['W5',               'canteen'],
-  ['W5',               'J4'],
+  ['J8',               'R65'],
+  ['J8',               'R42'],
+  ['R65',              'canteen'],
+  ['R42',              'canteen'],
+  ['J8',               'J4'],
+
+  // J-node intersection connections
+  ['J2',               'R37'],
+  ['J4',               'chapel'],
+  ['J4',               'kindergarten'],
+  ['J4',               'J5'],
+  ['J5',               'J6'],
+  ['J6',               'canteen_two'],
+  ['J6',               'J7'],
+  ['J7',               'gymnasium'],
+  ['J7',               'kitchen_hall'],
 
   // Internal cross paths: New Building / IBED area
   ['R15',              'R37'],
@@ -249,7 +244,7 @@ const EDGES = [
   ['R64',              'R65'],
   ['R65',              'J8'],
 
-  // North spine (canteen area -> top of campus)
+  // North spine (canteen -> top of campus)
   ['R63',              'R66'],
   ['R66',              'R67'],
   ['R67',              'R68'],
@@ -265,11 +260,11 @@ const EDGES = [
   ['R76',              'main_building'],
   ['R76',              'R77'],
   ['R77',              'R78'],
-  ['R78',              'ea_tower'],       // EA Tower 1st entrance off north spine
+  ['R78',              'ea_tower'],
   ['R78',              'R79'],
-  ['R79',              'ea_tower_2'],     // EA Tower 2nd entrance off north spine
+  ['R79',              'ea_tower_2'],
   ['R79',              'R80'],
-  ['R80',              'main_building_2'], // 2nd entrance off north spine
+  ['R80',              'main_building_2'],
   ['R80',              'R81'],
   ['R81',              'R82'],
   ['R82',              'kitchen_hall'],
@@ -279,26 +274,9 @@ const EDGES = [
   ['R85',              'gymnasium'],
   ['R85',              'kitchen_hall'],
 
-  // J-node connections bridging old and new graph
-  ['J2',               'R37'],
-  // J3 -> R23 REMOVED — east path blocked
-  ['J4',               'chapel'],
-  ['J4',               'kindergarten'],
-  ['J4',               'W4'],
-  ['W4',               'J5'],
-  ['J4',               'W7'],
-  ['W7',               'J5'],
-  ['J5',               'W8'],
-  ['W8',               'J6'],
-  ['J6',               'W9'],
-  ['W9',               'canteen_two'],
-  ['J6',               'J7'],
-  ['J7',               'gymnasium'],
-  ['J7',               'kitchen_hall'],
-
   // SR Building — only reachable via new_building internal paths
-  ['R46',              'sr_building'],  // internal east branch connects to SR Building
-  ['R59',              'sr_building'],  // internal east branch also connects
+  ['R46',              'sr_building'],
+  ['R59',              'sr_building'],
 ];
 
 export function buildGraph() {
