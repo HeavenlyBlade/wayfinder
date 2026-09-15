@@ -95,6 +95,7 @@ export const NODES = {
   // Building entrance nodes
   main_building:  { id: 'main_building',  lat: 13.9617,    lng: 121.6124   }, // 1st entrance (front)
   main_building_2:{ id: 'main_building_2',lat: 13.962135,  lng: 121.612759 }, // 2nd entrance (no GF)
+  engineering:    { id: 'engineering',    lat: 13.961637,  lng: 121.612220 }, // entrance
   ea_tower:       { id: 'ea_tower',       lat: 13.961744,  lng: 121.612746 }, // 1st entrance
   ea_tower_2:     { id: 'ea_tower_2',     lat: 13.962093,  lng: 121.612822 }, // 2nd entrance
   ibed:           { id: 'ibed',           lat: 13.9614,    lng: 121.6121   }, // 1st entrance
@@ -188,6 +189,7 @@ const EDGES = [
 
   // North spine (canteen -> top of campus)
   ['R63',              'R66'],
+  ['R66',              'engineering'],   // Engineering Building entrance off north spine
   ['R66',              'R67'],
   ['R67',              'R68'],
   ['R68',              'R69'],

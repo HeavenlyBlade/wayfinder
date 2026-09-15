@@ -278,6 +278,16 @@ export const BUILDINGS = {
     floors: [],
     directions: [],
     comingSoon: true,
+    // Entrance
+    lat: 13.961637,
+    lng: 121.612220,
+    // Building polygon
+    polygon: [
+      { lat: 13.962050, lng: 121.612260 },
+      { lat: 13.962048, lng: 121.612330 },
+      { lat: 13.961659, lng: 121.612290 },
+      { lat: 13.961672, lng: 121.612145 },
+    ],
   },
 
   main_building: {
