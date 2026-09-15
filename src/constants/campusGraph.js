@@ -59,7 +59,6 @@ export const NODES = {
   // R-nodes: Entry path into campus interior
   R37: { id: 'R37', lat: 13.961224, lng: 121.612080 },
   R38: { id: 'R38', lat: 13.961301, lng: 121.612075 }, // campus interior entry hub
-  R40: { id: 'R40', lat: 13.961303, lng: 121.611947 },
   R47: { id: 'R47', lat: 13.961350, lng: 121.612069 },
   R48: { id: 'R48', lat: 13.961439, lng: 121.612069 },
   R49: { id: 'R49', lat: 13.961496, lng: 121.612067 },
@@ -157,8 +156,6 @@ const EDGES = [
   // Perimeter road -> campus interior entry (via R15 -> R37 -> R38)
   ['R15',              'R37'],
   ['R37',              'R38'],
-  ['R38',              'R40'],
-  ['R40',              'canteen'],   // west path to canteen from interior
   ['R38',              'R47'],
   ['R47',              'R48'],
   ['R48',              'R49'],
