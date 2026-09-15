@@ -137,17 +137,19 @@ export const NODES = {
   // Building entrance nodes
   main_building:  { id: 'main_building',  lat: 13.9617,    lng: 121.6124   }, // 1st entrance (front)
   main_building_2:{ id: 'main_building_2',lat: 13.962135,  lng: 121.612759 }, // 2nd entrance (no GF access)
-  new_building:   { id: 'new_building',   lat: 13.9613, lng: 121.6121 },
-  ea_tower:       { id: 'ea_tower',       lat: 13.9618, lng: 121.6128 }, // 1st entrance
-  ibed:           { id: 'ibed',           lat: 13.9614, lng: 121.6121 },
-  sr_building:    { id: 'sr_building',    lat: 13.9612, lng: 121.6126 }, // 1st entrance
-  canteen:        { id: 'canteen',        lat: 13.9614, lng: 121.6119 },
-  canteen_two:    { id: 'canteen_two',    lat: 13.9617, lng: 121.6128 },
-  kitchen_hall:   { id: 'kitchen_hall',   lat: 13.9624, lng: 121.6129 },
-  gymnasium:      { id: 'gymnasium',      lat: 13.9624, lng: 121.6128 },
-  chapel:         { id: 'chapel',         lat: 13.961650, lng: 121.612098 }, // ✅ beside kindergarten
-  ccss:           { id: 'ccss',           lat: 13.961008, lng: 121.612466 }, // ✅ matched to R30 entrance node
-  kindergarten:   { id: 'kindergarten',   lat: 13.961689, lng: 121.612115 }, // ✅ beside chapel
+  new_building:   { id: 'new_building',   lat: 13.9613,    lng: 121.6121   }, // sole entrance (RFID) — primary campus entry
+  ea_tower:       { id: 'ea_tower',       lat: 13.961744,  lng: 121.612746 }, // ✅ 1st entrance
+  ea_tower_2:     { id: 'ea_tower_2',     lat: 13.962093,  lng: 121.612822 }, // ✅ 2nd entrance
+  ibed:           { id: 'ibed',           lat: 13.9614,    lng: 121.6121   },
+  sr_building:    { id: 'sr_building',    lat: 13.961530,  lng: 121.612643 }, // ✅ 1st entrance
+  sr_building_2:  { id: 'sr_building_2',  lat: 13.961188,  lng: 121.612581 }, // 2nd entrance — OUTDOOR ACCESS BLOCKED (indoor only)
+  canteen:        { id: 'canteen',        lat: 13.9614,    lng: 121.6119   },
+  canteen_two:    { id: 'canteen_two',    lat: 13.9617,    lng: 121.6128   },
+  kitchen_hall:   { id: 'kitchen_hall',   lat: 13.9624,    lng: 121.6129   },
+  gymnasium:      { id: 'gymnasium',      lat: 13.9624,    lng: 121.6128   },
+  chapel:         { id: 'chapel',         lat: 13.961650,  lng: 121.612098 }, // ✅ beside kindergarten
+  ccss:           { id: 'ccss',           lat: 13.961008,  lng: 121.612466 }, // ✅ matched to R30 entrance node
+  kindergarten:   { id: 'kindergarten',   lat: 13.961689,  lng: 121.612115 }, // ✅ beside chapel
 };
 
 const EDGES = [
@@ -263,8 +265,9 @@ const EDGES = [
   ['R76',              'main_building'],
   ['R76',              'R77'],
   ['R77',              'R78'],
-  ['R78',              'ea_tower'],
+  ['R78',              'ea_tower'],       // EA Tower 1st entrance off north spine
   ['R78',              'R79'],
+  ['R79',              'ea_tower_2'],     // EA Tower 2nd entrance off north spine
   ['R79',              'R80'],
   ['R80',              'main_building_2'], // 2nd entrance off north spine
   ['R80',              'R81'],
