@@ -4,31 +4,27 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 const STORAGE_KEY = "wayfinder_settings";
 
 const DEFAULTS = {
-  arMode: true,
-  gpsTracking: true,
-  voiceCommands: true,
-  offlineMode: true,  // ON by default — uses offline keyword matcher, no server call
+  arMode:      true,   // Launch AR camera when navigating
+  gpsTracking: true,   // Show live blue dot on map
+  offlineMode: true,   // true = always use offline keyword matcher
+  language:    "en",   // "en" = English, "fil" = Filipino
 };
 
 const SettingsContext = createContext(null);
 
 export function SettingsProvider({ children }) {
   const [settings, setSettings] = useState(DEFAULTS);
-  const [loaded, setLoaded] = useState(false);
+  const [loaded,   setLoaded]   = useState(false);
 
-  // Load saved settings on first mount
   useEffect(() => {
     AsyncStorage.getItem(STORAGE_KEY).then((raw) => {
       if (raw) {
-        try {
-          setSettings({ ...DEFAULTS, ...JSON.parse(raw) });
-        } catch (_) {}
+        try { setSettings({ ...DEFAULTS, ...JSON.parse(raw) }); } catch (_) {}
       }
       setLoaded(true);
     });
   }, []);
 
-  // Save to AsyncStorage whenever settings change
   async function updateSetting(key, value) {
     const next = { ...settings, [key]: value };
     setSettings(next);
@@ -44,7 +40,6 @@ export function SettingsProvider({ children }) {
   );
 }
 
-// Hook for easy access in any screen
 export function useSettings() {
   const ctx = useContext(SettingsContext);
   if (!ctx) throw new Error("useSettings must be used inside SettingsProvider");

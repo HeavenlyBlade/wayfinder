@@ -1,5 +1,4 @@
-import React from "react";
-import React from "react";
+import React, { useState } from "react";
 import {
   View,
   Text,
@@ -8,11 +7,13 @@ import {
   ScrollView,
   Switch,
   Alert,
+  Modal,
 } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { StatusBar } from "expo-status-bar";
 import { useSettings } from "../context/SettingsContext";
+import { t } from "../constants/i18n";
 import {
   IconArrowLeft,
   IconEye,
@@ -24,7 +25,7 @@ import {
 
 const GREEN = "#00C853";
 
-// ── Sub-components defined OUTSIDE the parent so React never remounts them ───
+// ── Sub-components ────────────────────────────────────────────────────────────
 
 function SectionLabel({ label }) {
   return <Text style={s.sectionLabel}>{label}</Text>;
@@ -49,7 +50,7 @@ function ToggleItem({ icon, name, sub, value, onValueChange }) {
   );
 }
 
-function ChevronItem({ icon, name, sub, onPress }) {
+function ChevronItem({ icon, name, sub, onPress, rightLabel }) {
   return (
     <TouchableOpacity style={s.item} onPress={onPress} activeOpacity={0.7}>
       <View style={s.itemIcon}>{icon}</View>
@@ -57,19 +58,83 @@ function ChevronItem({ icon, name, sub, onPress }) {
         <Text style={s.itemName}>{name}</Text>
         {sub ? <Text style={s.itemSub}>{sub}</Text> : null}
       </View>
-      <IconChevronRight size={16} color="rgba(255,255,255,0.25)" />
+      {rightLabel
+        ? <Text style={s.rightLabel}>{rightLabel}</Text>
+        : <IconChevronRight size={16} color="rgba(255,255,255,0.25)" />}
     </TouchableOpacity>
   );
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
+function StatusRow({ label, on, lang }) {
+  return (
+    <View style={s.statusRow}>
+      <Text style={s.statusLabel}>{label}</Text>
+      <View style={[
+        s.statusBadge,
+        { backgroundColor: on ? "rgba(0,200,83,0.15)" : "rgba(255,255,255,0.06)" },
+      ]}>
+        <Text style={[s.statusValue, { color: on ? GREEN : "rgba(255,255,255,0.3)" }]}>
+          {on ? t('settings.status.on', lang) : t('settings.status.off', lang)}
+        </Text>
+      </View>
+    </View>
+  );
+}
+
+// ── Language picker modal ─────────────────────────────────────────────────────
+
+function LanguagePicker({ visible, lang, onSelect, onClose }) {
+  const options = [
+    { code: "en",  label: "🇺🇸  English" },
+    { code: "fil", label: "🇵🇭  Filipino" },
+  ];
+  return (
+    <Modal transparent animationType="fade" visible={visible} statusBarTranslucent>
+      <TouchableOpacity style={lp.backdrop} activeOpacity={1} onPress={onClose}>
+        <View style={lp.sheet}>
+          <Text style={lp.title}>{t('lang.selectTitle', lang)}</Text>
+          {options.map((opt) => (
+            <TouchableOpacity
+              key={opt.code}
+              style={[lp.option, lang === opt.code && lp.optionActive]}
+              onPress={() => { onSelect(opt.code); onClose(); }}
+              activeOpacity={0.75}
+            >
+              <Text style={[lp.optionText, lang === opt.code && lp.optionTextActive]}>
+                {opt.label}
+              </Text>
+              {lang === opt.code && (
+                <View style={lp.check}>
+                  <Text style={lp.checkMark}>✓</Text>
+                </View>
+              )}
+            </TouchableOpacity>
+          ))}
+        </View>
+      </TouchableOpacity>
+    </Modal>
+  );
+}
+
+// ── Main screen ───────────────────────────────────────────────────────────────
 
 export default function SettingsScreen({ navigation }) {
   const { settings, updateSetting } = useSettings();
+  const lang = settings.language ?? "en";
+  const [langPickerVisible, setLangPickerVisible] = useState(false);
+
+  const langLabel = lang === "fil" ? "Filipino" : "English";
 
   return (
     <View style={s.container}>
       <StatusBar style="light" />
+      <LanguagePicker
+        visible={langPickerVisible}
+        lang={lang}
+        onSelect={(code) => updateSetting("language", code)}
+        onClose={() => setLangPickerVisible(false)}
+      />
+
       <SafeAreaView style={{ flex: 1 }}>
         {/* Header */}
         <View style={s.header}>
@@ -80,76 +145,92 @@ export default function SettingsScreen({ navigation }) {
           >
             <IconArrowLeft size={18} color="#ffffff" />
           </TouchableOpacity>
-          <Text style={s.headerTitle}>Settings</Text>
+          <Text style={s.headerTitle}>{t('settings.title', lang)}</Text>
         </View>
 
         <ScrollView
           showsVerticalScrollIndicator={false}
           contentContainerStyle={{ padding: 16, paddingBottom: 40 }}
         >
-          <SectionLabel label="NAVIGATION" />
+          {/* NAVIGATION */}
+          <SectionLabel label={t('settings.navigation', lang)} />
           <View style={s.group}>
             <ToggleItem
               icon={<IconEye size={18} color="rgba(255,255,255,0.5)" />}
-              name="AR Mode"
-              sub="Launch AR camera when navigating"
+              name={t('settings.arMode', lang)}
+              sub={t('settings.arMode.sub', lang)}
               value={settings.arMode}
               onValueChange={(val) => updateSetting("arMode", val)}
             />
             <View style={s.divider} />
             <ToggleItem
               icon={<IconPin size={18} color="rgba(255,255,255,0.5)" />}
-              name="GPS Tracking"
-              sub="Enable locate-me button on map"
+              name={t('settings.gpsTracking', lang)}
+              sub={t('settings.gpsTracking.sub', lang)}
               value={settings.gpsTracking}
               onValueChange={(val) => updateSetting("gpsTracking", val)}
             />
           </View>
 
-          <SectionLabel label="AI ASSISTANT" />
+          {/* AI ASSISTANT */}
+          <SectionLabel label={t('settings.assistant', lang)} />
           <View style={s.group}>
             <ToggleItem
               icon={<IconGlobe size={18} color="rgba(255,255,255,0.5)" />}
-              name="Offline Mode"
-              sub="Use offline voice when ON, auto-detect when OFF"
+              name={t('settings.offlineMode', lang)}
+              sub={t('settings.offlineMode.sub', lang)}
               value={settings.offlineMode}
               onValueChange={(val) => updateSetting("offlineMode", val)}
             />
           </View>
 
-          <SectionLabel label="APP" />
+          {/* APP */}
+          <SectionLabel label={t('settings.app', lang)} />
           <View style={s.group}>
             <ChevronItem
+              icon={<IconGlobe size={18} color="rgba(255,255,255,0.5)" />}
+              name={t('settings.language', lang)}
+              sub={t('settings.language.sub', lang)}
+              rightLabel={langLabel}
+              onPress={() => setLangPickerVisible(true)}
+            />
+            <View style={s.divider} />
+            <ChevronItem
               icon={<IconInfo size={18} color="rgba(255,255,255,0.5)" />}
-              name="About WAYFINDER"
-              sub="Version 1.0.0"
+              name={t('settings.about', lang)}
+              sub={t('settings.about.sub', lang)}
               onPress={() => navigation.navigate("About")}
             />
           </View>
 
-          <SectionLabel label="DEV TOOLS" />
+          {/* DEV TOOLS */}
+          <SectionLabel label={t('settings.devTools', lang)} />
           <View style={s.group}>
             <ChevronItem
               icon={<IconPin size={18} color="rgba(255,255,255,0.5)" />}
-              name="GPS Survey Tool"
-              sub="Record campus coordinates for campusGraph.js"
+              name={t('settings.surveyTool', lang)}
+              sub={t('settings.surveyTool.sub', lang)}
               onPress={() => navigation.navigate("Survey")}
             />
+            <View style={s.divider} />
             <ChevronItem
               icon={<IconInfo size={18} color="rgba(255,255,255,0.5)" />}
-              name="Show App Tutorial"
-              sub="Replay the first-launch guide"
+              name={t('settings.tutorial', lang)}
+              sub={t('settings.tutorial.sub', lang)}
               onPress={() => {
                 Alert.alert(
-                  "Replay Tutorial",
-                  "This will show the tutorial guide next time you open the Home screen.",
+                  t('settings.tutorial.title', lang),
+                  t('settings.tutorial.body', lang),
                   [
                     { text: "Cancel", style: "cancel" },
                     {
-                      text: "Reset",
+                      text: t('settings.tutorial.reset', lang),
                       onPress: async () => {
                         await AsyncStorage.removeItem("wayfinder_tutorial_done");
-                        Alert.alert("Done", "Tutorial will appear on your next visit to Home.");
+                        Alert.alert(
+                          t('settings.tutorial.done', lang),
+                          t('settings.tutorial.doneMsg', lang),
+                        );
                       },
                     },
                   ]
@@ -158,24 +239,28 @@ export default function SettingsScreen({ navigation }) {
             />
           </View>
 
-          {/* Live status preview */}
-          <SectionLabel label="CURRENT STATUS" />
+          {/* CURRENT STATUS */}
+          <SectionLabel label={t('settings.status', lang)} />
           <View style={s.statusCard}>
-            <StatusRow label="AR Mode"       on={settings.arMode}       />
+            <StatusRow label={t('settings.arMode', lang)}      on={settings.arMode}      lang={lang} />
             <View style={s.divider} />
-            <StatusRow label="GPS Tracking"  on={settings.gpsTracking}  />
+            <StatusRow label={t('settings.gpsTracking', lang)} on={settings.gpsTracking} lang={lang} />
             <View style={s.divider} />
             <View style={s.statusRow}>
-              <Text style={s.statusLabel}>Offline Mode</Text>
+              <Text style={s.statusLabel}>{t('settings.offlineMode', lang)}</Text>
               <View style={[
                 s.statusBadge,
-                { backgroundColor: settings.offlineMode ? "rgba(255,193,7,0.15)" : "rgba(0,200,83,0.15)" },
+                { backgroundColor: settings.offlineMode
+                    ? "rgba(255,193,7,0.15)"
+                    : "rgba(0,200,83,0.15)" },
               ]}>
                 <Text style={[
                   s.statusValue,
                   { color: settings.offlineMode ? "#ffc107" : GREEN },
                 ]}>
-                  {settings.offlineMode ? "OFFLINE" : "AUTO"}
+                  {settings.offlineMode
+                    ? t('settings.status.offline', lang)
+                    : t('settings.status.auto', lang)}
                 </Text>
               </View>
             </View>
@@ -186,22 +271,7 @@ export default function SettingsScreen({ navigation }) {
   );
 }
 
-// Small helper for the ON/OFF status rows — also outside the parent
-function StatusRow({ label, on }) {
-  return (
-    <View style={s.statusRow}>
-      <Text style={s.statusLabel}>{label}</Text>
-      <View style={[
-        s.statusBadge,
-        { backgroundColor: on ? "rgba(0,200,83,0.15)" : "rgba(255,255,255,0.06)" },
-      ]}>
-        <Text style={[s.statusValue, { color: on ? GREEN : "rgba(255,255,255,0.3)" }]}>
-          {on ? "ON" : "OFF"}
-        </Text>
-      </View>
-    </View>
-  );
-}
+// ── Styles ────────────────────────────────────────────────────────────────────
 
 const s = StyleSheet.create({
   container: { flex: 1, backgroundColor: "#071209" },
@@ -217,22 +287,17 @@ const s = StyleSheet.create({
     borderBottomColor: "rgba(0,200,83,0.1)",
   },
   backBtn: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
+    width: 32, height: 32, borderRadius: 16,
     backgroundColor: "rgba(255,255,255,0.06)",
-    alignItems: "center",
-    justifyContent: "center",
+    alignItems: "center", justifyContent: "center",
   },
   headerTitle: { fontSize: 16, fontWeight: "900", color: "#ffffff" },
 
   sectionLabel: {
-    fontSize: 10,
-    fontWeight: "800",
+    fontSize: 10, fontWeight: "800",
     color: "rgba(0,200,83,0.6)",
     letterSpacing: 1.2,
-    marginTop: 20,
-    marginBottom: 8,
+    marginTop: 20, marginBottom: 8,
   },
 
   group: {
@@ -244,15 +309,17 @@ const s = StyleSheet.create({
   },
 
   item: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 12,
-    padding: 14,
+    flexDirection: "row", alignItems: "center",
+    gap: 12, padding: 14,
   },
   itemIcon: { width: 24, alignItems: "center", justifyContent: "center" },
   itemInfo: { flex: 1 },
   itemName: { fontSize: 13, fontWeight: "700", color: "#e0e8e0" },
   itemSub:  { fontSize: 11, color: "rgba(255,255,255,0.3)", marginTop: 2 },
+  rightLabel: {
+    fontSize: 12, fontWeight: "700",
+    color: GREEN,
+  },
 
   divider: {
     height: 1,
@@ -269,12 +336,58 @@ const s = StyleSheet.create({
     paddingHorizontal: 14,
   },
   statusRow: {
-    flexDirection: "row",
-    alignItems: "center",
+    flexDirection: "row", alignItems: "center",
     justifyContent: "space-between",
     paddingVertical: 12,
   },
   statusLabel: { fontSize: 13, fontWeight: "600", color: "rgba(255,255,255,0.5)" },
   statusBadge: { paddingHorizontal: 10, paddingVertical: 4, borderRadius: 20 },
   statusValue: { fontSize: 11, fontWeight: "800", letterSpacing: 0.5 },
+});
+
+const lp = StyleSheet.create({
+  backdrop: {
+    flex: 1,
+    backgroundColor: "rgba(0,0,0,0.6)",
+    justifyContent: "center",
+    alignItems: "center",
+    paddingHorizontal: 32,
+  },
+  sheet: {
+    width: "100%",
+    backgroundColor: "#0d1a10",
+    borderRadius: 18,
+    padding: 20,
+    borderWidth: 1,
+    borderColor: "rgba(0,200,83,0.2)",
+  },
+  title: {
+    fontSize: 15, fontWeight: "900", color: "#ffffff",
+    marginBottom: 16, textAlign: "center",
+  },
+  option: {
+    flexDirection: "row", alignItems: "center",
+    justifyContent: "space-between",
+    paddingVertical: 14, paddingHorizontal: 12,
+    borderRadius: 12,
+    marginBottom: 8,
+    backgroundColor: "rgba(255,255,255,0.04)",
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.06)",
+  },
+  optionActive: {
+    backgroundColor: "rgba(0,200,83,0.1)",
+    borderColor: "rgba(0,200,83,0.3)",
+  },
+  optionText: {
+    fontSize: 14, fontWeight: "700",
+    color: "rgba(255,255,255,0.5)",
+  },
+  optionTextActive: { color: "#ffffff" },
+  check: {
+    width: 22, height: 22, borderRadius: 11,
+    backgroundColor: GREEN,
+    alignItems: "center", justifyContent: "center",
+  },
+  checkMark: { fontSize: 12, fontWeight: "900", color: "#071209" },
 });

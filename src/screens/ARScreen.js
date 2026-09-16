@@ -15,11 +15,15 @@ import { StatusBar } from "expo-status-bar";
 import useLocation from "../hooks/useLocation";
 import { projectToScreen, distanceTo } from "../utils/arMath";
 import { aStar, getWaypoints, nearestNode } from "../utils/pathfinding";
+import { getIndoorStatus } from "../utils/indoorDetection";
 import { NODES } from "../constants/campusGraph";
 import { BUILDINGS } from "../constants/buildings";
 import { fetchRoute } from "../services/api";
 import { colors, radius } from "../constants/theme";
 import { IconArrowLeft } from "../components/icons/index";
+import { useSettings } from "../context/SettingsContext";
+import { t } from "../constants/i18n";
+import StaircasePicker from "../components/StaircasePicker";
 
 const { width: W, height: H } = Dimensions.get("window");
 
@@ -202,6 +206,8 @@ function AROrb({ x, y, size, isNext, isDestination }) {
 // ── Main screen ───────────────────────────────────────────────────────────────
 export default function ARScreen({ route, navigation }) {
   const { destinationId = "main_building" } = route.params ?? {};
+  const { settings } = useSettings();
+  const lang = settings?.language ?? "en";
 
   const [permission, requestPermission] = useCameraPermissions();
   const { location, heading, error: locError } = useLocation();
@@ -210,8 +216,11 @@ export default function ARScreen({ route, navigation }) {
   const [distToNext,   setDistToNext]   = useState(null);
   const [totalDist,    setTotalDist]    = useState(null);
   const [arrived,      setArrived]      = useState(false);
-  const [routeReady,   setRouteReady]   = useState(false); // true once we have a trail
-  const [nextAngle,    setNextAngle]    = useState(null);  // angleDiff to next orb
+  const [routeReady,   setRouteReady]   = useState(false);
+  const [nextAngle,    setNextAngle]    = useState(null);
+  const [indoorStatus,       setIndoorStatus]       = useState(null); // null = outdoors
+  const [staircasePickerVisible, setStaircasePickerVisible] = useState(false);
+  const [selectedStaircase,      setSelectedStaircase]      = useState(null);
 
   const orbTrailRef     = useRef([]); // mutable trail — orbs consumed as user walks
   const routeLoadedRef  = useRef(false);
@@ -275,7 +284,12 @@ export default function ARScreen({ route, navigation }) {
     }
   }, [location, loadRoute]);
 
-  // ── Re-route if user drifts far off the current trail ─────────────────────
+  // ── Indoor detection — suppress AR when user is inside a building ────────
+  useEffect(() => {
+    if (!location) return;
+    const status = getIndoorStatus(location.lat, location.lng);
+    setIndoorStatus(status);
+  }, [location]);
   useEffect(() => {
     if (!location || !routeReady || arrived) return;
     if (orbTrailRef.current.length === 0) return;
@@ -319,6 +333,11 @@ export default function ARScreen({ route, navigation }) {
       if (d < ARRIVAL_DIST) {
         setArrived(true);
         setOrbPositions([]);
+        // Show staircase picker if the destination building has 2 staircases
+        const destBuilding = BUILDINGS[destinationId];
+        if (destBuilding && indoorStatus?.hasTwoStaircases) {
+          setStaircasePickerVisible(true);
+        }
         return;
       }
     }
@@ -409,9 +428,9 @@ export default function ARScreen({ route, navigation }) {
       {/* Live camera feed */}
       <CameraView style={StyleSheet.absoluteFill} facing="back" />
 
-      {/* ── AR orb layer ── */}
+      {/* ── AR orb layer — hidden when user is inside a building ── */}
       <View style={StyleSheet.absoluteFill} pointerEvents="none">
-        {!arrived && orbPositions.map((orb, i) => (
+        {!arrived && !indoorStatus && orbPositions.map((orb, i) => (
           <AROrb
             key={`${orb.idx}-${i}`}
             x={orb.x}
@@ -428,9 +447,29 @@ export default function ARScreen({ route, navigation }) {
         <View style={s.loadingOverlay}>
           <Text style={s.loadingIcon}>🛰</Text>
           <Text style={s.loadingText}>
-            {!location ? "Acquiring GPS signal…" : "Plotting AR path…"}
+            {!location ? t('ar.gpsAcquiring', lang) : t('ar.plotting', lang)}
           </Text>
-          <Text style={s.loadingSub}>Point your camera ahead and wait</Text>
+          <Text style={s.loadingSub}>{t('ar.pointAhead', lang)}</Text>
+        </View>
+      )}
+
+      {/* ── Indoor warning banner — replaces orbs when inside a building ── */}
+      {indoorStatus && !arrived && (
+        <View style={s.indoorOverlay}>
+          <View style={s.indoorCard}>
+            <Text style={s.indoorIcon}>🏢</Text>
+            <Text style={s.indoorTitle}>{t('ar.indoor.title', lang)}</Text>
+            <Text style={s.indoorBody}>
+              {t('ar.indoor.body', lang)} {indoorStatus.buildingName}.
+            </Text>
+            <TouchableOpacity
+              style={s.indoorBtn}
+              onPress={() => setIndoorStatus(null)}
+              activeOpacity={0.85}
+            >
+              <Text style={s.indoorBtnText}>{t('ar.indoor.dismiss', lang)}</Text>
+            </TouchableOpacity>
+          </View>
         </View>
       )}
 
@@ -439,7 +478,7 @@ export default function ARScreen({ route, navigation }) {
         <SafeAreaView style={s.hudTop} edges={["top"]} pointerEvents="none">
           <View style={s.directionBox}>
             <Text style={s.directionArrow}>{directionArrow(nextAngle)}</Text>
-            <Text style={s.directionText}>Follow the orbs</Text>
+            <Text style={s.directionText}>{t('ar.pointAhead', lang)}</Text>
           </View>
 
           {/* Destination pill */}
@@ -470,19 +509,46 @@ export default function ARScreen({ route, navigation }) {
         </View>
       )}
 
+      {/* ── Staircase picker — shown after arrival for 2-staircase buildings ── */}
+      <StaircasePicker
+        visible={staircasePickerVisible}
+        buildingId={destinationId}
+        buildingName={destName}
+        lang={lang}
+        onSelect={(stairKey) => {
+          setSelectedStaircase(stairKey);
+          setStaircasePickerVisible(false);
+        }}
+        onDismiss={() => setStaircasePickerVisible(false)}
+      />
+
       {/* ── Arrival banner ── */}
       {arrived && (
         <View style={s.arrivalOverlay}>
           <View style={s.arrivalCard}>
             <Text style={s.arrivalIcon}>✅</Text>
-            <Text style={s.arrivalTitle}>You have arrived!</Text>
+            <Text style={s.arrivalTitle}>{t('ar.arrived', lang)}</Text>
             <Text style={s.arrivalSub}>{destName}</Text>
+            {selectedStaircase && (
+              <View style={s.staircaseBadge}>
+                <Text style={s.staircaseBadgeText}>
+                  {selectedStaircase === "staircase_1"
+                    ? (ENTRANCE_LABEL_BUILDINGS.has(destinationId)
+                        ? t("staircase.front", lang)
+                        : t("staircase.stair1", lang))
+                    : (ENTRANCE_LABEL_BUILDINGS.has(destinationId)
+                        ? t("staircase.back", lang)
+                        : t("staircase.stair2", lang))
+                  }
+                </Text>
+              </View>
+            )}
             <TouchableOpacity
               style={s.arrivalBtn}
               onPress={() => navigation.goBack()}
               activeOpacity={0.85}
             >
-              <Text style={s.arrivalBtnText}>← Back to Map</Text>
+              <Text style={s.arrivalBtnText}>{t('ar.backToMap', lang)}</Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -676,4 +742,37 @@ const s = StyleSheet.create({
   permBtnText: { fontSize: 14, fontWeight: "800", color: colors.primaryText },
   permBack:    { marginTop: 10 },
   permBackText: { fontSize: 13, color: "rgba(255,255,255,0.4)", fontWeight: "600" },
+
+  // Indoor warning overlay
+  indoorOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: "rgba(0,0,0,0.72)",
+    alignItems: "center",
+    justifyContent: "center",
+    zIndex: 25,
+  },
+  indoorCard: {
+    backgroundColor: "#0d1a10",
+    borderRadius: radius.lg,
+    borderWidth: 1.5,
+    borderColor: "#ffc107",
+    padding: 28,
+    alignItems: "center",
+    gap: 10,
+    width: W - 48,
+  },
+  indoorIcon:  { fontSize: 48 },
+  indoorTitle: { fontSize: 18, fontWeight: "900", color: "#ffc107", textAlign: "center" },
+  indoorBody:  {
+    fontSize: 13, color: "rgba(255,255,255,0.6)",
+    textAlign: "center", lineHeight: 20,
+  },
+  indoorBtn: {
+    marginTop: 8,
+    backgroundColor: "#ffc107",
+    borderRadius: radius.full,
+    paddingHorizontal: 28,
+    paddingVertical: 11,
+  },
+  indoorBtnText: { fontSize: 13, fontWeight: "800", color: "#071209" },
 });
