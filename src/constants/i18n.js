@@ -64,6 +64,22 @@ const TRANSLATIONS = {
     'ar.indoor.body':     'AR navigation is for outdoor use. You are currently inside',
     'ar.indoor.dismiss':  'Got it',
 
+    // ── Arrival prompt / indoor guidance ─────────────────────────────────────
+    'arrival.title':          'You have arrived at',
+    'arrival.whatLooking':    'What are you looking for?',
+    'arrival.searchHint':     'Search rooms, offices, labs…',
+    'arrival.whichFloor':     'Which floor are you on?',
+    'arrival.directions':     'Directions',
+    'arrival.notFound':       "We don't have directions for that room yet. Please ask at the nearest office.",
+    'arrival.noData':         'Indoor directions for this building are not yet available.',
+    'arrival.back':           '← Back',
+    'arrival.close':          'Close',
+    'arrival.gf':             'Ground Floor',
+    'arrival.1f':             '1st Floor',
+    'arrival.2f':             '2nd Floor',
+    'arrival.3f':             '3rd Floor',
+    'arrival.4f':             '4th Floor',
+
     // ── Staircase picker ──────────────────────────────────────────────────────
     'staircase.title':    "Which stairs is closest to you?",
     'staircase.sub':      'This helps us give you the right directions.',
@@ -149,6 +165,22 @@ const TRANSLATIONS = {
     'ar.indoor.title':    'Nasa loob ka ng gusali',
     'ar.indoor.body':     'Ang AR navigation ay para sa labas lamang. Kasalukuyan kang nasa loob ng',
     'ar.indoor.dismiss':  'Naiintindihan ko',
+
+    // ── Arrival prompt / indoor guidance ─────────────────────────────────────
+    'arrival.title':          'Nakarating ka na sa',
+    'arrival.whatLooking':    'Ano ang hinahanap mo?',
+    'arrival.searchHint':     'Maghanap ng silid, opisina, lab…',
+    'arrival.whichFloor':     'Saang palapag ka ngayon?',
+    'arrival.directions':     'Direksyon',
+    'arrival.notFound':       "Wala pa kaming direksyon para sa silid na iyon. Magtanong sa pinakamalapit na opisina.",
+    'arrival.noData':         'Hindi pa available ang indoor directions para sa gusaling ito.',
+    'arrival.back':           '← Bumalik',
+    'arrival.close':          'Isara',
+    'arrival.gf':             'Ground Floor',
+    'arrival.1f':             '1st Floor',
+    'arrival.2f':             '2nd Floor',
+    'arrival.3f':             '3rd Floor',
+    'arrival.4f':             '4th Floor',
 
     // ── Staircase picker ──────────────────────────────────────────────────────
     'staircase.title':    "Alin ang pinakamalapit na hagdan sa iyo?",

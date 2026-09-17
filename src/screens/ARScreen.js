@@ -24,6 +24,7 @@ import { IconArrowLeft } from "../components/icons/index";
 import { useSettings } from "../context/SettingsContext";
 import { t } from "../constants/i18n";
 import StaircasePicker from "../components/StaircasePicker";
+import ArrivalPrompt from "../components/ArrivalPrompt";
 
 const { width: W, height: H } = Dimensions.get("window");
 
@@ -221,6 +222,7 @@ export default function ARScreen({ route, navigation }) {
   const [indoorStatus,       setIndoorStatus]       = useState(null); // null = outdoors
   const [staircasePickerVisible, setStaircasePickerVisible] = useState(false);
   const [selectedStaircase,      setSelectedStaircase]      = useState(null);
+  const [arrivalPromptVisible,   setArrivalPromptVisible]   = useState(false);
 
   const orbTrailRef     = useRef([]); // mutable trail — orbs consumed as user walks
   const routeLoadedRef  = useRef(false);
@@ -337,6 +339,9 @@ export default function ARScreen({ route, navigation }) {
         const destBuilding = BUILDINGS[destinationId];
         if (destBuilding && indoorStatus?.hasTwoStaircases) {
           setStaircasePickerVisible(true);
+        } else {
+          // Single-staircase building — go straight to arrival prompt
+          setArrivalPromptVisible(true);
         }
         return;
       }
@@ -518,8 +523,19 @@ export default function ARScreen({ route, navigation }) {
         onSelect={(stairKey) => {
           setSelectedStaircase(stairKey);
           setStaircasePickerVisible(false);
+          setArrivalPromptVisible(true);
         }}
         onDismiss={() => setStaircasePickerVisible(false)}
+      />
+
+      {/* ── Arrival prompt — indoor directions after staircase picker ── */}
+      <ArrivalPrompt
+        visible={arrivalPromptVisible}
+        buildingId={destinationId}
+        buildingName={destName}
+        lang={lang}
+        staircase={selectedStaircase === "staircase_2" ? "s2" : "s1"}
+        onClose={() => setArrivalPromptVisible(false)}
       />
 
       {/* ── Arrival banner ── */}
@@ -549,6 +565,13 @@ export default function ARScreen({ route, navigation }) {
               activeOpacity={0.85}
             >
               <Text style={s.arrivalBtnText}>{t('ar.backToMap', lang)}</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={[s.arrivalBtn, { backgroundColor: "rgba(0,200,83,0.15)", marginTop: 8 }]}
+              onPress={() => setArrivalPromptVisible(true)}
+              activeOpacity={0.85}
+            >
+              <Text style={[s.arrivalBtnText, { color: GREEN }]}>🏢 Find a room</Text>
             </TouchableOpacity>
           </View>
         </View>
