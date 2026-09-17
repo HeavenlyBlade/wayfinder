@@ -39,6 +39,10 @@ const ENTRANCE_LABEL_BUILDINGS = new Set([
   "sr_building",
 ]);
 
+// Buildings that use "Way 1 / Way 2" labels (internal paths, single entrance)
+// New Building removed — confirmed single entrance AND single staircase
+const WAY_LABEL_BUILDINGS = new Set([]);
+
 export default function StaircasePicker({
   visible,
   buildingId,

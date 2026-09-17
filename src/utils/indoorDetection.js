@@ -21,7 +21,6 @@ import { distanceTo }  from './arMath';
 // Buildings that have 2 staircases/entrances — used by staircase picker
 const TWO_STAIRCASE_BUILDINGS = new Set([
   'main_building',
-  'new_building',
   'ea_tower',
   'sr_building',
 ]);
