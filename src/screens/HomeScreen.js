@@ -50,7 +50,7 @@ const TUTORIAL_STEPS = [
   {
     title: "Voice Commands 🎤",
     message:
-      "On the map screen, tap the mic button and say where you want to go. The AI understands natural speech like "Take me to the registrar."",
+      "On the map screen, tap the mic button and say where you want to go. The AI understands natural speech like \u2018Take me to the registrar.\u2019",
   },
   {
     title: "Quick Destinations ⚡",
