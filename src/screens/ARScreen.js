@@ -14,6 +14,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { StatusBar } from "expo-status-bar";
 
 import useLocation from "../hooks/useLocation";
+import { setCompassOffset, getCompassOffset } from "../hooks/useLocation";
 import { bearingTo, distanceTo } from "../utils/arMath";
 import { aStar, getWaypoints, nearestNode } from "../utils/pathfinding";
 import { getIndoorStatus } from "../utils/indoorDetection";
@@ -26,6 +27,8 @@ import { useSettings } from "../context/SettingsContext";
 import { t } from "../constants/i18n";
 import StaircasePicker from "../components/StaircasePicker";
 import ArrivalPrompt from "../components/ArrivalPrompt";
+import BearingHUD from "../components/BearingHUD";
+import CompassCalibrator from "../components/CompassCalibrator";
 
 const { width: W, height: H } = Dimensions.get("window");
 const GREEN = "#00C853";
@@ -150,6 +153,7 @@ export default function ARScreen({ route, navigation }) {
   const [routeReady,      setRouteReady]      = useState(false);
   const [nextAngle,       setNextAngle]       = useState(null);
   const [indoorStatus,    setIndoorStatus]    = useState(null);
+  const [compassOffset,   setCompassOffsetState] = useState(getCompassOffset());
   const [staircasePickerVisible, setStaircasePickerVisible] = useState(false);
   const [selectedStaircase,      setSelectedStaircase]      = useState(null);
   const [arrivalPromptVisible,   setArrivalPromptVisible]   = useState(false);
@@ -157,7 +161,12 @@ export default function ARScreen({ route, navigation }) {
   const orbTrailRef        = useRef([]);
   const routeLoadedRef     = useRef(false);
   const arrivedRef         = useRef(false);
-  const arrivalCountRef    = useRef(0); // must be within range for 2 consecutive updates
+  const arrivalCountRef    = useRef(0);
+
+  function handleOffsetChange(newOffset) {
+    setCompassOffset(newOffset);
+    setCompassOffsetState(newOffset);
+  } // must be within range for 2 consecutive updates
 
   // ── Load route ────────────────────────────────────────────────────────────
   const loadRoute = useCallback(async (loc) => {
@@ -403,22 +412,25 @@ export default function ARScreen({ route, navigation }) {
         </View>
       )}
 
-      {/* ── Top HUD ── */}
+      {/* ── Top HUD: BearingHUD arc indicator + compass calibrator ── */}
       {!isLoading && !arrived && (
-        <SafeAreaView style={s.hudTop} edges={["top"]} pointerEvents="none">
-          <View style={s.directionBox}>
-            <DirectionArrowIcon angleDiff={nextAngle} size={26} color="#ffffff" />
-            <Text style={s.directionText}>{destName}</Text>
-          </View>
+        <SafeAreaView style={s.hudTop} edges={["top"]} pointerEvents="box-none">
+          <BearingHUD
+            angleDiff={nextAngle}
+            distance={distToNext}
+            destName={destName}
+          />
         </SafeAreaView>
       )}
 
-      {/* ── Compass ── */}
-      {!isLoading && (
-        <View style={s.compass} pointerEvents="none">
-          <Text style={s.compassN}>N</Text>
-          <Text style={s.compassCard}>{cardinalLabel(heading)}</Text>
-          <Text style={s.compassDeg}>{Math.round(heading)}°</Text>
+      {/* ── Compass calibrator — bottom-right corner ── */}
+      {!isLoading && !arrived && (
+        <View style={s.calibratorWrap} pointerEvents="box-none">
+          <CompassCalibrator
+            offset={compassOffset}
+            onAdjust={handleOffsetChange}
+            heading={heading}
+          />
         </View>
       )}
 
@@ -555,6 +567,12 @@ const s = StyleSheet.create({
     paddingHorizontal: 16, paddingVertical: 10,
     alignItems: "center",
     minWidth: 70,
+  },
+  calibratorWrap: {
+    position: "absolute",
+    bottom: 220,
+    right: 16,
+    zIndex: 20,
   },
   distVal:   { fontSize: 26, fontWeight: "900", color: "#071209" },
   distLabel: { fontSize: 10, fontWeight: "700", color: "rgba(7,18,9,0.65)" },
