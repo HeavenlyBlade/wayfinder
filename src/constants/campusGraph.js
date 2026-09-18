@@ -95,6 +95,7 @@ export const NODES = {
   // Building entrance nodes
   main_building:  { id: 'main_building',  lat: 13.9617,    lng: 121.6124   }, // 1st entrance (front)
   main_building_2:{ id: 'main_building_2',lat: 13.962135,  lng: 121.612759 }, // 2nd entrance (no GF)
+  new_building:   { id: 'new_building',   lat: 13.9613,    lng: 121.6121   }, // RFID — mandatory campus entry
   engineering:    { id: 'engineering',    lat: 13.961637,  lng: 121.612220 }, // entrance
   ea_tower:       { id: 'ea_tower',       lat: 13.961744,  lng: 121.612746 }, // 1st entrance
   ea_tower_2:     { id: 'ea_tower_2',     lat: 13.962093,  lng: 121.612822 }, // 2nd entrance
@@ -113,6 +114,7 @@ export const NODES = {
 
 const EDGES = [
   // Gate -> perimeter road
+  // Gate -> perimeter road (for CCSS, parking, motorcycle parking ONLY)
   ['gate',             'R01'],
   ['R01',              'R02'],
   ['R02',              'R03'],
@@ -125,7 +127,7 @@ const EDGES = [
   ['R09',              'R10'],
   ['R10',              'R11'],
   ['R11',              'R12'],
-  ['R12',              'canteen'],
+  // R12 no longer connects to canteen — canteen is inside campus, accessed via New Building
   ['R12',              'R13'],
   ['R13',              'R14'],
   ['R14',              'R15'],
@@ -148,41 +150,33 @@ const EDGES = [
   ['R29',              'R30'],
   ['R30',              'ccss'],
 
-  // Gate -> J8 -> canteen / campus interior
-  ['gate',             'J8'],
-  ['J8',               'R65'],
-  ['R65',              'canteen'],
-  ['J8',               'J4'],
-  // J4 connects directly to interior hub for efficient routing
-  ['J4',               'R38'],
+  // ── NEW BUILDING (RFID) is the MANDATORY campus entry point ──────────────
+  // The perimeter road connects to New Building entrance.
+  // ALL internal buildings are only reachable through New Building.
+  ['R15',              'new_building'],  // perimeter road → New Building entrance
+  ['new_building',     'R38'],           // New Building → interior campus hub
+  ['new_building',     'canteen'],       // canteen accessible from inside campus
 
-  // Perimeter road -> campus interior entry (via R15 -> R37 -> R38)
-  ['R15',              'R37'],
-  ['R37',              'R38'],
+  // Interior campus hub → all internal paths
   ['R38',              'R47'],
   ['R47',              'R48'],
   ['R48',              'R49'],
   ['R49',              'R50'],
   ['R50',              'R51'],
-  // R51 connects to R60 for the northeast interior path
-  // but NOT to canteen benches — that separate path is one-way from canteen
   ['R51',              'R60'],
   ['R60',              'R61'],
   ['R61',              'R62'],
-  // R62 connects to R63 (canteen bench area) — but this creates a loop
-  // that causes A* to route south. Removing this connection.
-  // Users coming from the canteen go: canteen→R63→R64→R65→J8→J4
 
-  // Canteen bench paths (south approach only — no reverse loop into interior)
+  // Canteen bench paths (internal only — not from gate)
   ['canteen',          'R63'],
   ['R63',              'R64'],
   ['R64',              'R65'],
-  ['R65',              'J8'],
 
-  // Direct connection: interior hub to north spine (skip canteen bench loop)
+  // Direct connection: interior hub to north spine
   ['R38',              'R66'],
 
-  // J4 / J5 intersection connections
+  // J4 / J5 intersection connections (internal only)
+  ['R38',              'J4'],            // interior hub → J4
   ['J4',               'chapel'],
   ['J4',               'kindergarten'],
   ['J4',               'ibed'],
@@ -196,9 +190,9 @@ const EDGES = [
   // IBED 2nd entrance off interior path
   ['R51',              'ibed_2'],
 
-  // North spine (canteen -> top of campus)
+  // North spine (from canteen benches → top of campus)
   ['R63',              'R66'],
-  ['R66',              'engineering'],   // Engineering Building entrance off north spine
+  ['R66',              'engineering'],
   ['R66',              'R67'],
   ['R67',              'R68'],
   ['R68',              'R69'],
