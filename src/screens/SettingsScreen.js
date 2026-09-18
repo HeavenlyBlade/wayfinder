@@ -1,13 +1,7 @@
 import React, { useState } from "react";
 import {
-  View,
-  Text,
-  StyleSheet,
-  TouchableOpacity,
-  ScrollView,
-  Switch,
-  Alert,
-  Modal,
+  View, Text, StyleSheet, TouchableOpacity,
+  ScrollView, Alert, Modal,
 } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -15,39 +9,13 @@ import { StatusBar } from "expo-status-bar";
 import { useSettings } from "../context/SettingsContext";
 import { t } from "../constants/i18n";
 import {
-  IconArrowLeft,
-  IconEye,
-  IconPin,
-  IconGlobe,
-  IconInfo,
-  IconChevronRight,
+  IconArrowLeft, IconPin, IconInfo, IconGlobe, IconChevronRight,
 } from "../components/icons/index";
 
 const GREEN = "#00C853";
 
-// ── Sub-components ────────────────────────────────────────────────────────────
-
 function SectionLabel({ label }) {
   return <Text style={s.sectionLabel}>{label}</Text>;
-}
-
-function ToggleItem({ icon, name, sub, value, onValueChange }) {
-  return (
-    <View style={s.item}>
-      <View style={s.itemIcon}>{icon}</View>
-      <View style={s.itemInfo}>
-        <Text style={s.itemName}>{name}</Text>
-        {sub ? <Text style={s.itemSub}>{sub}</Text> : null}
-      </View>
-      <Switch
-        value={value}
-        onValueChange={onValueChange}
-        trackColor={{ false: "rgba(255,255,255,0.15)", true: GREEN }}
-        thumbColor="#ffffff"
-        ios_backgroundColor="rgba(255,255,255,0.15)"
-      />
-    </View>
-  );
 }
 
 function ChevronItem({ icon, name, sub, onPress, rightLabel }) {
@@ -65,24 +33,6 @@ function ChevronItem({ icon, name, sub, onPress, rightLabel }) {
   );
 }
 
-function StatusRow({ label, on, lang }) {
-  return (
-    <View style={s.statusRow}>
-      <Text style={s.statusLabel}>{label}</Text>
-      <View style={[
-        s.statusBadge,
-        { backgroundColor: on ? "rgba(0,200,83,0.15)" : "rgba(255,255,255,0.06)" },
-      ]}>
-        <Text style={[s.statusValue, { color: on ? GREEN : "rgba(255,255,255,0.3)" }]}>
-          {on ? t('settings.status.on', lang) : t('settings.status.off', lang)}
-        </Text>
-      </View>
-    </View>
-  );
-}
-
-// ── Language picker modal ─────────────────────────────────────────────────────
-
 function LanguagePicker({ visible, lang, onSelect, onClose }) {
   const options = [
     { code: "en",  label: "🇺🇸  English" },
@@ -92,7 +42,7 @@ function LanguagePicker({ visible, lang, onSelect, onClose }) {
     <Modal transparent animationType="fade" visible={visible} statusBarTranslucent>
       <TouchableOpacity style={lp.backdrop} activeOpacity={1} onPress={onClose}>
         <View style={lp.sheet}>
-          <Text style={lp.title}>{t('lang.selectTitle', lang)}</Text>
+          <Text style={lp.title}>{t("lang.selectTitle", lang)}</Text>
           {options.map((opt) => (
             <TouchableOpacity
               key={opt.code}
@@ -116,13 +66,10 @@ function LanguagePicker({ visible, lang, onSelect, onClose }) {
   );
 }
 
-// ── Main screen ───────────────────────────────────────────────────────────────
-
 export default function SettingsScreen({ navigation }) {
   const { settings, updateSetting } = useSettings();
   const lang = settings.language ?? "en";
   const [langPickerVisible, setLangPickerVisible] = useState(false);
-
   const langLabel = lang === "fil" ? "Filipino" : "English";
 
   return (
@@ -136,100 +83,63 @@ export default function SettingsScreen({ navigation }) {
       />
 
       <SafeAreaView style={{ flex: 1 }}>
-        {/* Header */}
         <View style={s.header}>
-          <TouchableOpacity
-            style={s.backBtn}
-            onPress={() => navigation.goBack()}
-            activeOpacity={0.7}
-          >
+          <TouchableOpacity style={s.backBtn} onPress={() => navigation.goBack()} activeOpacity={0.7}>
             <IconArrowLeft size={18} color="#ffffff" />
           </TouchableOpacity>
-          <Text style={s.headerTitle}>{t('settings.title', lang)}</Text>
+          <Text style={s.headerTitle}>{t("settings.title", lang)}</Text>
         </View>
 
         <ScrollView
           showsVerticalScrollIndicator={false}
           contentContainerStyle={{ padding: 16, paddingBottom: 40 }}
         >
-          {/* NAVIGATION */}
-          <SectionLabel label={t('settings.navigation', lang)} />
-          <View style={s.group}>
-            <ToggleItem
-              icon={<IconEye size={18} color="rgba(255,255,255,0.5)" />}
-              name={t('settings.arMode', lang)}
-              sub={t('settings.arMode.sub', lang)}
-              value={settings.arMode}
-              onValueChange={(val) => updateSetting("arMode", val)}
-            />
-            <View style={s.divider} />
-            <ToggleItem
-              icon={<IconPin size={18} color="rgba(255,255,255,0.5)" />}
-              name={t('settings.gpsTracking', lang)}
-              sub={t('settings.gpsTracking.sub', lang)}
-              value={settings.gpsTracking}
-              onValueChange={(val) => updateSetting("gpsTracking", val)}
-            />
-          </View>
-
-          {/* AI ASSISTANT */}
-          <SectionLabel label={t('settings.assistant', lang)} />
-          <View style={s.group}>
-            <ToggleItem
-              icon={<IconGlobe size={18} color="rgba(255,255,255,0.5)" />}
-              name={t('settings.offlineMode', lang)}
-              sub={t('settings.offlineMode.sub', lang)}
-              value={settings.offlineMode}
-              onValueChange={(val) => updateSetting("offlineMode", val)}
-            />
-          </View>
-
           {/* APP */}
-          <SectionLabel label={t('settings.app', lang)} />
+          <SectionLabel label={t("settings.app", lang)} />
           <View style={s.group}>
             <ChevronItem
               icon={<IconGlobe size={18} color="rgba(255,255,255,0.5)" />}
-              name={t('settings.language', lang)}
-              sub={t('settings.language.sub', lang)}
+              name={t("settings.language", lang)}
+              sub={t("settings.language.sub", lang)}
               rightLabel={langLabel}
               onPress={() => setLangPickerVisible(true)}
             />
             <View style={s.divider} />
             <ChevronItem
               icon={<IconInfo size={18} color="rgba(255,255,255,0.5)" />}
-              name={t('settings.about', lang)}
-              sub={t('settings.about.sub', lang)}
+              name={t("settings.about", lang)}
+              sub={t("settings.about.sub", lang)}
               onPress={() => navigation.navigate("About")}
             />
           </View>
 
           {/* DEV TOOLS */}
-          <SectionLabel label={t('settings.devTools', lang)} />
+          <SectionLabel label={t("settings.devTools", lang)} />
           <View style={s.group}>
             <ChevronItem
               icon={<IconPin size={18} color="rgba(255,255,255,0.5)" />}
-              name={t('settings.surveyTool', lang)}
-              sub={t('settings.surveyTool.sub', lang)}
+              name={t("settings.surveyTool", lang)}
+              sub={t("settings.surveyTool.sub", lang)}
               onPress={() => navigation.navigate("Survey")}
             />
             <View style={s.divider} />
             <ChevronItem
               icon={<IconInfo size={18} color="rgba(255,255,255,0.5)" />}
-              name={t('settings.tutorial', lang)}
-              sub={t('settings.tutorial.sub', lang)}
+              name={t("settings.tutorial", lang)}
+              sub={t("settings.tutorial.sub", lang)}
               onPress={() => {
                 Alert.alert(
-                  t('settings.tutorial.title', lang),
-                  t('settings.tutorial.body', lang),
+                  t("settings.tutorial.title", lang),
+                  t("settings.tutorial.body", lang),
                   [
                     { text: "Cancel", style: "cancel" },
                     {
-                      text: t('settings.tutorial.reset', lang),
+                      text: t("settings.tutorial.reset", lang),
                       onPress: async () => {
                         await AsyncStorage.removeItem("wayfinder_tutorial_done");
                         Alert.alert(
-                          t('settings.tutorial.done', lang),
-                          t('settings.tutorial.doneMsg', lang),
+                          t("settings.tutorial.done", lang),
+                          t("settings.tutorial.doneMsg", lang),
                         );
                       },
                     },
@@ -238,53 +148,19 @@ export default function SettingsScreen({ navigation }) {
               }}
             />
           </View>
-
-          {/* CURRENT STATUS */}
-          <SectionLabel label={t('settings.status', lang)} />
-          <View style={s.statusCard}>
-            <StatusRow label={t('settings.arMode', lang)}      on={settings.arMode}      lang={lang} />
-            <View style={s.divider} />
-            <StatusRow label={t('settings.gpsTracking', lang)} on={settings.gpsTracking} lang={lang} />
-            <View style={s.divider} />
-            <View style={s.statusRow}>
-              <Text style={s.statusLabel}>{t('settings.offlineMode', lang)}</Text>
-              <View style={[
-                s.statusBadge,
-                { backgroundColor: settings.offlineMode
-                    ? "rgba(255,193,7,0.15)"
-                    : "rgba(0,200,83,0.15)" },
-              ]}>
-                <Text style={[
-                  s.statusValue,
-                  { color: settings.offlineMode ? "#ffc107" : GREEN },
-                ]}>
-                  {settings.offlineMode
-                    ? t('settings.status.offline', lang)
-                    : t('settings.status.auto', lang)}
-                </Text>
-              </View>
-            </View>
-          </View>
         </ScrollView>
       </SafeAreaView>
     </View>
   );
 }
 
-// ── Styles ────────────────────────────────────────────────────────────────────
-
 const s = StyleSheet.create({
   container: { flex: 1, backgroundColor: "#071209" },
-
   header: {
     backgroundColor: "#0d1a10",
-    paddingHorizontal: 16,
-    paddingVertical: 14,
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: "rgba(0,200,83,0.1)",
+    paddingHorizontal: 16, paddingVertical: 14,
+    flexDirection: "row", alignItems: "center", gap: 12,
+    borderBottomWidth: 1, borderBottomColor: "rgba(0,200,83,0.1)",
   },
   backBtn: {
     width: 32, height: 32, borderRadius: 16,
@@ -292,102 +168,45 @@ const s = StyleSheet.create({
     alignItems: "center", justifyContent: "center",
   },
   headerTitle: { fontSize: 16, fontWeight: "900", color: "#ffffff" },
-
   sectionLabel: {
     fontSize: 10, fontWeight: "800",
-    color: "rgba(0,200,83,0.6)",
-    letterSpacing: 1.2,
+    color: "rgba(0,200,83,0.6)", letterSpacing: 1.2,
     marginTop: 20, marginBottom: 8,
   },
-
   group: {
     backgroundColor: "rgba(255,255,255,0.04)",
-    borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.07)",
-    borderRadius: 14,
-    overflow: "hidden",
+    borderWidth: 1, borderColor: "rgba(255,255,255,0.07)",
+    borderRadius: 14, overflow: "hidden",
   },
-
-  item: {
-    flexDirection: "row", alignItems: "center",
-    gap: 12, padding: 14,
-  },
+  item: { flexDirection: "row", alignItems: "center", gap: 12, padding: 14 },
   itemIcon: { width: 24, alignItems: "center", justifyContent: "center" },
   itemInfo: { flex: 1 },
   itemName: { fontSize: 13, fontWeight: "700", color: "#e0e8e0" },
   itemSub:  { fontSize: 11, color: "rgba(255,255,255,0.3)", marginTop: 2 },
-  rightLabel: {
-    fontSize: 12, fontWeight: "700",
-    color: GREEN,
-  },
-
-  divider: {
-    height: 1,
-    backgroundColor: "rgba(255,255,255,0.05)",
-    marginLeft: 52,
-  },
-
-  statusCard: {
-    backgroundColor: "rgba(255,255,255,0.04)",
-    borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.07)",
-    borderRadius: 14,
-    overflow: "hidden",
-    paddingHorizontal: 14,
-  },
-  statusRow: {
-    flexDirection: "row", alignItems: "center",
-    justifyContent: "space-between",
-    paddingVertical: 12,
-  },
-  statusLabel: { fontSize: 13, fontWeight: "600", color: "rgba(255,255,255,0.5)" },
-  statusBadge: { paddingHorizontal: 10, paddingVertical: 4, borderRadius: 20 },
-  statusValue: { fontSize: 11, fontWeight: "800", letterSpacing: 0.5 },
+  rightLabel: { fontSize: 12, fontWeight: "700", color: GREEN },
+  divider: { height: 1, backgroundColor: "rgba(255,255,255,0.05)", marginLeft: 52 },
 });
 
 const lp = StyleSheet.create({
   backdrop: {
-    flex: 1,
-    backgroundColor: "rgba(0,0,0,0.6)",
-    justifyContent: "center",
-    alignItems: "center",
-    paddingHorizontal: 32,
+    flex: 1, backgroundColor: "rgba(0,0,0,0.6)",
+    justifyContent: "center", alignItems: "center", paddingHorizontal: 32,
   },
   sheet: {
-    width: "100%",
-    backgroundColor: "#0d1a10",
-    borderRadius: 18,
-    padding: 20,
-    borderWidth: 1,
-    borderColor: "rgba(0,200,83,0.2)",
+    width: "100%", backgroundColor: "#0d1a10",
+    borderRadius: 18, padding: 20,
+    borderWidth: 1, borderColor: "rgba(0,200,83,0.2)",
   },
-  title: {
-    fontSize: 15, fontWeight: "900", color: "#ffffff",
-    marginBottom: 16, textAlign: "center",
-  },
+  title: { fontSize: 15, fontWeight: "900", color: "#ffffff", marginBottom: 16, textAlign: "center" },
   option: {
-    flexDirection: "row", alignItems: "center",
-    justifyContent: "space-between",
-    paddingVertical: 14, paddingHorizontal: 12,
-    borderRadius: 12,
-    marginBottom: 8,
+    flexDirection: "row", alignItems: "center", justifyContent: "space-between",
+    paddingVertical: 14, paddingHorizontal: 12, borderRadius: 12, marginBottom: 8,
     backgroundColor: "rgba(255,255,255,0.04)",
-    borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.06)",
+    borderWidth: 1, borderColor: "rgba(255,255,255,0.06)",
   },
-  optionActive: {
-    backgroundColor: "rgba(0,200,83,0.1)",
-    borderColor: "rgba(0,200,83,0.3)",
-  },
-  optionText: {
-    fontSize: 14, fontWeight: "700",
-    color: "rgba(255,255,255,0.5)",
-  },
+  optionActive: { backgroundColor: "rgba(0,200,83,0.1)", borderColor: "rgba(0,200,83,0.3)" },
+  optionText: { fontSize: 14, fontWeight: "700", color: "rgba(255,255,255,0.5)" },
   optionTextActive: { color: "#ffffff" },
-  check: {
-    width: 22, height: 22, borderRadius: 11,
-    backgroundColor: GREEN,
-    alignItems: "center", justifyContent: "center",
-  },
+  check: { width: 22, height: 22, borderRadius: 11, backgroundColor: GREEN, alignItems: "center", justifyContent: "center" },
   checkMark: { fontSize: 12, fontWeight: "900", color: "#071209" },
 });

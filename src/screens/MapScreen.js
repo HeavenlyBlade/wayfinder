@@ -5,7 +5,7 @@ import {
   Dimensions,
 } from "react-native";
 import MapView, {
-  Polygon, Polyline, Marker, UrlTile, PROVIDER_GOOGLE, PROVIDER_DEFAULT,
+  Polygon, Polyline, Marker, PROVIDER_GOOGLE,
 } from "react-native-maps";
 import {
   IconSearch,
@@ -27,11 +27,6 @@ import useLocation      from "../hooks/useLocation";
 import { useSettings }  from "../context/SettingsContext";
 
 const { height: H } = Dimensions.get("window");
-
-// OSM tile URL — used as offline fallback (no API key, open license)
-// When online: Google Maps satellite (beautiful)
-// When offline: OSM street tiles from bundled tile server proxy
-const OSM_TILE_URL = "https://tile.openstreetmap.org/{z}/{x}/{y}.png";
 
 // Campus center — used as initial map region
 const CAMPUS_CENTER = {
@@ -129,21 +124,6 @@ export default function MapScreen({ navigation, route }) {
     isOffline,
   } = useVoiceCommand();
 
-  // ── Connectivity state for hybrid map ────────────────────────────────────
-  const [isOnline, setIsOnline] = useState(true);
-
-  // Check connectivity on mount then every 30s
-  useEffect(() => {
-    let cancelled = false;
-    async function check() {
-      const online = await checkInternetConnection(3000);
-      if (!cancelled) setIsOnline(online);
-    }
-    check();
-    const interval = setInterval(check, 30000);
-    return () => { cancelled = true; clearInterval(interval); };
-  }, []);
-
   // ── Building selection helpers ────────────────────────────────────────────
   const selectBuilding = useCallback((buildingId, building) => {
     setSelectedPolygonId(buildingId);
@@ -194,7 +174,6 @@ export default function MapScreen({ navigation, route }) {
     if (userLocation) {
       const wps = await resolveRoute(userLocation.lat, userLocation.lng, building.id);
       setRouteWaypoints(wps.length > 0 ? wps : null);
-      // Fit map to show full route
       if (wps.length > 0 && mapRef.current) {
         mapRef.current.fitToCoordinates(
           wps.map(w => ({ latitude: w.lat, longitude: w.lng })),
@@ -202,10 +181,8 @@ export default function MapScreen({ navigation, route }) {
         );
       }
     }
-    if (settings.arMode) {
-      navigation.navigate("AR", { destinationId: building.id });
-    }
-  }, [userLocation, settings.arMode, navigation, closeCard]);
+    navigation.navigate("AR", { destinationId: building.id });
+  }, [userLocation, navigation, closeCard]);
 
   // Convert route waypoints to MapView coordinate format
   const routeCoords = routeWaypoints
@@ -215,14 +192,14 @@ export default function MapScreen({ navigation, route }) {
   return (
     <View style={s.container}>
 
-      {/* ── Map — Google satellite online, OSM street tiles offline ── */}
+      {/* ── Map — always Google satellite ── */}
       <MapView
         ref={mapRef}
         style={StyleSheet.absoluteFill}
-        provider={isOnline ? PROVIDER_GOOGLE : PROVIDER_DEFAULT}
-        mapType={isOnline ? "satellite" : "none"}
+        provider={PROVIDER_GOOGLE}
+        mapType="satellite"
         initialRegion={CAMPUS_CENTER}
-        showsUserLocation={settings.gpsTracking}
+        showsUserLocation={true}
         showsMyLocationButton={false}
         showsCompass={true}
         showsScale={false}
@@ -230,17 +207,6 @@ export default function MapScreen({ navigation, route }) {
         rotateEnabled={true}
         pitchEnabled={false}
       >
-        {/* OSM tile layer — shown when offline instead of Google satellite */}
-        {!isOnline && (
-          <UrlTile
-            urlTemplate={OSM_TILE_URL}
-            maximumZ={19}
-            minimumZ={14}
-            tileSize={256}
-            flipY={false}
-            zIndex={-1}
-          />
-        )}
         {/* Building polygon overlays */}
         {BUILDING_OVERLAYS.map(b => {
           const sel = selectedPolygonId === b.id;

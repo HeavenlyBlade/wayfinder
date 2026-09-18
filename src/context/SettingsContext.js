@@ -4,10 +4,7 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 const STORAGE_KEY = "wayfinder_settings";
 
 const DEFAULTS = {
-  arMode:      true,   // Launch AR camera when navigating
-  gpsTracking: true,   // Show live blue dot on map
-  offlineMode: true,   // true = always use offline keyword matcher
-  language:    "en",   // "en" = English, "fil" = Filipino
+  language: "en", // "en" | "fil"
 };
 
 const SettingsContext = createContext(null);
