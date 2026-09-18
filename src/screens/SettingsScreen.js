@@ -125,6 +125,28 @@ export default function SettingsScreen({ navigation }) {
             <View style={s.divider} />
             <ChevronItem
               icon={<IconInfo size={18} color="rgba(255,255,255,0.5)" />}
+              name="Replay AR Tutorial"
+              sub="Show the AR navigation guide again"
+              onPress={() => {
+                Alert.alert(
+                  "Replay AR Tutorial",
+                  "The AR navigation guide will appear next time you start navigation.",
+                  [
+                    { text: "Cancel", style: "cancel" },
+                    {
+                      text: "Reset",
+                      onPress: async () => {
+                        await AsyncStorage.removeItem("wayfinder_ar_tutorial_done");
+                        Alert.alert("Done", "AR tutorial will appear on your next navigation.");
+                      },
+                    },
+                  ]
+                );
+              }}
+            />
+            <View style={s.divider} />
+            <ChevronItem
+              icon={<IconInfo size={18} color="rgba(255,255,255,0.5)" />}
               name={t("settings.tutorial", lang)}
               sub={t("settings.tutorial.sub", lang)}
               onPress={() => {

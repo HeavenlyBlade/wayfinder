@@ -31,6 +31,7 @@ import StaircasePicker from "../components/StaircasePicker";
 import ArrivalPrompt from "../components/ArrivalPrompt";
 import BearingHUD from "../components/BearingHUD";
 import CompassCalibrator from "../components/CompassCalibrator";
+import ARTutorial from "../components/ARTutorial";
 
 const { width: W, height: H } = Dimensions.get("window");
 const GREEN       = "#00C853";
@@ -528,6 +529,9 @@ export default function ARScreen({ route, navigation }) {
         staircase={selectedStaircase === "staircase_2" ? "s2" : "s1"}
         onClose={() => setArrivalPromptVisible(false)}
       />
+
+      {/* ── AR Tutorial — first launch only ── */}
+      <ARTutorial lang={lang} />
     </View>
   );
 }
