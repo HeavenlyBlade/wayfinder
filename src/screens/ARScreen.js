@@ -148,15 +148,36 @@ export default function ARScreen({ route, navigation }) {
   const [arrivalPromptVisible,   setArrivalPromptVisible]   = useState(false);
 
   const orbTrailRef     = useRef([]);
+  const waypointsRef    = useRef([]); // raw waypoints for map polyline
   const routeLoadedRef  = useRef(false);
   const arrivedRef      = useRef(false);
   const arrivalCountRef = useRef(0);
   const miniMapRef      = useRef(null);
+  const isReroutingRef  = useRef(false); // prevents loading flash during reroute
 
   function handleOffsetChange(newOffset) {
     setCompassOffset(newOffset);
     setCompassOffsetState(newOffset);
   }
+
+  // ── Reset all state when destinationId changes ────────────────────────────
+  useEffect(() => {
+    orbTrailRef.current     = [];
+    waypointsRef.current    = [];
+    routeLoadedRef.current  = false;
+    arrivedRef.current      = false;
+    arrivalCountRef.current = 0;
+    isReroutingRef.current  = false;
+    setRouteReady(false);
+    setArrived(false);
+    setDistToNext(null);
+    setTotalDist(null);
+    setRouteCoords(null);
+    setNextAngle(0);
+    setStaircasePickerVisible(false);
+    setArrivalPromptVisible(false);
+    setSelectedStaircase(null);
+  }, [destinationId]);
 
   // ── Load route ────────────────────────────────────────────────────────────
   const loadRoute = useCallback(async (loc) => {
@@ -180,9 +201,11 @@ export default function ARScreen({ route, navigation }) {
         : [];
     }
 
-    orbTrailRef.current = buildOrbTrail(waypoints);
+    // Rebuild orb trail from new waypoints
+    orbTrailRef.current  = buildOrbTrail(waypoints);
+    waypointsRef.current = waypoints;
 
-    // Store route coords for mini-map
+    // Update map polyline with raw waypoints
     setRouteCoords(waypoints.map(w => ({ latitude: w.lat, longitude: w.lng })));
 
     let total = 0;
@@ -209,10 +232,14 @@ export default function ARScreen({ route, navigation }) {
     if (orbTrailRef.current.length === 0) return;
     const next    = orbTrailRef.current[0];
     const offDist = distanceTo(location.lat, location.lng, next.lat, next.lng);
-    if (offDist > 40) {
+    if (offDist > 40 && !isReroutingRef.current) {
+      isReroutingRef.current = true;
       routeLoadedRef.current = false;
-      setRouteReady(false);
-      loadRoute(location);
+      // Don't set routeReady(false) — avoids loading flash
+      // Just reload and update trail silently
+      loadRoute(location).finally(() => {
+        isReroutingRef.current = false;
+      });
     }
   }, [location, routeReady, loadRoute]);
 
