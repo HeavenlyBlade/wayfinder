@@ -274,3 +274,41 @@ export function IconLayers({ size, color }) {
     </Icon>
   );
 }
+
+// ── Navigation direction arrows (used in AR HUD) ───────────────────────────
+
+export function IconArrowUp({ size, color }) {
+  return (
+    <Icon size={size} color={color}>
+      <Line x1="12" y1="19" x2="12" y2="5" />
+      <Path d="M5 12l7-7 7 7" />
+    </Icon>
+  );
+}
+
+export function IconArrowRight({ size, color }) {
+  return (
+    <Icon size={size} color={color}>
+      <Line x1="5" y1="12" x2="19" y2="12" />
+      <Path d="M12 5l7 7-7 7" />
+    </Icon>
+  );
+}
+
+export function IconArrowUpLeft({ size, color }) {
+  return (
+    <Icon size={size} color={color}>
+      <Line x1="17" y1="17" x2="7" y2="7" />
+      <Path d="M7 17V7h10" />
+    </Icon>
+  );
+}
+
+export function IconArrowUpRight({ size, color }) {
+  return (
+    <Icon size={size} color={color}>
+      <Line x1="7" y1="17" x2="17" y2="7" />
+      <Path d="M7 7h10v10" />
+    </Icon>
+  );
+}

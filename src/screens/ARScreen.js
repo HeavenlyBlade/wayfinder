@@ -20,7 +20,7 @@ import { NODES } from "../constants/campusGraph";
 import { BUILDINGS } from "../constants/buildings";
 import { fetchRoute } from "../services/api";
 import { colors, radius } from "../constants/theme";
-import { IconArrowLeft } from "../components/icons/index";
+import { IconArrowLeft, IconArrowUp, IconArrowRight, IconArrowUpLeft, IconArrowUpRight } from "../components/icons/index";
 import { useSettings } from "../context/SettingsContext";
 import { t } from "../constants/i18n";
 import StaircasePicker from "../components/StaircasePicker";
@@ -111,13 +111,17 @@ function cardinalLabel(deg) {
   return dirs[Math.round(deg / 45) % 8];
 }
 
-/** Arrow character pointing in the general direction of the next orb. */
-function directionArrow(angleDiff) {
-  if (angleDiff === null) return "⬆️";
+/** Icon component pointing in the general direction of the next orb. */
+function DirectionArrowIcon({ angleDiff, size = 26, color = "#ffffff" }) {
+  if (angleDiff === null) return <IconArrowUp size={size} color={color} />;
   const abs = Math.abs(angleDiff);
-  if (abs < 20) return "⬆️";
-  if (abs < 60) return angleDiff < 0 ? "↖️" : "↗️";
-  return angleDiff < 0 ? "⬅️" : "➡️";
+  if (abs < 20)  return <IconArrowUp      size={size} color={color} />;
+  if (abs < 60)  return angleDiff < 0
+    ? <IconArrowUpLeft  size={size} color={color} />
+    : <IconArrowUpRight size={size} color={color} />;
+  return angleDiff < 0
+    ? <IconArrowLeft  size={size} color={color} />
+    : <IconArrowRight size={size} color={color} />;
 }
 
 // ── Single animated orb ───────────────────────────────────────────────────────
@@ -484,7 +488,7 @@ export default function ARScreen({ route, navigation }) {
       {!isLoading && !arrived && (
         <SafeAreaView style={s.hudTop} edges={["top"]} pointerEvents="none">
           <View style={s.directionBox}>
-            <Text style={s.directionArrow}>{directionArrow(nextAngle)}</Text>
+            <DirectionArrowIcon angleDiff={nextAngle} size={26} color="#ffffff" />
             <Text style={s.directionText}>{t('ar.pointAhead', lang)}</Text>
           </View>
 
@@ -645,7 +649,6 @@ const s = StyleSheet.create({
     borderWidth: 1,
     borderColor: "rgba(255,255,255,0.1)",
   },
-  directionArrow: { fontSize: 22 },
   directionText:  { fontSize: 16, fontWeight: "800", color: "#fff" },
 
   destPill: {

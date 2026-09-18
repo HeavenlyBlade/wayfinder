@@ -84,6 +84,13 @@ const BUILDING_OVERLAYS = [
       { latitude: 13.962472, longitude: 121.612806 },
       { latitude: 13.962278, longitude: 121.612778 },
     ] },
+  { id: 'engineering',        name: 'New IBED Building',
+    coordinates: [
+      { latitude: 13.962050, longitude: 121.612260 },
+      { latitude: 13.962048, longitude: 121.612330 },
+      { latitude: 13.961659, longitude: 121.612290 },
+      { latitude: 13.961672, longitude: 121.612145 },
+    ] },
 ];
 
 // ── Resolve route waypoints (server → local A* fallback) ────────────────────

@@ -62,14 +62,29 @@ export function aStar(startId, goalId) {
 }
 
 // ── Nearest graph node to an arbitrary GPS position ──────────────────────────
-// Used in ARScreen to snap the user's live GPS to the closest node before
-// running A*.
+// Only snaps to path nodes (J-nodes, R-nodes, gate) — never to building
+// entrance nodes. This prevents A* from starting at a dead-end building
+// node and routing backwards before heading to the destination.
+const PATH_NODE_PREFIXES = ['J', 'R', 'W'];
+const PATH_NODE_IDS      = new Set(['gate']);
+
 export function nearestNode(lat, lng) {
   let bestId   = null;
   let bestDist = Infinity;
   for (const [id, node] of Object.entries(NODES)) {
+    // Only consider path nodes, not building entrance nodes
+    const isPathNode = PATH_NODE_IDS.has(id) ||
+                       PATH_NODE_PREFIXES.some(p => id.startsWith(p));
+    if (!isPathNode) continue;
     const d = distanceTo(lat, lng, node.lat, node.lng);
     if (d < bestDist) { bestDist = d; bestId = id; }
+  }
+  // Final fallback: if somehow no path node found, use any node
+  if (!bestId) {
+    for (const [id, node] of Object.entries(NODES)) {
+      const d = distanceTo(lat, lng, node.lat, node.lng);
+      if (d < bestDist) { bestDist = d; bestId = id; }
+    }
   }
   return bestId;
 }

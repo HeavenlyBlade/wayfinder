@@ -262,9 +262,9 @@ export const BUILDINGS = {
 
   engineering: {
     id: "engineering",
-    name: "Engineering Building",
-    shortName: "ENG BLDG",
-    subtitle: "College of Engineering",
+    name: "New IBED Building",
+    shortName: "NEW IBED",
+    subtitle: "New IBED Building",
     icon: "flask",
     color: "#2a1a3a",
     mapX: 0,
