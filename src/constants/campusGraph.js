@@ -153,6 +153,8 @@ const EDGES = [
   ['J8',               'R65'],
   ['R65',              'canteen'],
   ['J8',               'J4'],
+  // J4 connects directly to interior hub for efficient routing
+  ['J4',               'R38'],
 
   // Perimeter road -> campus interior entry (via R15 -> R37 -> R38)
   ['R15',              'R37'],
@@ -162,16 +164,23 @@ const EDGES = [
   ['R48',              'R49'],
   ['R49',              'R50'],
   ['R50',              'R51'],
+  // R51 connects to R60 for the northeast interior path
+  // but NOT to canteen benches — that separate path is one-way from canteen
   ['R51',              'R60'],
   ['R60',              'R61'],
   ['R61',              'R62'],
-  ['R62',              'R63'],
+  // R62 connects to R63 (canteen bench area) — but this creates a loop
+  // that causes A* to route south. Removing this connection.
+  // Users coming from the canteen go: canteen→R63→R64→R65→J8→J4
 
-  // Canteen bench paths
+  // Canteen bench paths (south approach only — no reverse loop into interior)
   ['canteen',          'R63'],
   ['R63',              'R64'],
   ['R64',              'R65'],
   ['R65',              'J8'],
+
+  // Direct connection: interior hub to north spine (skip canteen bench loop)
+  ['R38',              'R66'],
 
   // J4 / J5 intersection connections
   ['J4',               'chapel'],

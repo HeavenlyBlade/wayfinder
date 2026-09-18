@@ -42,52 +42,44 @@ export function projectToScreen({
   const bearing          = bearingTo(userLat, userLng, targetLat, targetLng);
   const groundDistance   = distanceTo(userLat, userLng, targetLat, targetLng);
   const altitudeDiff     = targetAltitude - userAltitude;
+  const distance3D       = Math.sqrt(groundDistance ** 2 + altitudeDiff ** 2);
 
-  // Total 3D distance to orb
-  const distance3D = Math.sqrt(groundDistance ** 2 + altitudeDiff ** 2);
-
-  // Horizontal angle between facing direction and target bearing
+  // Horizontal angle between camera facing direction and target bearing
   let angleDiff = bearing - compassHeading;
   if (angleDiff >  180) angleDiff -= 360;
   if (angleDiff < -180) angleDiff += 360;
 
-  // Vertical angle to target.
-  // EYE_HEIGHT_M was 1.5 — this pushed orbs to the very bottom of the screen
-  // because ground-level orbs at 7–45m produce steep downward angles.
-  // Reduced to 0.3m: orbs appear in the lower-centre of the frame, which
-  // looks natural (you're looking ahead at the path, not straight down).
-  const EYE_HEIGHT_M  = 0.3;
-  const effectiveAltDiff = altitudeDiff - EYE_HEIGHT_M;
-  const verticalAngle = groundDistance > 0
-    ? Math.atan2(effectiveAltDiff, groundDistance) * (180 / Math.PI)
-    : 0;
-
   // Is the target within horizontal FOV?
   const halfHFov = hFov / 2;
-  const visible  = Math.abs(angleDiff) < halfHFov + 10; // +10 soft edge
+  const visible  = Math.abs(angleDiff) < halfHFov + 10;
 
   // Map horizontal angle → screen X
   const xNorm = 0.5 + (angleDiff / hFov);
 
-  // Map vertical angle → screen Y
-  const aspectRatio = screenH / screenW;
-  const vFov = hFov * aspectRatio;
-  const yNorm = 0.5 - (verticalAngle / vFov);
+  // Vertical FOV: most phone cameras have ~50-60° vFov.
+  // Derive from hFov using a fixed 16:9 sensor ratio regardless of screen,
+  // because the camera sensor aspect doesn't change with screen orientation.
+  const vFov = hFov * (9 / 16); // e.g. 73° hFov → ~41° vFov
 
-  // Clamp Y: orbs must stay between 35% and 80% of screen height.
-  // This keeps them in the "path ahead" zone — not floating above the
-  // horizon and not buried at the very bottom.
-  const yMin = 0.35 * screenH;
-  const yMax = 0.80 * screenH;
-  const yClamped = Math.max(yMin, Math.min(yMax, yNorm * screenH));
+  // For outdoor ground-level orbs: place them in the lower portion of the
+  // frame as if looking slightly down at the path ahead.
+  // 0° = horizon (y = 0.5), negative angle = below horizon (y > 0.5).
+  // We use a small fixed downward tilt of 10° to represent "looking at the path".
+  const TILT_DEG  = 10; // degrees below horizon the camera is naturally tilted
+  const yNorm     = 0.5 + (TILT_DEG / vFov); // fixed position — not GPS dependent
+
+  // Perspective scale: closer orbs appear larger and lower, farther ones smaller and higher.
+  // Map distance 0→45m to yNorm offset: close=bottom, far=horizon
+  const perspOffset  = (1 - Math.min(groundDistance / 45, 1)) * 0.25;
+  const yFinal       = Math.max(0.35, Math.min(0.88, yNorm - perspOffset + (1 - Math.min(groundDistance / 45, 1)) * 0.15));
 
   // Orb size: bigger when closer
   const depthRatio = Math.min(distance3D / 50, 1);
-  const orbSize = Math.max(14, 44 - depthRatio * 30);
+  const orbSize    = Math.max(10, 42 - depthRatio * 28);
 
   return {
     x: xNorm * screenW,
-    y: yClamped,
+    y: yFinal * screenH,
     visible,
     distance: Math.round(groundDistance),
     orbSize,
