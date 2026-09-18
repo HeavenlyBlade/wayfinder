@@ -8,12 +8,13 @@ import {
   TouchableOpacity,
   Platform,
 } from "react-native";
+import Svg, { Polygon } from "react-native-svg";
 import { CameraView, useCameraPermissions } from "expo-camera";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { StatusBar } from "expo-status-bar";
 
 import useLocation from "../hooks/useLocation";
-import { projectToScreen, distanceTo } from "../utils/arMath";
+import { bearingTo, distanceTo } from "../utils/arMath";
 import { aStar, getWaypoints, nearestNode } from "../utils/pathfinding";
 import { getIndoorStatus } from "../utils/indoorDetection";
 import { NODES } from "../constants/campusGraph";
@@ -27,59 +28,33 @@ import StaircasePicker from "../components/StaircasePicker";
 import ArrivalPrompt from "../components/ArrivalPrompt";
 
 const { width: W, height: H } = Dimensions.get("window");
+const GREEN = "#00C853";
+
+// ── Tuning constants ──────────────────────────────────────────────────────────
+const ORB_SPACING_METRES = 6;
+const ORB_ADVANCE_DIST   = 4;
+// Arrival requires being within this distance for 2 consecutive GPS updates
+const ARRIVAL_DIST       = 12;
+const MAX_ARROWS         = 7;
+const MAX_RENDER_DIST    = 50;
 
 // ── Cross-device FOV estimation ───────────────────────────────────────────────
-//
-// expo-camera does not expose the device's camera FOV natively.
-// We estimate it from screen dimensions + aspect ratio, which correlates
-// well with the camera sensor class used in that device form factor.
-//
-// Most modern phone rear cameras (standard lens, no zoom) fall in the
-// 67–78° horizontal FOV range. The screen aspect ratio is a reliable proxy:
-//
-//   Tall phones  (aspect ≥ 2.0) → 19.5:9, 20:9 — typically 68–72° HFOV
-//   Normal phones(aspect ≥ 1.8) → 18:9, 18.5:9  — typically 72–75° HFOV
-//   Wide phones  (aspect < 1.8) → 16:9, older    — typically 75–78° HFOV
-//
-// Within each band, a larger physical screen (higher dp diagonal) tends
-// to pair with a wider camera module, so we nudge by ±2°.
-//
-// This gives ±3–5° accuracy across devices without any native module,
-// which is adequate — a 5° error shifts an orb 4px at 50° from centre
-// on a 1080p screen, well within the orb's visible radius.
 function estimateHFov() {
   const { width, height } = Dimensions.get("window");
-  const shortSide  = Math.min(width, height);
-  const longSide   = Math.max(width, height);
-  const aspect     = longSide / shortSide;
-
-  // Physical screen diagonal in density-independent pixels
-  const diagDp     = Math.sqrt(shortSide ** 2 + longSide ** 2);
-
-  // Base FOV from aspect ratio band
+  const shortSide = Math.min(width, height);
+  const longSide  = Math.max(width, height);
+  const aspect    = longSide / shortSide;
+  const diagDp    = Math.sqrt(shortSide ** 2 + longSide ** 2);
   let baseFov;
-  if      (aspect >= 2.0) baseFov = 69; // very tall: 19.5:9 / 20:9
-  else if (aspect >= 1.8) baseFov = 73; // normal tall: 18:9 / 18.5:9
-  else                    baseFov = 76; // wider/older: 16:9
-
-  // Nudge: larger screen → slightly wider camera module
-  const diagNudge = diagDp > 900 ? +2 : diagDp > 750 ? +1 : 0;
-
-  return baseFov + diagNudge;
+  if      (aspect >= 2.0) baseFov = 69;
+  else if (aspect >= 1.8) baseFov = 73;
+  else                    baseFov = 76;
+  const nudge = diagDp > 900 ? +2 : diagDp > 750 ? +1 : 0;
+  return baseFov + nudge;
 }
+const H_FOV = estimateHFov();
 
-const H_FOV = estimateHFov(); // computed once at module load, stays stable
-
-// ── Other tuning constants ────────────────────────────────────────────────────
-const ORB_SPACING_METRES = 7;   // metres between consecutive orbs in the trail
-const ORB_ADVANCE_DIST   = 3;   // metres — consume an orb once this close
-const ARRIVAL_DIST       = 6;   // metres to destination before showing arrival
-const MAX_VISIBLE_ORBS   = 6;   // max orbs rendered on screen at once
-const MAX_RENDER_DIST    = 45;  // metres — orbs beyond this are not rendered
-
-// ── Helpers ───────────────────────────────────────────────────────────────────
-
-/** Linearly interpolate GPS points between two nodes, spaced ~spacingM metres apart. */
+// ── GPS interpolation ─────────────────────────────────────────────────────────
 function interpolateSegment(a, b, spacingM) {
   const total = distanceTo(a.lat, a.lng, b.lat, b.lng);
   const steps = Math.max(1, Math.floor(total / spacingM));
@@ -91,13 +66,11 @@ function interpolateSegment(a, b, spacingM) {
   return pts;
 }
 
-/** Build the full orb trail from an ordered list of GPS waypoints. */
 function buildOrbTrail(waypoints) {
   const orbs = [];
   for (let i = 0; i < waypoints.length - 1; i++) {
     orbs.push(...interpolateSegment(waypoints[i], waypoints[i + 1], ORB_SPACING_METRES));
   }
-  // Always include the exact destination as the final orb
   if (waypoints.length > 0) {
     const last = waypoints[waypoints.length - 1];
     orbs.push({ lat: last.lat, lng: last.lng, isDestination: true });
@@ -105,17 +78,16 @@ function buildOrbTrail(waypoints) {
   return orbs;
 }
 
-/** Convert a compass bearing to a cardinal / intercardinal label. */
 function cardinalLabel(deg) {
   const dirs = ["N","NE","E","SE","S","SW","W","NW"];
   return dirs[Math.round(deg / 45) % 8];
 }
 
-/** Icon component pointing in the general direction of the next orb. */
+// ── Direction arrow icon for HUD ──────────────────────────────────────────────
 function DirectionArrowIcon({ angleDiff, size = 26, color = "#ffffff" }) {
   if (angleDiff === null) return <IconArrowUp size={size} color={color} />;
   const abs = Math.abs(angleDiff);
-  if (abs < 20)  return <IconArrowUp      size={size} color={color} />;
+  if (abs < 20)  return <IconArrowUp size={size} color={color} />;
   if (abs < 60)  return angleDiff < 0
     ? <IconArrowUpLeft  size={size} color={color} />
     : <IconArrowUpRight size={size} color={color} />;
@@ -124,86 +96,40 @@ function DirectionArrowIcon({ angleDiff, size = 26, color = "#ffffff" }) {
     : <IconArrowRight size={size} color={color} />;
 }
 
-// ── Single animated orb ───────────────────────────────────────────────────────
-function AROrb({ x, y, size, isNext, isDestination }) {
-  const pulse  = useRef(new Animated.Value(1)).current;
-  const floatY = useRef(new Animated.Value(0)).current;
-  const glowOp = useRef(new Animated.Value(0.4)).current;
+// ── Perspective arrow — the YouTube-style pointing arrow ─────────────────────
+// Renders an SVG arrow at a given screen (x, y) with perspective scaling.
+// idx=0 is the nearest (bottom, largest), higher idx = farther (smaller, higher).
+function PerspectiveArrow({ x, y, scale, opacity, angleDiff = 0 }) {
+  // Arrow shape: equilateral-ish upward chevron
+  // Base width and height scale with perspective
+  const W_BASE = 48 * scale;
+  const H_BASE = 60 * scale;
+  const hw = W_BASE / 2;
+  const points = `${hw},0 ${W_BASE},${H_BASE * 0.55} ${W_BASE * 0.72},${H_BASE * 0.45} ${W_BASE * 0.72},${H_BASE} ${W_BASE * 0.28},${H_BASE} ${W_BASE * 0.28},${H_BASE * 0.45} 0,${H_BASE * 0.55}`;
 
-  useEffect(() => {
-    const pulseLoop = Animated.loop(
-      Animated.sequence([
-        Animated.timing(pulse,  { toValue: isNext ? 1.35 : 1.2,  duration: 800, useNativeDriver: true }),
-        Animated.timing(pulse,  { toValue: 1,                     duration: 800, useNativeDriver: true }),
-      ]),
-    );
-    const floatLoop = Animated.loop(
-      Animated.sequence([
-        Animated.timing(floatY, { toValue: isNext ? -9 : -5, duration: 1100, useNativeDriver: true }),
-        Animated.timing(floatY, { toValue: 0,                duration: 1100, useNativeDriver: true }),
-      ]),
-    );
-    const glowLoop = Animated.loop(
-      Animated.sequence([
-        Animated.timing(glowOp, { toValue: 0.7, duration: 900, useNativeDriver: true }),
-        Animated.timing(glowOp, { toValue: 0.2, duration: 900, useNativeDriver: true }),
-      ]),
-    );
-    pulseLoop.start();
-    floatLoop.start();
-    glowLoop.start();
-    return () => {
-      pulseLoop.stop();
-      floatLoop.stop();
-      glowLoop.stop();
-    };
-  }, [isNext]);
-
-  // Colour coding: destination = white, next = bright green, rest = softer green
-  const orbColor  = isDestination ? "#ffffff" : isNext ? colors.primary : "rgba(0,200,83,0.75)";
-  const glowColor = isDestination ? "#ffffff" : colors.primary;
-  const glowSize  = size * 2.2;
+  // Rotate the arrow based on horizontal angle — arrows lean left/right
+  // when the destination is off-center
+  const clampedAngle = Math.max(-35, Math.min(35, angleDiff ?? 0));
 
   return (
     <Animated.View
-      style={[
-        s.orbContainer,
-        {
-          left: x - glowSize / 2,
-          top:  y - glowSize / 2,
-          width:  glowSize,
-          height: glowSize,
-          transform: [{ scale: pulse }, { translateY: floatY }],
-        },
-      ]}
+      style={{
+        position: "absolute",
+        left: x - W_BASE / 2,
+        top:  y - H_BASE / 2,
+        opacity,
+        transform: [{ rotate: `${clampedAngle}deg` }],
+      }}
+      pointerEvents="none"
     >
-      {/* Outer glow ring */}
-      <Animated.View
-        style={[
-          s.orbGlow,
-          {
-            width:  glowSize,
-            height: glowSize,
-            borderRadius: glowSize / 2,
-            borderColor: glowColor,
-            opacity: glowOp,
-          },
-        ]}
-      />
-      {/* Inner orb */}
-      <View
-        style={[
-          s.orb,
-          {
-            width:        size,
-            height:       size,
-            borderRadius: size / 2,
-            backgroundColor: orbColor,
-            shadowColor:  glowColor,
-            shadowRadius: size * 0.9,
-          },
-        ]}
-      />
+      <Svg width={W_BASE} height={H_BASE} viewBox={`0 0 ${W_BASE} ${H_BASE}`}>
+        <Polygon
+          points={points}
+          fill="rgba(0,220,100,0.85)"
+          stroke="rgba(255,255,255,0.6)"
+          strokeWidth={1.5 * scale}
+        />
+      </Svg>
     </Animated.View>
   );
 }
@@ -217,51 +143,42 @@ export default function ARScreen({ route, navigation }) {
   const [permission, requestPermission] = useCameraPermissions();
   const { location, heading, error: locError } = useLocation();
 
-  const [orbPositions, setOrbPositions] = useState([]);
-  const [distToNext,   setDistToNext]   = useState(null);
-  const [totalDist,    setTotalDist]    = useState(null);
-  const [arrived,      setArrived]      = useState(false);
-  const [routeReady,   setRouteReady]   = useState(false);
-  const [nextAngle,    setNextAngle]    = useState(null);
-  const [indoorStatus,       setIndoorStatus]       = useState(null); // null = outdoors
+  const [arrowPositions,  setArrowPositions]  = useState([]);
+  const [distToNext,      setDistToNext]      = useState(null);
+  const [totalDist,       setTotalDist]       = useState(null);
+  const [arrived,         setArrived]         = useState(false);
+  const [routeReady,      setRouteReady]      = useState(false);
+  const [nextAngle,       setNextAngle]       = useState(null);
+  const [indoorStatus,    setIndoorStatus]    = useState(null);
   const [staircasePickerVisible, setStaircasePickerVisible] = useState(false);
   const [selectedStaircase,      setSelectedStaircase]      = useState(null);
   const [arrivalPromptVisible,   setArrivalPromptVisible]   = useState(false);
 
-  const orbTrailRef     = useRef([]); // mutable trail — orbs consumed as user walks
-  const routeLoadedRef  = useRef(false);
-  const arrivedRef      = useRef(false); // sync gate — prevents arrival firing repeatedly
+  const orbTrailRef        = useRef([]);
+  const routeLoadedRef     = useRef(false);
+  const arrivedRef         = useRef(false);
+  const arrivalCountRef    = useRef(0); // must be within range for 2 consecutive updates
 
-  // ── Build orb trail once GPS is available ──────────────────────────────────
+  // ── Load route ────────────────────────────────────────────────────────────
   const loadRoute = useCallback(async (loc) => {
     if (routeLoadedRef.current) return;
     routeLoadedRef.current = true;
-
     let waypoints = [];
-
-    // 1. Try server-side route first
     try {
       waypoints = await fetchRoute(loc.lat, loc.lng, destinationId);
     } catch (_) {}
 
-    // 2. Fall back to on-device A* if server failed or returned nothing
     if (!waypoints || waypoints.length === 0) {
       const startNode = nearestNode(loc.lat, loc.lng);
-      // destinationId is used directly — aStar handles unknown node IDs
-      // by returning [] so the next fallback catches it
-      const pathIds = aStar(startNode, destinationId);
-      waypoints     = pathIds.length > 0
-        ? getWaypoints(pathIds)
-        : [];
+      const pathIds   = aStar(startNode, destinationId);
+      waypoints       = pathIds.length > 0 ? getWaypoints(pathIds) : [];
     }
 
-    // 3. Final fallback: straight line of orbs directly toward destination
     if (!waypoints || waypoints.length === 0) {
       const dest = NODES[destinationId];
       if (dest) {
         waypoints = [{ lat: loc.lat, lng: loc.lng }, { lat: dest.lat, lng: dest.lng }];
       } else {
-        // Absolute fallback: 6 orbs straight ahead
         const orbs = [];
         for (let i = 1; i <= 6; i++) {
           const dLat = ((i * ORB_SPACING_METRES) / 6371000) * (180 / Math.PI);
@@ -274,130 +191,137 @@ export default function ARScreen({ route, navigation }) {
     }
 
     orbTrailRef.current = buildOrbTrail(waypoints);
-
-    // Compute total route distance
     let total = 0;
-    const wps = waypoints;
-    for (let i = 0; i < wps.length - 1; i++) {
-      total += distanceTo(wps[i].lat, wps[i].lng, wps[i + 1].lat, wps[i + 1].lng);
+    for (let i = 0; i < waypoints.length - 1; i++) {
+      total += distanceTo(waypoints[i].lat, waypoints[i].lng, waypoints[i+1].lat, waypoints[i+1].lng);
     }
     setTotalDist(Math.round(total));
     setRouteReady(true);
   }, [destinationId]);
 
   useEffect(() => {
-    if (location && !routeLoadedRef.current) {
-      loadRoute(location);
-    }
+    if (location && !routeLoadedRef.current) loadRoute(location);
   }, [location, loadRoute]);
 
-  // ── Indoor detection — suppress AR when user is inside a building ────────
+  // ── Indoor detection ──────────────────────────────────────────────────────
   useEffect(() => {
     if (!location) return;
-    const status = getIndoorStatus(location.lat, location.lng);
-    setIndoorStatus(status);
+    setIndoorStatus(getIndoorStatus(location.lat, location.lng));
   }, [location]);
+
+  // ── Re-route if drifted ───────────────────────────────────────────────────
   useEffect(() => {
     if (!location || !routeReady || arrivedRef.current) return;
     if (orbTrailRef.current.length === 0) return;
-
     const next    = orbTrailRef.current[0];
     const offDist = distanceTo(location.lat, location.lng, next.lat, next.lng);
-
-    // If the user is >40m from the next orb, recalculate the route
     if (offDist > 40) {
       routeLoadedRef.current = false;
       setRouteReady(false);
       loadRoute(location);
     }
-  }, [location, routeReady, arrived, loadRoute]);
+  }, [location, routeReady, loadRoute]);
 
-  // ── Project orbs onto screen every location/heading update ────────────────
+  // ── Project arrows onto screen ────────────────────────────────────────────
   useEffect(() => {
     if (!location || orbTrailRef.current.length === 0 || arrivedRef.current) return;
 
-    // Advance the trail — remove orbs the user has already passed
+    // Consume passed orbs
     while (orbTrailRef.current.length > 0) {
       const next = orbTrailRef.current[0];
       const d    = distanceTo(location.lat, location.lng, next.lat, next.lng);
       if (d < ORB_ADVANCE_DIST) {
         orbTrailRef.current = orbTrailRef.current.slice(1);
-      } else {
-        break;
-      }
+      } else break;
     }
 
     if (orbTrailRef.current.length === 0) {
       arrivedRef.current = true;
       setArrived(true);
-      setOrbPositions([]);
+      setArrowPositions([]);
       return;
     }
 
-    // Check arrival at destination
+    // Arrival check — requires 2 consecutive updates within ARRIVAL_DIST
     const dest = NODES[destinationId];
     if (dest) {
       const d = distanceTo(location.lat, location.lng, dest.lat, dest.lng);
       if (d < ARRIVAL_DIST) {
-        arrivedRef.current = true;
-        setArrived(true);
-        setOrbPositions([]);
-        // Show staircase picker if the destination building has 2 staircases
-        const destBuilding = BUILDINGS[destinationId];
-        if (destBuilding && indoorStatus?.hasTwoStaircases) {
-          setStaircasePickerVisible(true);
-        } else {
-          setArrivalPromptVisible(true);
+        arrivalCountRef.current += 1;
+        if (arrivalCountRef.current >= 2) {
+          arrivedRef.current = true;
+          setArrived(true);
+          setArrowPositions([]);
+          if (BUILDINGS[destinationId] && indoorStatus?.hasTwoStaircases) {
+            setStaircasePickerVisible(true);
+          } else {
+            setArrivalPromptVisible(true);
+          }
+          return;
         }
-        return;
+      } else {
+        // Reset counter if user moves away
+        arrivalCountRef.current = 0;
       }
     }
 
-    // Project remaining orbs
-    const projected = orbTrailRef.current
-      .slice(0, MAX_VISIBLE_ORBS + 5) // project a few extra, then filter
-      .map((orb, idx) => {
-        const proj = projectToScreen({
-          userLat:        location.lat,
-          userLng:        location.lng,
-          userAltitude:   location.altitude ?? 0,
-          targetLat:      orb.lat,
-          targetLng:      orb.lng,
-          targetAltitude: orb.altitude ?? 0,
-          compassHeading: heading,
-          hFov:           H_FOV,
-          screenW:        W,
-          screenH:        H,
-        });
-        return { ...proj, idx, isDestination: !!orb.isDestination };
-      })
-      .filter(p => p.visible && p.distance < MAX_RENDER_DIST)
-      .slice(0, MAX_VISIBLE_ORBS);
+    // ── Compute perspective arrow trail ──────────────────────────────────────
+    // Take the next N waypoints and project them as arrows from bottom to top.
+    // The first orb (nearest) is at the bottom-center, subsequent ones are
+    // smaller and higher, following the bearing to the destination.
+    const orbs = orbTrailRef.current.slice(0, MAX_ARROWS);
+    const arrows = [];
 
-    setOrbPositions(projected);
+    // The overall bearing to the next waypoint determines horizontal lean
+    const nextOrb   = orbs[0];
+    const bearing   = bearingTo(location.lat, location.lng, nextOrb.lat, nextOrb.lng);
+    let   angleDiff = bearing - heading;
+    if (angleDiff >  180) angleDiff -= 360;
+    if (angleDiff < -180) angleDiff += 360;
 
-    // Update distance to the very next orb
+    // Clamp horizontal spread: if angle is huge (>90°) just show all arrows
+    // at center pointing up — destination is behind you
+    const behindYou = Math.abs(angleDiff) > 90;
+
+    for (let i = 0; i < orbs.length; i++) {
+      const dist = distanceTo(location.lat, location.lng, orbs[i].lat, orbs[i].lng);
+      if (dist > MAX_RENDER_DIST) continue;
+
+      // Perspective: i=0 is nearest (bottom, scale=1), i=N is farthest (top, scale~0.2)
+      const t        = i / (MAX_ARROWS - 1);          // 0 = nearest, 1 = farthest
+      const scale    = Math.max(0.2, 1 - t * 0.78);   // 1.0 → 0.22
+      const opacity  = Math.max(0.25, 1 - t * 0.65);  // 1.0 → 0.35
+
+      // Y: bottom (nearest) = 82% down, top (farthest) = 45% down
+      const yPct = 0.82 - t * 0.37;
+      const y    = yPct * H;
+
+      // X: center screen, but lean left/right based on angleDiff
+      // Closer arrows lean more, farther arrows converge toward center (vanishing point)
+      const xLean = behindYou ? 0 : angleDiff * (1 - t) * (W / H_FOV) * 0.5;
+      const x     = W / 2 + xLean;
+
+      arrows.push({ x, y, scale, opacity, angleDiff: behindYou ? 0 : angleDiff });
+    }
+
+    setArrowPositions(arrows);
+    setNextAngle(angleDiff);
+
     const next = orbTrailRef.current[0];
     const d    = distanceTo(location.lat, location.lng, next.lat, next.lng);
     setDistToNext(Math.round(d));
 
-    // Compute turn angle for the directional arrow
-    if (projected.length > 0) {
-      setNextAngle(projected[0].angleDiff);
-    }
-  }, [location, heading, arrived, destinationId]);
+  }, [location, heading, destinationId, indoorStatus]);
 
-  // ── Destination display name ───────────────────────────────────────────────
+  // ── Destination name ──────────────────────────────────────────────────────
   const destBuilding = BUILDINGS[destinationId];
   const destName     = destBuilding?.name
     ?? (NODES[destinationId]
         ? destinationId.charAt(0).toUpperCase() + destinationId.slice(1).replace(/_/g, " ")
         : "Destination");
 
-  // ── Permission gates ───────────────────────────────────────────────────────
-  if (!permission) {
-    return <View style={s.fill} />;
-  }
+  // ── Permission gates ──────────────────────────────────────────────────────
+  if (!permission) return <View style={s.fill} />;
 
   if (!permission.granted) {
     return (
@@ -429,26 +353,25 @@ export default function ARScreen({ route, navigation }) {
     );
   }
 
-  // Loading state: waiting for GPS or route
   const isLoading = !location || !routeReady;
 
   return (
     <View style={s.fill}>
       <StatusBar style="light" hidden />
 
-      {/* Live camera feed */}
+      {/* Live camera */}
       <CameraView style={StyleSheet.absoluteFill} facing="back" />
 
-      {/* ── AR orb layer — hidden when user is inside a building ── */}
+      {/* ── Perspective arrow trail ── */}
       <View style={StyleSheet.absoluteFill} pointerEvents="none">
-        {!arrived && !indoorStatus && orbPositions.map((orb, i) => (
-          <AROrb
-            key={`${orb.idx}-${i}`}
-            x={orb.x}
-            y={orb.y}
-            size={orb.orbSize}
-            isNext={i === 0}
-            isDestination={orb.isDestination}
+        {!arrived && !indoorStatus && arrowPositions.map((arrow, i) => (
+          <PerspectiveArrow
+            key={i}
+            x={arrow.x}
+            y={arrow.y}
+            scale={arrow.scale}
+            opacity={arrow.opacity}
+            angleDiff={arrow.angleDiff}
           />
         ))}
       </View>
@@ -464,7 +387,7 @@ export default function ARScreen({ route, navigation }) {
         </View>
       )}
 
-      {/* ── Indoor warning banner — replaces orbs when inside a building ── */}
+      {/* ── Indoor warning ── */}
       {indoorStatus && !arrived && (
         <View style={s.indoorOverlay}>
           <View style={s.indoorCard}>
@@ -473,29 +396,19 @@ export default function ARScreen({ route, navigation }) {
             <Text style={s.indoorBody}>
               {t('ar.indoor.body', lang)} {indoorStatus.buildingName}.
             </Text>
-            <TouchableOpacity
-              style={s.indoorBtn}
-              onPress={() => setIndoorStatus(null)}
-              activeOpacity={0.85}
-            >
+            <TouchableOpacity style={s.indoorBtn} onPress={() => setIndoorStatus(null)} activeOpacity={0.85}>
               <Text style={s.indoorBtnText}>{t('ar.indoor.dismiss', lang)}</Text>
             </TouchableOpacity>
           </View>
         </View>
       )}
 
-      {/* ── Top HUD: direction box ── */}
+      {/* ── Top HUD ── */}
       {!isLoading && !arrived && (
         <SafeAreaView style={s.hudTop} edges={["top"]} pointerEvents="none">
           <View style={s.directionBox}>
             <DirectionArrowIcon angleDiff={nextAngle} size={26} color="#ffffff" />
-            <Text style={s.directionText}>{t('ar.pointAhead', lang)}</Text>
-          </View>
-
-          {/* Destination pill */}
-          <View style={s.destPill}>
-            <Text style={s.destPillIcon}>📍</Text>
-            <Text style={s.destPillText} numberOfLines={1}>{destName}</Text>
+            <Text style={s.directionText}>{destName}</Text>
           </View>
         </SafeAreaView>
       )}
@@ -520,7 +433,7 @@ export default function ARScreen({ route, navigation }) {
         </View>
       )}
 
-      {/* ── Staircase picker — shown after arrival for 2-staircase buildings ── */}
+      {/* ── Staircase picker ── */}
       <StaircasePicker
         visible={staircasePickerVisible}
         buildingId={destinationId}
@@ -534,7 +447,7 @@ export default function ARScreen({ route, navigation }) {
         onDismiss={() => setStaircasePickerVisible(false)}
       />
 
-      {/* ── Arrival prompt — indoor directions after staircase picker ── */}
+      {/* ── Arrival prompt ── */}
       <ArrivalPrompt
         visible={arrivalPromptVisible}
         buildingId={destinationId}
@@ -551,20 +464,6 @@ export default function ARScreen({ route, navigation }) {
             <Text style={s.arrivalIcon}>✅</Text>
             <Text style={s.arrivalTitle}>{t('ar.arrived', lang)}</Text>
             <Text style={s.arrivalSub}>{destName}</Text>
-            {selectedStaircase && (
-              <View style={s.staircaseBadge}>
-                <Text style={s.staircaseBadgeText}>
-                  {selectedStaircase === "staircase_1"
-                    ? (ENTRANCE_LABEL_BUILDINGS.has(destinationId)
-                        ? t("staircase.front", lang)
-                        : t("staircase.stair1", lang))
-                    : (ENTRANCE_LABEL_BUILDINGS.has(destinationId)
-                        ? t("staircase.back", lang)
-                        : t("staircase.stair2", lang))
-                  }
-                </Text>
-              </View>
-            )}
             <TouchableOpacity
               style={s.arrivalBtn}
               onPress={() => navigation.goBack()}
@@ -600,22 +499,6 @@ const s = StyleSheet.create({
   fill:   { flex: 1, backgroundColor: "#000" },
   center: { alignItems: "center", justifyContent: "center", gap: 12, padding: 24 },
 
-  // Orb rendering
-  orbContainer: {
-    position: "absolute",
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  orbGlow: {
-    position: "absolute",
-    borderWidth: 1.5,
-  },
-  orb: {
-    shadowOpacity: 0.9,
-    shadowOffset: { width: 0, height: 0 },
-  },
-
-  // Loading overlay
   loadingOverlay: {
     ...StyleSheet.absoluteFillObject,
     backgroundColor: "rgba(0,0,0,0.72)",
@@ -625,15 +508,12 @@ const s = StyleSheet.create({
     zIndex: 20,
   },
   loadingIcon: { fontSize: 52 },
-  loadingText: { fontSize: 18, fontWeight: "800", color: colors.primary, letterSpacing: 0.5 },
+  loadingText: { fontSize: 18, fontWeight: "800", color: GREEN, letterSpacing: 0.5 },
   loadingSub:  { fontSize: 13, color: "rgba(255,255,255,0.45)", textAlign: "center", paddingHorizontal: 40 },
 
-  // Top HUD
   hudTop: {
     position: "absolute",
-    top: 0,
-    left: 0,
-    right: 0,
+    top: 0, left: 0, right: 0,
     alignItems: "center",
     paddingTop: Platform.OS === "android" ? 40 : 10,
     gap: 8,
@@ -643,36 +523,19 @@ const s = StyleSheet.create({
     alignItems: "center",
     gap: 10,
     backgroundColor: "rgba(0,0,0,0.78)",
-    borderRadius: radius.full,
+    borderRadius: 999,
     paddingHorizontal: 22,
     paddingVertical: 11,
     borderWidth: 1,
     borderColor: "rgba(255,255,255,0.1)",
   },
-  directionText:  { fontSize: 16, fontWeight: "800", color: "#fff" },
+  directionText: { fontSize: 15, fontWeight: "800", color: "#fff" },
 
-  destPill: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 6,
-    backgroundColor: "rgba(0,0,0,0.65)",
-    borderRadius: radius.full,
-    paddingHorizontal: 14,
-    paddingVertical: 7,
-    borderWidth: 1,
-    borderColor: "rgba(0,200,83,0.25)",
-    maxWidth: W - 80,
-  },
-  destPillIcon: { fontSize: 13 },
-  destPillText: { fontSize: 12, fontWeight: "700", color: "#fff" },
-
-  // Compass widget
   compass: {
     position: "absolute",
     top: Platform.OS === "android" ? 50 : 60,
     right: 16,
-    width: 54,
-    height: 54,
+    width: 54, height: 54,
     borderRadius: 27,
     backgroundColor: "rgba(0,0,0,0.78)",
     borderWidth: 1.5,
@@ -684,23 +547,19 @@ const s = StyleSheet.create({
   compassCard: { fontSize: 11, fontWeight: "800", color: "#fff" },
   compassDeg:  { fontSize: 8,  color: "rgba(255,255,255,0.4)" },
 
-  // Distance HUD
   distHud: {
     position: "absolute",
-    bottom: 200,
-    left: 16,
-    backgroundColor: colors.primary,
-    borderRadius: radius.md,
-    paddingHorizontal: 16,
-    paddingVertical: 10,
+    bottom: 200, left: 16,
+    backgroundColor: GREEN,
+    borderRadius: 12,
+    paddingHorizontal: 16, paddingVertical: 10,
     alignItems: "center",
     minWidth: 70,
   },
-  distVal:   { fontSize: 26, fontWeight: "900", color: colors.primaryText },
+  distVal:   { fontSize: 26, fontWeight: "900", color: "#071209" },
   distLabel: { fontSize: 10, fontWeight: "700", color: "rgba(7,18,9,0.65)" },
   totalDist: { fontSize: 9,  color: "rgba(7,18,9,0.5)", marginTop: 2 },
 
-  // Arrival overlay
   arrivalOverlay: {
     ...StyleSheet.absoluteFillObject,
     backgroundColor: "rgba(0,0,0,0.6)",
@@ -710,33 +569,30 @@ const s = StyleSheet.create({
   },
   arrivalCard: {
     backgroundColor: "#0d1a10",
-    borderRadius: radius.lg,
+    borderRadius: 20,
     borderWidth: 1.5,
-    borderColor: colors.primary,
+    borderColor: GREEN,
     padding: 32,
     alignItems: "center",
     gap: 8,
     width: W - 48,
   },
   arrivalIcon:    { fontSize: 52 },
-  arrivalTitle:   { fontSize: 22, fontWeight: "900", color: colors.primary },
+  arrivalTitle:   { fontSize: 22, fontWeight: "900", color: GREEN },
   arrivalSub:     { fontSize: 14, color: "rgba(255,255,255,0.5)", textAlign: "center" },
   arrivalBtn: {
     marginTop: 12,
-    backgroundColor: colors.primary,
-    borderRadius: radius.full,
-    paddingHorizontal: 28,
-    paddingVertical: 12,
+    backgroundColor: GREEN,
+    borderRadius: 999,
+    paddingHorizontal: 28, paddingVertical: 12,
   },
-  arrivalBtnText: { fontSize: 14, fontWeight: "800", color: colors.primaryText },
+  arrivalBtnText: { fontSize: 14, fontWeight: "800", color: "#071209" },
 
-  // Back button — same circle style used across all screens
   backWrap: { position: "absolute", top: 0, left: 0 },
   backBtn: {
     marginTop: Platform.OS === "android" ? 40 : 10,
     marginLeft: 16,
-    width: 38,
-    height: 38,
+    width: 38, height: 38,
     borderRadius: 19,
     backgroundColor: "rgba(0,0,0,0.6)",
     borderWidth: 1,
@@ -745,33 +601,19 @@ const s = StyleSheet.create({
     justifyContent: "center",
   },
 
-  // Permission / error screen
   permIcon: { fontSize: 52 },
-  permText: {
-    fontSize: 16,
-    fontWeight: "700",
-    color: "#fff",
-    textAlign: "center",
-    paddingHorizontal: 20,
-  },
-  permSub: {
-    fontSize: 13,
-    color: "rgba(255,255,255,0.45)",
-    textAlign: "center",
-    paddingHorizontal: 30,
-  },
+  permText: { fontSize: 16, fontWeight: "700", color: "#fff", textAlign: "center", paddingHorizontal: 20 },
+  permSub:  { fontSize: 13, color: "rgba(255,255,255,0.45)", textAlign: "center", paddingHorizontal: 30 },
   permBtn: {
-    backgroundColor: colors.primary,
-    borderRadius: radius.md,
-    paddingHorizontal: 28,
-    paddingVertical: 13,
+    backgroundColor: GREEN,
+    borderRadius: 12,
+    paddingHorizontal: 28, paddingVertical: 13,
     marginTop: 8,
   },
-  permBtnText: { fontSize: 14, fontWeight: "800", color: colors.primaryText },
+  permBtnText: { fontSize: 14, fontWeight: "800", color: "#071209" },
   permBack:    { marginTop: 10 },
   permBackText: { fontSize: 13, color: "rgba(255,255,255,0.4)", fontWeight: "600" },
 
-  // Indoor warning overlay
   indoorOverlay: {
     ...StyleSheet.absoluteFillObject,
     backgroundColor: "rgba(0,0,0,0.72)",
@@ -781,7 +623,7 @@ const s = StyleSheet.create({
   },
   indoorCard: {
     backgroundColor: "#0d1a10",
-    borderRadius: radius.lg,
+    borderRadius: 20,
     borderWidth: 1.5,
     borderColor: "#ffc107",
     padding: 28,
@@ -791,16 +633,12 @@ const s = StyleSheet.create({
   },
   indoorIcon:  { fontSize: 48 },
   indoorTitle: { fontSize: 18, fontWeight: "900", color: "#ffc107", textAlign: "center" },
-  indoorBody:  {
-    fontSize: 13, color: "rgba(255,255,255,0.6)",
-    textAlign: "center", lineHeight: 20,
-  },
+  indoorBody:  { fontSize: 13, color: "rgba(255,255,255,0.6)", textAlign: "center", lineHeight: 20 },
   indoorBtn: {
     marginTop: 8,
     backgroundColor: "#ffc107",
-    borderRadius: radius.full,
-    paddingHorizontal: 28,
-    paddingVertical: 11,
+    borderRadius: 999,
+    paddingHorizontal: 28, paddingVertical: 11,
   },
   indoorBtnText: { fontSize: 13, fontWeight: "800", color: "#071209" },
 });
