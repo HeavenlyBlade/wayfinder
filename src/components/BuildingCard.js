@@ -12,6 +12,8 @@ import BuildingIcon from "./BuildingIcon";
 import { distanceTo } from "../utils/arMath";
 import { NODES } from "../constants/campusGraph";
 import FloorBrowser from "./FloorBrowser";
+import { useSettings } from "../context/SettingsContext";
+import { t } from "../constants/i18n";
 
 const { width } = Dimensions.get("window");
 
@@ -47,6 +49,8 @@ function formatEta(metres) {
 export default function BuildingCard({ building, userLocation, onClose, onNavigate }) {
   const slideY = useRef(new Animated.Value(40)).current;
   const fadeIn = useRef(new Animated.Value(0)).current;
+  const { settings } = useSettings();
+  const lang = settings?.language ?? "en";
   const [floorBrowserVisible, setFloorBrowserVisible] = useState(false);
 
   useEffect(() => {
@@ -145,7 +149,7 @@ export default function BuildingCard({ building, userLocation, onClose, onNaviga
             onPress={() => setFloorBrowserVisible(true)}
             activeOpacity={0.85}
           >
-            <Text style={s.btnFloorsText}>🏢 View Floors</Text>
+            <Text style={s.btnFloorsText}>🏢 {t('map.viewFloors', lang)}</Text>
           </TouchableOpacity>
         )}
 
@@ -156,14 +160,14 @@ export default function BuildingCard({ building, userLocation, onClose, onNaviga
             onPress={() => onNavigate(building)}
             activeOpacity={0.85}
           >
-            <Text style={s.btnPrimaryText}>▶ Navigate Here</Text>
+            <Text style={s.btnPrimaryText}>▶ {t('map.navigate', lang)}</Text>
           </TouchableOpacity>
           <TouchableOpacity
             style={s.btnSecondary}
             onPress={onClose}
             activeOpacity={0.85}
           >
-            <Text style={s.btnSecondaryText}>Close</Text>
+            <Text style={s.btnSecondaryText}>{t('map.close', lang)}</Text>
           </TouchableOpacity>
         </View>
       </View>

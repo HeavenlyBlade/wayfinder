@@ -16,6 +16,7 @@ export const NODES = {
   // Campus gate / parking
   gate:               { id: 'gate',               lat: 13.9609,    lng: 121.6114   },
   motorcycle_parking: { id: 'motorcycle_parking', lat: 13.9612,    lng: 121.6115   },
+  parking_lot:        { id: 'parking_lot',        lat: 13.9611,    lng: 121.6123   }, // car parking lot
 
   // Major intersection nodes
   J4: { id: 'J4', lat: 13.9616, lng: 121.6121 }, // mid - chapel / kindergarten / ibed
@@ -144,6 +145,7 @@ const EDGES = [
   // Perimeter road south branch (CCSS / parking)
   ['R21',              'R24'],
   ['R24',              'R25'],
+  ['R25',              'parking_lot'],   // parking lot off perimeter road
   ['R22',              'R27'],
   ['R27',              'R28'],
   ['R28',              'R29'],
@@ -183,6 +185,7 @@ const EDGES = [
   ['J4',               'J5'],
   ['J5',               'sr_building'],
   ['J5',               'canteen_two'],
+  ['J5',               'main_building'],  // direct shortcut — J5 is ~22m from main_building entrance
   ['J5',               'J7'],
   ['J7',               'gymnasium'],
   ['J7',               'kitchen_hall'],

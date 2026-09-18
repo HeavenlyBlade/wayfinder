@@ -25,6 +25,7 @@ import SearchModal      from "../components/SearchModal";
 import useVoiceCommand  from "../hooks/useVoiceCommand";
 import useLocation      from "../hooks/useLocation";
 import { useSettings }  from "../context/SettingsContext";
+import { t } from "../constants/i18n";
 
 const { height: H } = Dimensions.get("window");
 
@@ -118,6 +119,7 @@ export default function MapScreen({ navigation, route }) {
   const panelRef  = useRef(null);
 
   const { settings }               = useSettings();
+  const lang = settings?.language ?? "en";
   const { location: userLocation } = useLocation();
   const {
     aiReply, destId,
@@ -306,7 +308,7 @@ export default function MapScreen({ navigation, route }) {
           >
             <IconSearch size={16} color="rgba(0,0,0,0.4)" />
             <Text style={s.searchText}>
-              {selectedBuilding ? selectedBuilding.name : "Search buildings..."}
+              {selectedBuilding ? selectedBuilding.name : t('map.searchHint', lang)}
             </Text>
           </TouchableOpacity>
         </View>

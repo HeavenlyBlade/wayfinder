@@ -13,6 +13,8 @@ import { colors } from "../constants/theme";
 import { BUILDING_LIST, QUICK_DESTINATIONS } from "../constants/buildings";
 import BuildingIcon from "./BuildingIcon";
 import { IconMap, IconNavigation, IconInfo } from "./icons/index";
+import { useSettings } from "../context/SettingsContext";
+import { t } from "../constants/i18n";
 
 const { height: H } = Dimensions.get("window");
 
@@ -37,6 +39,8 @@ const BottomPanel = forwardRef(function BottomPanel({
   const [panelHeight, setPanelHeight] = useState(SNAP.collapsed);
   const animHeight = useRef(new Animated.Value(SNAP.collapsed)).current;
   const lastHeight = useRef(SNAP.collapsed);
+  const { settings } = useSettings();
+  const lang = settings?.language ?? "en";
 
   // Expose snapToRoute so MapScreen can open the ROUTE tab on polygon tap
   useImperativeHandle(ref, () => ({
@@ -120,7 +124,7 @@ const BottomPanel = forwardRef(function BottomPanel({
         {panelHeight <= SNAP.collapsed + 10 && (
           <View style={s.peekRow}>
             <IconMap size={14} color={GREEN} />
-            <Text style={s.peekText}>Swipe up for destinations</Text>
+            <Text style={s.peekText}>{lang === 'fil' ? 'Mag-swipe pataas para sa mga destinasyon' : 'Swipe up for destinations'}</Text>
             <Text style={s.peekArrow}>↑</Text>
           </View>
         )}
@@ -278,7 +282,7 @@ const BottomPanel = forwardRef(function BottomPanel({
                     onPress={() => onStartNav(selectedBuilding)}
                     activeOpacity={0.85}
                   >
-                    <Text style={s.startBtnText}>▶ Start Navigation</Text>
+                    <Text style={s.startBtnText}>▶ {lang === 'fil' ? 'Simulan ang Navigasyon' : 'Start Navigation'}</Text>
                   </TouchableOpacity>
                 </View>
               )}

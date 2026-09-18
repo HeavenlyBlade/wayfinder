@@ -19,6 +19,8 @@ import BuildingIcon from "../components/BuildingIcon";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { StatusBar } from "expo-status-bar";
 import { QUICK_DESTINATIONS } from "../constants/buildings";
+import { useSettings } from "../context/SettingsContext";
+import { t } from "../constants/i18n";
 
 const GREEN  = "#00C853";
 const { width: W, height: H } = Dimensions.get("window");
@@ -60,7 +62,7 @@ const TUTORIAL_STEPS = [
 ];
 
 // ── Tutorial overlay ──────────────────────────────────────────────────────────
-function TutorialOverlay({ onFinish }) {
+function TutorialOverlay({ lang = "en", onFinish }) {
   const [step, setStep] = useState(0);
   const total = TUTORIAL_STEPS.length;
   const current = TUTORIAL_STEPS[step];
@@ -76,9 +78,9 @@ function TutorialOverlay({ onFinish }) {
 
           {/* Step counter + skip */}
           <View style={t.cardHeader}>
-            <Text style={t.stepCount}>{step + 1} of {total}</Text>
+            <Text style={t.stepCount}>{step + 1} {t('tutorial.of', lang)} {total}</Text>
             <TouchableOpacity onPress={onFinish} hitSlop={12}>
-              <Text style={t.skipText}>Skip</Text>
+              <Text style={t.skipText}>{t('tutorial.skip', lang)}</Text>
             </TouchableOpacity>
           </View>
 
@@ -106,7 +108,7 @@ function TutorialOverlay({ onFinish }) {
                 onPress={() => setStep(s => s - 1)}
                 activeOpacity={0.7}
               >
-                <Text style={t.btnBackText}>← Back</Text>
+                <Text style={t.btnBackText}>{t('tutorial.back', lang)}</Text>
               </TouchableOpacity>
             ) : (
               <View style={{ flex: 1 }} />
@@ -118,7 +120,7 @@ function TutorialOverlay({ onFinish }) {
               activeOpacity={0.85}
             >
               <Text style={t.btnNextText}>
-                {isLast ? "Got it!" : "Next →"}
+                {isLast ? t('tutorial.gotIt', lang) : t('tutorial.next', lang)}
               </Text>
             </TouchableOpacity>
           </View>
@@ -134,21 +136,21 @@ function TutorialOverlay({ onFinish }) {
 }
 
 // ── Status chips ──────────────────────────────────────────────────────────────
-const STATUS_CHIPS = [
+const STATUS_CHIPS = (lang) => [
   {
-    label: "GPS Active",
+    label: t('status.gpsActive', lang),
     color: GREEN,
     bg: "rgba(0,200,83,0.12)",
     border: "rgba(0,200,83,0.3)",
   },
   {
-    label: "AI Ready",
+    label: t('status.aiReady', lang),
     color: "#8aabff",
     bg: "rgba(138,171,255,0.1)",
     border: "rgba(138,171,255,0.3)",
   },
   {
-    label: "AR Standby",
+    label: t('status.arStandby', lang),
     color: "#ffc107",
     bg: "rgba(255,193,7,0.1)",
     border: "rgba(255,193,7,0.3)",
@@ -159,6 +161,8 @@ const STATUS_CHIPS = [
 export default function HomeScreen({ navigation }) {
   const [searchVisible,   setSearchVisible]   = useState(false);
   const [showTutorial,    setShowTutorial]    = useState(false);
+  const { settings } = useSettings();
+  const lang = settings?.language ?? "en";
 
   // Show tutorial only on first launch
   useEffect(() => {
@@ -177,7 +181,7 @@ export default function HomeScreen({ navigation }) {
       <StatusBar style="light" />
 
       {/* Tutorial overlay — shown on first launch only */}
-      {showTutorial && <TutorialOverlay onFinish={handleTutorialFinish} />}
+      {showTutorial && <TutorialOverlay lang={lang} onFinish={handleTutorialFinish} />}
 
       <SafeAreaView style={{ flex: 1 }}>
         {/* Header */}
@@ -200,7 +204,7 @@ export default function HomeScreen({ navigation }) {
             activeOpacity={0.8}
           >
             <IconSearch size={18} color="rgba(255,255,255,0.3)" />
-            <Text style={s.searchPlaceholder}>Where do you want to go?</Text>
+            <Text style={s.searchPlaceholder}>{t('home.search', lang)}</Text>
           </TouchableOpacity>
         </View>
 
@@ -211,7 +215,7 @@ export default function HomeScreen({ navigation }) {
         >
           {/* Status chips */}
           <View style={s.chipsRow}>
-            {STATUS_CHIPS.map((chip) => (
+            {STATUS_CHIPS(lang).map((chip) => (
               <View
                 key={chip.label}
                 style={[
@@ -238,13 +242,13 @@ export default function HomeScreen({ navigation }) {
           >
             <IconCompass size={32} color="#071209" />
             <View style={{ flex: 1 }}>
-              <Text style={s.navCTATitle}>Open Campus Map</Text>
-              <Text style={s.navCTASub}>Tap to start navigating →</Text>
+              <Text style={s.navCTATitle}>{t('home.openMap', lang)}</Text>
+              <Text style={s.navCTASub}>{t('home.openMap.sub', lang)}</Text>
             </View>
           </TouchableOpacity>
 
           {/* Quick destinations */}
-          <Text style={s.sectionLabel}>QUICK DESTINATIONS</Text>
+          <Text style={s.sectionLabel}>{t('home.quickDest', lang)}</Text>
           <View style={s.grid}>
             {QUICK_DESTINATIONS.map((b) => (
               <TouchableOpacity
@@ -264,7 +268,7 @@ export default function HomeScreen({ navigation }) {
                   <BuildingIcon iconKey={b.icon} size={20} color="#00C853" />
                 </View>
                 <Text style={s.quickName}>{b.name}</Text>
-                <Text style={s.quickDist}>{b.dist_label ?? b.dist} away</Text>
+                <Text style={s.quickDist}>{b.dist_label ?? b.dist} {t('home.away', lang)}</Text>
               </TouchableOpacity>
             ))}
           </View>
