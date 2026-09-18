@@ -41,7 +41,7 @@ export function projectToScreen({
 }) {
   const bearing          = bearingTo(userLat, userLng, targetLat, targetLng);
   const groundDistance   = distanceTo(userLat, userLng, targetLat, targetLng);
-  const altitudeDiff     = targetAltitude - userAltitude; // positive = target is above user
+  const altitudeDiff     = targetAltitude - userAltitude;
 
   // Total 3D distance to orb
   const distance3D = Math.sqrt(groundDistance ** 2 + altitudeDiff ** 2);
@@ -51,10 +51,12 @@ export function projectToScreen({
   if (angleDiff >  180) angleDiff -= 360;
   if (angleDiff < -180) angleDiff += 360;
 
-  // Vertical angle to target:
-  // Positive = above horizon (look up), negative = below (look down)
-  // For ground-level navigation, orbs slightly below eye level feel natural
-  const EYE_HEIGHT_M = 1.5; // approximate eye level above ground
+  // Vertical angle to target.
+  // EYE_HEIGHT_M was 1.5 — this pushed orbs to the very bottom of the screen
+  // because ground-level orbs at 7–45m produce steep downward angles.
+  // Reduced to 0.3m: orbs appear in the lower-centre of the frame, which
+  // looks natural (you're looking ahead at the path, not straight down).
+  const EYE_HEIGHT_M  = 0.3;
   const effectiveAltDiff = altitudeDiff - EYE_HEIGHT_M;
   const verticalAngle = groundDistance > 0
     ? Math.atan2(effectiveAltDiff, groundDistance) * (180 / Math.PI)
@@ -68,11 +70,16 @@ export function projectToScreen({
   const xNorm = 0.5 + (angleDiff / hFov);
 
   // Map vertical angle → screen Y
-  // vFov derived from hFov and screen aspect ratio
   const aspectRatio = screenH / screenW;
   const vFov = hFov * aspectRatio;
-  // 0.5 = horizon centre; positive verticalAngle = above horizon = smaller Y (higher on screen)
   const yNorm = 0.5 - (verticalAngle / vFov);
+
+  // Clamp Y: orbs must stay between 35% and 80% of screen height.
+  // This keeps them in the "path ahead" zone — not floating above the
+  // horizon and not buried at the very bottom.
+  const yMin = 0.35 * screenH;
+  const yMax = 0.80 * screenH;
+  const yClamped = Math.max(yMin, Math.min(yMax, yNorm * screenH));
 
   // Orb size: bigger when closer
   const depthRatio = Math.min(distance3D / 50, 1);
@@ -80,7 +87,7 @@ export function projectToScreen({
 
   return {
     x: xNorm * screenW,
-    y: Math.max(0.1 * screenH, Math.min(0.9 * screenH, yNorm * screenH)), // clamp on screen
+    y: yClamped,
     visible,
     distance: Math.round(groundDistance),
     orbSize,

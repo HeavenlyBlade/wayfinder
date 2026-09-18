@@ -12,6 +12,8 @@ export default function SplashScreen({ onFinish }) {
   const dotAnim1 = useRef(new Animated.Value(0.3)).current;
   const dotAnim2 = useRef(new Animated.Value(0.3)).current;
   const dotAnim3 = useRef(new Animated.Value(0.3)).current;
+  const dotAnim4 = useRef(new Animated.Value(0.3)).current;
+  const dotAnim5 = useRef(new Animated.Value(0.3)).current;
   const ringScale1 = useRef(new Animated.Value(0.8)).current;
   const ringScale2 = useRef(new Animated.Value(0.6)).current;
   const ringOpacity1 = useRef(new Animated.Value(0)).current;
@@ -57,7 +59,7 @@ export default function SplashScreen({ onFinish }) {
 
     // Step 4 — loading dots pulse (store ref so we can stop it on unmount)
     const dotLoop = Animated.loop(
-      Animated.stagger(180, [
+      Animated.stagger(140, [
         Animated.sequence([
           Animated.timing(dotAnim1, { toValue: 1, duration: 300, useNativeDriver: true }),
           Animated.timing(dotAnim1, { toValue: 0.3, duration: 300, useNativeDriver: true }),
@@ -69,6 +71,14 @@ export default function SplashScreen({ onFinish }) {
         Animated.sequence([
           Animated.timing(dotAnim3, { toValue: 1, duration: 300, useNativeDriver: true }),
           Animated.timing(dotAnim3, { toValue: 0.3, duration: 300, useNativeDriver: true }),
+        ]),
+        Animated.sequence([
+          Animated.timing(dotAnim4, { toValue: 1, duration: 300, useNativeDriver: true }),
+          Animated.timing(dotAnim4, { toValue: 0.3, duration: 300, useNativeDriver: true }),
+        ]),
+        Animated.sequence([
+          Animated.timing(dotAnim5, { toValue: 1, duration: 300, useNativeDriver: true }),
+          Animated.timing(dotAnim5, { toValue: 0.3, duration: 300, useNativeDriver: true }),
         ]),
       ]),
     );
@@ -120,11 +130,13 @@ export default function SplashScreen({ onFinish }) {
         <Text style={s.subtitle}>AR Campus Navigation</Text>
       </Animated.View>
 
-      {/* Loading dots */}
+      {/* Loading dots — 5 equal circles */}
       <Animated.View style={[s.dotsRow, { opacity: textOpacity }]}>
         <Animated.View style={[s.dot, { opacity: dotAnim1 }]} />
-        <Animated.View style={[s.dot, s.dotWide, { opacity: dotAnim2 }]} />
+        <Animated.View style={[s.dot, { opacity: dotAnim2 }]} />
         <Animated.View style={[s.dot, { opacity: dotAnim3 }]} />
+        <Animated.View style={[s.dot, { opacity: dotAnim4 }]} />
+        <Animated.View style={[s.dot, { opacity: dotAnim5 }]} />
       </Animated.View>
 
       {/* School name */}
@@ -204,9 +216,6 @@ const s = StyleSheet.create({
     height: 7,
     borderRadius: 4,
     backgroundColor: GREEN,
-  },
-  dotWide: {
-    width: 14,
   },
 
   // School name at bottom

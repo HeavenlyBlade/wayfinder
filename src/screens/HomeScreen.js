@@ -48,11 +48,6 @@ const TUTORIAL_STEPS = [
       "Once you pick a destination on the map, you can follow floating green orbs in your camera view that guide you there step by step.",
   },
   {
-    title: "Voice Commands 🎤",
-    message:
-      "On the map screen, tap the mic button and say where you want to go. The AI understands natural speech like \u2018Take me to the registrar.\u2019",
-  },
-  {
     title: "Quick Destinations ⚡",
     message:
       "Use the cards below to jump straight to the most common buildings on campus with one tap.",

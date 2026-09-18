@@ -226,6 +226,7 @@ export default function ARScreen({ route, navigation }) {
 
   const orbTrailRef     = useRef([]); // mutable trail — orbs consumed as user walks
   const routeLoadedRef  = useRef(false);
+  const arrivedRef      = useRef(false); // sync gate — prevents arrival firing repeatedly
 
   // ── Build orb trail once GPS is available ──────────────────────────────────
   const loadRoute = useCallback(async (loc) => {
@@ -293,7 +294,7 @@ export default function ARScreen({ route, navigation }) {
     setIndoorStatus(status);
   }, [location]);
   useEffect(() => {
-    if (!location || !routeReady || arrived) return;
+    if (!location || !routeReady || arrivedRef.current) return;
     if (orbTrailRef.current.length === 0) return;
 
     const next    = orbTrailRef.current[0];
@@ -309,7 +310,7 @@ export default function ARScreen({ route, navigation }) {
 
   // ── Project orbs onto screen every location/heading update ────────────────
   useEffect(() => {
-    if (!location || orbTrailRef.current.length === 0 || arrived) return;
+    if (!location || orbTrailRef.current.length === 0 || arrivedRef.current) return;
 
     // Advance the trail — remove orbs the user has already passed
     while (orbTrailRef.current.length > 0) {
@@ -323,6 +324,7 @@ export default function ARScreen({ route, navigation }) {
     }
 
     if (orbTrailRef.current.length === 0) {
+      arrivedRef.current = true;
       setArrived(true);
       setOrbPositions([]);
       return;
@@ -333,6 +335,7 @@ export default function ARScreen({ route, navigation }) {
     if (dest) {
       const d = distanceTo(location.lat, location.lng, dest.lat, dest.lng);
       if (d < ARRIVAL_DIST) {
+        arrivedRef.current = true;
         setArrived(true);
         setOrbPositions([]);
         // Show staircase picker if the destination building has 2 staircases
@@ -340,7 +343,6 @@ export default function ARScreen({ route, navigation }) {
         if (destBuilding && indoorStatus?.hasTwoStaircases) {
           setStaircasePickerVisible(true);
         } else {
-          // Single-staircase building — go straight to arrival prompt
           setArrivalPromptVisible(true);
         }
         return;
