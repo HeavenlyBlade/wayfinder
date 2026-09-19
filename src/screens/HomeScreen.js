@@ -26,8 +26,8 @@ const GREEN  = "#00C853";
 const { width: W, height: H } = Dimensions.get("window");
 
 // ── Tutorial steps ────────────────────────────────────────────────────────────
-// lang: "en" only for now — Tagalog will be added later.
-// Keep messages short, 1–2 sentences max.
+// lang: "en" only for now  ETagalog will be added later.
+// Keep messages short, 1 E sentences max.
 const TUTORIAL_STEPS = [
   {
     title: "Welcome to WAYFINDER 👋",
@@ -40,7 +40,7 @@ const TUTORIAL_STEPS = [
       "Tap the search bar to find any building, office, or room on campus by name.",
   },
   {
-    title: "Open Campus Map 🗺️",
+    title: "Open Campus Map 🗺�E�E,
     message:
       "Tap the green button to open the interactive campus map. You can see all buildings and your live location.",
   },
@@ -55,7 +55,7 @@ const TUTORIAL_STEPS = [
       "Use the cards below to jump straight to the most common buildings on campus with one tap.",
   },
   {
-    title: "You're all set! ✅",
+    title: "You're all set! ✁E,
     message:
       "You can revisit this guide anytime from Settings. Enjoy navigating SACLI!",
   },
@@ -71,55 +71,55 @@ function TutorialOverlay({ lang = "en", onFinish }) {
   return (
     <Modal transparent animationType="fade" visible statusBarTranslucent>
       {/* Dark backdrop */}
-      <View style={t.backdrop}>
+      <View style={ts.backdrop}>
 
-        {/* Tooltip card — anchored near top of screen */}
-        <View style={t.card}>
+        {/* Tooltip card  Eanchored near top of screen */}
+        <View style={ts.card}>
 
           {/* Step counter + skip */}
-          <View style={t.cardHeader}>
-            <Text style={t.stepCount}>{step + 1} {t('tutorial.of', lang)} {total}</Text>
+          <View style={ts.cardHeader}>
+            <Text style={ts.stepCount}>{step + 1} {t('tutorial.of', lang)} {total}</Text>
             <TouchableOpacity onPress={onFinish} hitSlop={12}>
-              <Text style={t.skipText}>{t('tutorial.skip', lang)}</Text>
+              <Text style={ts.skipText}>{t('tutorial.skip', lang)}</Text>
             </TouchableOpacity>
           </View>
 
           {/* Title */}
-          <Text style={t.title}>{current.title}</Text>
+          <Text style={ts.title}>{current.title}</Text>
 
           {/* Message */}
-          <Text style={t.message}>{current.message}</Text>
+          <Text style={ts.message}>{current.message}</Text>
 
           {/* Dot indicators */}
-          <View style={t.dotsRow}>
+          <View style={ts.dotsRow}>
             {TUTORIAL_STEPS.map((_, i) => (
               <View
                 key={i}
-                style={[t.dot, i === step && t.dotActive]}
+                style={[ts.dot, i === step && ts.dotActive]}
               />
             ))}
           </View>
 
           {/* Navigation buttons */}
-          <View style={t.btnRow}>
+          <View style={ts.btnRow}>
             {step > 0 ? (
               <TouchableOpacity
-                style={t.btnBack}
+                style={ts.btnBack}
                 onPress={() => setStep(s => s - 1)}
                 activeOpacity={0.7}
               >
-                <Text style={t.btnBackText}>{t('tutorial.back', lang)}</Text>
+                <Text style={ts.btnBackText}>{t('tutorial.back', lang)}</Text>
               </TouchableOpacity>
             ) : (
               <View style={{ flex: 1 }} />
             )}
 
             <TouchableOpacity
-              style={t.btnNext}
+              style={ts.btnNext}
               onPress={isLast ? onFinish : () => setStep(s => s + 1)}
               activeOpacity={0.85}
             >
-              <Text style={t.btnNextText}>
+              <Text style={ts.btnNextText}>
                 {isLast ? t('tutorial.gotIt', lang) : t('tutorial.next', lang)}
               </Text>
             </TouchableOpacity>
@@ -128,7 +128,7 @@ function TutorialOverlay({ lang = "en", onFinish }) {
         </View>
 
         {/* Downward arrow pointer */}
-        <View style={t.arrow} />
+        <View style={ts.arrow} />
 
       </View>
     </Modal>
@@ -180,7 +180,7 @@ export default function HomeScreen({ navigation }) {
     <View style={s.container}>
       <StatusBar style="light" />
 
-      {/* Tutorial overlay — shown on first launch only */}
+      {/* Tutorial overlay  Eshown on first launch only */}
       {showTutorial && <TutorialOverlay lang={lang} onFinish={handleTutorialFinish} />}
 
       <SafeAreaView style={{ flex: 1 }}>
@@ -289,7 +289,7 @@ export default function HomeScreen({ navigation }) {
 }
 
 // ── Tutorial styles ───────────────────────────────────────────────────────────
-const t = StyleSheet.create({
+const ts = StyleSheet.create({
   backdrop: {
     flex: 1,
     backgroundColor: "rgba(0,0,0,0.75)",
