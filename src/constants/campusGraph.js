@@ -199,6 +199,8 @@ const EDGES = [
   ['J5',               'J7'],
   ['J7',               'gymnasium'],
   ['J7',               'kitchen_hall'],
+  // J7 also connects to north spine directly — avoids U-shape routing from top of campus
+  ['J7',               'R82'],
 
   // IBED 2nd entrance off interior path
   ['R51',              'ibed_2'],
