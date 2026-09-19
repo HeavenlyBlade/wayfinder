@@ -9,10 +9,15 @@ const HEADING_SAMPLES = 8;
 // Storage key for the user-adjustable compass offset
 const COMPASS_OFFSET_KEY = 'wayfinder_compass_offset';
 
-// Load persisted compass offset (degrees, positive = clockwise correction)
-let _compassOffset = 0;
+// Default offset calibrated at SACLI campus (National Diversion Highway side).
+// -260 degrees corrects the magnetometer for outdoor use at this location.
+// Users can still fine-tune via the CAL button in AR screen if needed.
+const DEFAULT_COMPASS_OFFSET = -260;
+
+// Load persisted compass offset — falls back to calibrated default if not set
+let _compassOffset = DEFAULT_COMPASS_OFFSET;
 AsyncStorage.getItem(COMPASS_OFFSET_KEY).then(val => {
-  if (val !== null) _compassOffset = parseFloat(val) || 0;
+  if (val !== null) _compassOffset = parseFloat(val) || DEFAULT_COMPASS_OFFSET;
 });
 
 export function setCompassOffset(degrees) {
