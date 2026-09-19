@@ -96,6 +96,9 @@ export const NODES = {
   // Building entrance nodes
   main_building:  { id: 'main_building',  lat: 13.9617,    lng: 121.6124   }, // 1st entrance (front)
   main_building_2:{ id: 'main_building_2',lat: 13.962135,  lng: 121.612759 }, // 2nd entrance (no GF)
+  // Main Building approach nodes — direct south path to front entrance
+  MB1:            { id: 'MB1',            lat: 13.961670,  lng: 121.612390 }, // approach node 1
+  MB2:            { id: 'MB2',            lat: 13.961628,  lng: 121.612386 }, // approach node 2
   new_building:   { id: 'new_building',   lat: 13.9613,    lng: 121.6121   }, // RFID — mandatory campus entry
   engineering:    { id: 'engineering',    lat: 13.961637,  lng: 121.612220 }, // entrance
   ea_tower:       { id: 'ea_tower',       lat: 13.961744,  lng: 121.612746 }, // 1st entrance
@@ -121,7 +124,8 @@ const EDGES = [
   ['R02',              'R03'],
   ['R03',              'R04'],
   ['R04',              'R05'],
-  ['R05',              'motorcycle_parking'],
+  // motorcycle_parking connects from gate area — only as a destination, not a passthrough
+  ['gate',             'motorcycle_parking'],
   ['R05',              'R07'],
   ['R07',              'R08'],
   ['R08',              'R09'],
@@ -146,6 +150,7 @@ const EDGES = [
   ['R21',              'R24'],
   ['R24',              'R25'],
   ['R25',              'parking_lot'],   // parking lot off perimeter road
+  ['R19',              'parking_lot'],   // direct shortcut — R19 is at 121.612319, parking at 121.6123
   ['R22',              'R27'],
   ['R27',              'R28'],
   ['R28',              'R29'],
@@ -153,11 +158,12 @@ const EDGES = [
   ['R30',              'ccss'],
 
   // ── NEW BUILDING (RFID) is the MANDATORY campus entry point ──────────────
-  // The perimeter road connects to New Building entrance.
-  // ALL internal buildings are only reachable through New Building.
   ['R15',              'new_building'],  // perimeter road → New Building entrance
   ['new_building',     'R38'],           // New Building → interior campus hub
-  ['new_building',     'canteen'],       // canteen accessible from inside campus
+  // Canteen: accessible from perimeter road (R12 is physically near canteen entrance)
+  // AND from inside campus via new_building
+  ['R12',              'canteen'],       // direct from perimeter road — physical reality
+  ['new_building',     'canteen'],       // also accessible from inside
 
   // Interior campus hub → all internal paths
   ['R38',              'R47'],
@@ -186,6 +192,10 @@ const EDGES = [
   ['J5',               'sr_building'],
   ['J5',               'canteen_two'],
   ['J5',               'main_building'],  // direct shortcut — J5 is ~22m from main_building entrance
+  // Main Building approach via dedicated way nodes (south path)
+  ['J5',               'MB2'],
+  ['MB2',              'MB1'],
+  ['MB1',              'main_building'],
   ['J5',               'J7'],
   ['J7',               'gymnasium'],
   ['J7',               'kitchen_hall'],
@@ -210,9 +220,10 @@ const EDGES = [
   ['R76',              'main_building'],
   ['R76',              'R77'],
   ['R77',              'R78'],
+  // EA Tower: terminal nodes only — not passthrough on the spine
   ['R78',              'ea_tower'],
-  ['R78',              'R79'],
   ['R79',              'ea_tower_2'],
+  ['R78',              'R79'],
   ['R79',              'R80'],
   ['R80',              'main_building_2'],
   ['R80',              'R81'],

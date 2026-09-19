@@ -393,8 +393,8 @@ export default function ARScreen({ route, navigation }) {
           </SafeAreaView>
         )}
 
-        {/* Single rotating arrow — bottom-center of camera */}
-        {!isLoading && !arrived && !indoorStatus && (
+        {/* Single rotating arrow — ALWAYS visible during navigation */}
+        {!isLoading && !arrived && (
           <View style={s.arrowWrap} pointerEvents="none">
             <NavigationArrow angleDiff={nextAngle} />
           </View>
