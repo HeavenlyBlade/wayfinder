@@ -27,7 +27,7 @@ export default function CompassCalibrator({ offset, onAdjust, heading }) {
   if (!expanded) {
     return (
       <TouchableOpacity style={s.collapsed} onPress={() => setExpanded(true)} activeOpacity={0.8}>
-        <Text style={s.collapsedText}>🧭 {Math.round(heading)}°</Text>
+        <Text style={s.collapsedText}>CAL {Math.round(heading)}°</Text>
         <Text style={s.collapsedSub}>cal</Text>
       </TouchableOpacity>
     );

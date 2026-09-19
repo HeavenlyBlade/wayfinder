@@ -36,7 +36,7 @@ const STEPS = [
   {
     // Step 3 — Calibration
     title:   "Compass Calibration",
-    body:    "If the arrow feels off, tap the 🧭 button (bottom-right of camera).\n\nTap +5° or −5° to correct the heading until the arrow aligns with the real path.",
+    body:    "If the arrow feels off, tap the Calibrate button (bottom-right of camera).\n\nTap +5 or -5 degrees to correct the heading until the arrow aligns with the real path.",
     hint:    "Do the figure-8 motion in Google Maps first for best accuracy.",
     anchor:  "cal",
   },
@@ -81,7 +81,7 @@ export default function ARTutorial({ lang = "en" }) {
           {current.anchor === "cal" && (
             <View style={s.calHighlight}>
               <View style={s.highlightRing} />
-              <Text style={s.calHighlightLabel}>🧭 Calibrate here</Text>
+              <Text style={s.calHighlightLabel}>Calibrate here</Text>
             </View>
           )}
         </View>

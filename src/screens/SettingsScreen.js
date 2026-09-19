@@ -35,8 +35,8 @@ function ChevronItem({ icon, name, sub, onPress, rightLabel }) {
 
 function LanguagePicker({ visible, lang, onSelect, onClose }) {
   const options = [
-    { code: "en",  label: "🇺🇸  English" },
-    { code: "fil", label: "🇵🇭  Filipino" },
+    { code: "en",  label: "English" },
+    { code: "fil", label: "Filipino" },
   ];
   return (
     <Modal transparent animationType="fade" visible={visible} statusBarTranslucent>

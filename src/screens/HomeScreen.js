@@ -30,32 +30,32 @@ const { width: W, height: H } = Dimensions.get("window");
 // Keep messages short, 1窶・ sentences max.
 const TUTORIAL_STEPS = [
   {
-    title: "Welcome to WAYFINDER 窓",
+    title: "Welcome to WAYFINDER",
     message:
-      "This is your campus navigation app for SACLI. Let's walk you through how it works.",
+      "This is your campus navigation app for SACLI. Let us walk you through how it works.",
   },
   {
-    title: "Search for any place 剥",
+    title: "Search for any place",
     message:
       "Tap the search bar to find any building, office, or room on campus by name.",
   },
   {
-    title: "Open Campus Map 亮・・,
+    title: "Open Campus Map",
     message:
       "Tap the green button to open the interactive campus map. You can see all buildings and your live location.",
   },
   {
-    title: "AR Navigation 胴",
+    title: "AR Navigation",
     message:
-      "Once you pick a destination on the map, you can follow floating green orbs in your camera view that guide you there step by step.",
+      "Once you pick a destination on the map, follow the green arrow in your camera view that guides you to your destination.",
   },
   {
-    title: "Quick Destinations 笞｡",
+    title: "Quick Destinations",
     message:
       "Use the cards below to jump straight to the most common buildings on campus with one tap.",
   },
   {
-    title: "You're all set! 笨・,
+    title: "You are all set!",
     message:
       "You can revisit this guide anytime from Settings. Enjoy navigating SACLI!",
   },

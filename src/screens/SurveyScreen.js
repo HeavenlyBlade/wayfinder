@@ -101,7 +101,7 @@ export default function SurveyScreen({ navigation }) {
     };
     setSavedPoints(prev => [point, ...prev]);
     Vibration.vibrate(200);
-    Alert.alert('✅ Saved', `${name}\n${avgLat.toFixed(7)}, ${avgLng.toFixed(7)}`);
+    Alert.alert('Saved', `${name}\n${avgLat.toFixed(7)}, ${avgLng.toFixed(7)}`);
   }
 
   function copyPoint(point) {
@@ -235,7 +235,7 @@ export default function SurveyScreen({ navigation }) {
             disabled={!avgLat}
           >
             <Text style={s.saveBtnText}>
-              📍 Save This Point
+              Save This Point
             </Text>
             {avgAcc != null && (
               <Text style={s.saveBtnSub}>±{avgAcc.toFixed(1)}m accuracy</Text>

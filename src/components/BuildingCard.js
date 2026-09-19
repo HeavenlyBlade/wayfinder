@@ -149,7 +149,7 @@ export default function BuildingCard({ building, userLocation, onClose, onNaviga
             onPress={() => setFloorBrowserVisible(true)}
             activeOpacity={0.85}
           >
-            <Text style={s.btnFloorsText}>🏢 {t('map.viewFloors', lang)}</Text>
+            <Text style={s.btnFloorsText}>{t('map.viewFloors', lang)}</Text>
           </TouchableOpacity>
         )}
 

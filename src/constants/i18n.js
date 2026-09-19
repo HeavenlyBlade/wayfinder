@@ -90,7 +90,7 @@ const TRANSLATIONS = {
 
     // ── Map screen ────────────────────────────────────────────────────────────
     'map.navigate':       'Navigate Here',
-    'map.viewFloors':     '🏢 View Floors',
+    'map.viewFloors':     'View Floors',
     'map.close':          'Close',
     'map.searchHint':     'Search buildings, rooms…',
 
@@ -192,7 +192,7 @@ const TRANSLATIONS = {
 
     // ── Map screen ────────────────────────────────────────────────────────────
     'map.navigate':       'Pumunta Dito',
-    'map.viewFloors':     '🏢 Tingnan ang Palapag',
+    'map.viewFloors':     'Tingnan ang Palapag',
     'map.close':          'Isara',
     'map.searchHint':     'Maghanap ng gusali, silid…',
 

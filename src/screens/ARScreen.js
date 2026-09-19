@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState, useCallback } from "react";
+﻿import React, { useEffect, useRef, useState, useCallback } from "react";
 import {
   View,
   Text,
@@ -322,7 +322,7 @@ export default function ARScreen({ route, navigation }) {
     return (
       <View style={[s.fill, s.center]}>
         <StatusBar style="light" />
-        <Text style={s.permIcon}>📷</Text>
+        <Text style={s.permIcon}>[CAM]</Text>
         <Text style={s.permText}>Camera access needed for AR navigation</Text>
         <TouchableOpacity style={s.permBtn} onPress={requestPermission} activeOpacity={0.85}>
           <Text style={s.permBtnText}>Grant Camera Permission</Text>
@@ -338,7 +338,7 @@ export default function ARScreen({ route, navigation }) {
     return (
       <View style={[s.fill, s.center]}>
         <StatusBar style="light" />
-        <Text style={s.permIcon}>📍</Text>
+        <Text style={s.permIcon}>[GPS]</Text>
         <Text style={s.permText}>Location access denied</Text>
         <TouchableOpacity style={s.permBack} onPress={() => navigation.goBack()} activeOpacity={0.7}>
           <Text style={s.permBackText}>← Back to Map</Text>
@@ -364,7 +364,7 @@ export default function ARScreen({ route, navigation }) {
         {/* Loading overlay */}
         {isLoading && !arrived && (
           <View style={s.loadingOverlay}>
-            <Text style={s.loadingIcon}>🛰</Text>
+            <Text style={s.loadingIcon}>[...]</Text>
             <Text style={s.loadingText}>
               {!location ? t('ar.gpsAcquiring', lang) : t('ar.plotting', lang)}
             </Text>
@@ -375,7 +375,7 @@ export default function ARScreen({ route, navigation }) {
         {/* Indoor warning */}
         {indoorStatus && !arrived && !isLoading && (
           <View style={s.indoorBanner}>
-            <Text style={s.indoorBannerText}>🏢 {t('ar.indoor.title', lang)}</Text>
+            <Text style={s.indoorBannerText}>{t('ar.indoor.title', lang)}</Text>
             <TouchableOpacity onPress={() => setIndoorStatus(null)}>
               <Text style={s.indoorBannerDismiss}>{t('ar.indoor.dismiss', lang)}</Text>
             </TouchableOpacity>
@@ -437,7 +437,7 @@ export default function ARScreen({ route, navigation }) {
         {/* Route info bar */}
         <View style={s.routeBar}>
           <View style={s.routeBarLeft}>
-            <Text style={s.routeDestName} numberOfLines={1}>📍 {destName}</Text>
+            <Text style={s.routeDestName} numberOfLines={1}>{destName}</Text>
             {totalDist != null && (
               <Text style={s.routeTotalDist}>{totalDist}m total</Text>
             )}
@@ -499,7 +499,7 @@ export default function ARScreen({ route, navigation }) {
               tracksViewChanges={false}
             >
               <View style={s.destMarker}>
-                <Text style={s.destMarkerText}>📍</Text>
+                <Text style={s.destMarkerText}>*</Text>
               </View>
             </Marker>
           )}
@@ -508,7 +508,7 @@ export default function ARScreen({ route, navigation }) {
         {/* Arrived overlay on map section */}
         {arrived && (
           <View style={s.arrivedMapOverlay}>
-            <Text style={s.arrivedMapIcon}>✅</Text>
+            <Text style={s.arrivedMapIcon}>OK</Text>
             <Text style={s.arrivedMapTitle}>{t('ar.arrived', lang)}</Text>
             <Text style={s.arrivedMapSub}>{destName}</Text>
             <View style={s.arrivedMapBtns}>
@@ -517,7 +517,7 @@ export default function ARScreen({ route, navigation }) {
                 onPress={() => setArrivalPromptVisible(true)}
                 activeOpacity={0.85}
               >
-                <Text style={s.arrivedMapBtnText}>🏢 Find a Room</Text>
+                <Text style={s.arrivedMapBtnText}>Find a Room</Text>
               </TouchableOpacity>
               <TouchableOpacity
                 style={[s.arrivedMapBtn, s.arrivedMapBtnBack]}

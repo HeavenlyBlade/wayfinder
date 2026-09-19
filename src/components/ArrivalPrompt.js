@@ -238,7 +238,7 @@ export default function ArrivalPrompt({
           <View style={s.sheetHeader}>
             <View style={s.dragHandle} />
             <Text style={s.buildingTag} numberOfLines={1}>
-              📍 {buildingName}
+              {buildingName}
             </Text>
             <TouchableOpacity style={s.closeX} onPress={handleClose} hitSlop={12}>
               <Text style={s.closeXText}>✕</Text>
