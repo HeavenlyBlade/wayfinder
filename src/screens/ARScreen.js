@@ -8,7 +8,7 @@ import {
   TouchableOpacity,
   Platform,
 } from "react-native";
-import Svg, { Path, G, Defs, LinearGradient, Stop } from "react-native-svg";
+import Svg, { Path, G, Defs, LinearGradient, RadialGradient, Stop, Polygon, Ellipse } from "react-native-svg";
 import { CameraView, useCameraPermissions } from "expo-camera";
 import MapView, {
   Polyline, Marker, PROVIDER_GOOGLE,
@@ -20,7 +20,7 @@ import useLocation from "../hooks/useLocation";
 import { setCompassOffset, getCompassOffset } from "../hooks/useLocation";
 import { bearingTo, distanceTo } from "../utils/arMath";
 import { aStar, getWaypoints, nearestNode } from "../utils/pathfinding";
-import { getIndoorStatus } from "../utils/indoorDetection";
+import { getIndoorStatus, TWO_STAIRCASE_BUILDINGS } from "../utils/indoorDetection";
 import { NODES } from "../constants/campusGraph";
 import { BUILDINGS } from "../constants/buildings";
 import { fetchRoute } from "../services/api";
@@ -67,16 +67,32 @@ function buildOrbTrail(waypoints) {
   return orbs;
 }
 
-// ── Single rotating navigation arrow ─────────────────────────────────────────
-// One large arrow centered in the bottom portion of the camera view.
-// Rotates smoothly to point toward the next waypoint.
-// angleDiff = 0 → straight ahead (arrow points up)
+// Buildings that should NOT trigger the indoor room-finder prompt on arrival.
+// These are terminal/parking nodes and secondary entrances that have no navigable
+// indoor floors — the arrived overlay still shows, but "Find a Room" is hidden.
+const NO_INDOOR_PROMPT = new Set([
+  'gate', 'motorcycle_parking', 'parking_lot',
+  'main_building_2', 'ea_tower_2', 'sr_building_2',
+]);
+
+// ── 3D Navigation Arrow ───────────────────────────────────────────────────────
+// Renders a perspective 3D arrow pointing up (north when angleDiff = 0).
+// The illusion is built from 5 SVG polygon faces:
+//   1. Drop shadow ellipse (blurred, beneath)
+//   2. Back/bottom face  — darker version of arrow shape, offset down-right
+//   3. Right side wall   — right extrusion faces, darkest (shadow side)
+//   4. Left side wall    — left extrusion faces, mid-tone
+//   5. Top face          — bright gradient, main visible surface
+//
+// viewBox: 0 0 100 126
+// Top-face arrow points upward (north). Depth vector: dx=+6, dy=+8.
+// angleDiff = 0 → straight ahead
 // angleDiff > 0 → turn right, < 0 → turn left
+// |angleDiff| > 120 → behind, arrow turns red
 function NavigationArrow({ angleDiff }) {
   const rotAnim = useRef(new Animated.Value(angleDiff ?? 0)).current;
 
   useEffect(() => {
-    // Unwrap angle to avoid spinning 360° the wrong way
     const current = rotAnim.__getValue ? rotAnim.__getValue() : 0;
     let target = angleDiff ?? 0;
     let diff = target - (current % 360);
@@ -95,30 +111,129 @@ function NavigationArrow({ angleDiff }) {
     outputRange: ["-360deg", "360deg"],
   });
 
-  const isBehind = Math.abs(angleDiff ?? 0) > 120;
-  const arrowColor = isBehind ? "#ff5555" : GREEN;
+  const isBehind   = Math.abs(angleDiff ?? 0) > 120;
+  const baseColor  = isBehind ? "#ff5555" : GREEN;    // #00C853 or red
+  const topColor   = isBehind ? "#ff8888" : "#4dff91";// highlight
+  const sideColorL = isBehind ? "#cc3333" : "#00993d";// left wall (mid)
+  const sideColorR = isBehind ? "#992222" : "#006628";// right wall (dark/shadow)
+  const backColor  = isBehind ? "#7a1a1a" : "#004d1f";// back face
+
+  // ── Top-face arrow vertices (pointing up, viewBox 0 0 100 126) ────────────
+  // Head triangle tip:      (50, 3)
+  // Head left wing:         (16, 50)  right wing: (84, 50)
+  // Shoulder left notch:    (36, 44)  right notch: (64, 44)
+  // Shaft bottom-left:      (36,108)  bottom-right: (64,108)
+  const TOP = {
+    tipX: 50,  tipY: 3,
+    wL:  16,   wLy: 50,
+    wR:  84,   wRy: 50,
+    nL:  36,   nLy: 44,
+    nR:  64,   nRy: 44,
+    sL:  36,   sLy:108,
+    sR:  64,   sRy:108,
+  };
+  const topPoints =
+    `${TOP.tipX},${TOP.tipY} ${TOP.wR},${TOP.wRy} ${TOP.nR},${TOP.nRy} ` +
+    `${TOP.sR},${TOP.sRy} ${TOP.sL},${TOP.sLy} ${TOP.nL},${TOP.nLy} ${TOP.wL},${TOP.wLy}`;
+
+  // ── Depth offset: simulate light from top-left ────────────────────────────
+  const DX = 6;  // shift right
+  const DY = 8;  // shift down
+
+  // Back/bottom face = top face shifted by (DX, DY)
+  const backPoints =
+    `${TOP.tipX+DX},${TOP.tipY+DY} ${TOP.wR+DX},${TOP.wRy+DY} ${TOP.nR+DX},${TOP.nRy+DY} ` +
+    `${TOP.sR+DX},${TOP.sRy+DY} ${TOP.sL+DX},${TOP.sLy+DY} ${TOP.nL+DX},${TOP.nLy+DY} ${TOP.wL+DX},${TOP.wLy+DY}`;
+
+  // ── Side wall faces ───────────────────────────────────────────────────────
+  // Right side wall = right edge of top face + right edge of back face
+  // Vertices (clockwise from top):
+  //   top-tip → top-wR → top-nR → top-sR
+  //   back-sR → back-nR → back-wR → back-tip
+  const rightWall =
+    `${TOP.tipX},${TOP.tipY} ${TOP.wR},${TOP.wRy} ${TOP.nR},${TOP.nRy} ${TOP.sR},${TOP.sRy} ` +
+    `${TOP.sR+DX},${TOP.sRy+DY} ${TOP.nR+DX},${TOP.nRy+DY} ${TOP.wR+DX},${TOP.wRy+DY} ${TOP.tipX+DX},${TOP.tipY+DY}`;
+
+  // Left side wall = left edge of top face + left edge of back face
+  const leftWall =
+    `${TOP.tipX},${TOP.tipY} ${TOP.wL},${TOP.wLy} ${TOP.nL},${TOP.nLy} ${TOP.sL},${TOP.sLy} ` +
+    `${TOP.sL+DX},${TOP.sLy+DY} ${TOP.nL+DX},${TOP.nLy+DY} ${TOP.wL+DX},${TOP.wLy+DY} ${TOP.tipX+DX},${TOP.tipY+DY}`;
+
+  // Bottom shaft wall (bottom edge of shaft — connects top-sL,top-sR to back-sL,back-sR)
+  const bottomWall =
+    `${TOP.sL},${TOP.sLy} ${TOP.sR},${TOP.sRy} ` +
+    `${TOP.sR+DX},${TOP.sRy+DY} ${TOP.sL+DX},${TOP.sLy+DY}`;
 
   return (
     <Animated.View
-      style={[
-        s.arrowContainer,
-        { transform: [{ rotate: rotation }] },
-      ]}
+      style={[s.arrowContainer, { transform: [{ rotate: rotation }] }]}
       pointerEvents="none"
     >
-      <Svg width={80} height={96} viewBox="0 0 80 96">
+      <Svg width={96} height={120} viewBox="0 0 106 126" pointerEvents="none">
         <Defs>
-          <LinearGradient id="arrowGrad" x1="0" y1="0" x2="0" y2="1">
-            <Stop offset="0" stopColor={arrowColor} stopOpacity="1" />
-            <Stop offset="1" stopColor={arrowColor} stopOpacity="0.6" />
+          {/* Top face gradient — top=bright highlight, bottom=base color */}
+          <LinearGradient id="topGrad" x1="0.5" y1="0" x2="0.5" y2="1">
+            <Stop offset="0"   stopColor={topColor}  stopOpacity="1" />
+            <Stop offset="0.5" stopColor={baseColor} stopOpacity="1" />
+            <Stop offset="1"   stopColor={sideColorL} stopOpacity="1" />
           </LinearGradient>
+          {/* Drop shadow gradient */}
+          <RadialGradient id="shadowGrad" cx="50%" cy="50%" r="50%">
+            <Stop offset="0"   stopColor="#000000" stopOpacity="0.55" />
+            <Stop offset="1"   stopColor="#000000" stopOpacity="0" />
+          </RadialGradient>
         </Defs>
-        {/* Arrow head — pointing up (north when angleDiff=0) */}
+
+        {/* ── Layer 0: Drop shadow ── */}
+        <Ellipse
+          cx={53 + DX / 2}
+          cy={112}
+          rx={22}
+          ry={6}
+          fill="url(#shadowGrad)"
+        />
+
+        {/* ── Layer 1: Back face (darkest) ── */}
+        <Polygon
+          points={backPoints}
+          fill={backColor}
+          opacity={0.85}
+        />
+
+        {/* ── Layer 2: Right side wall (shadow side — darkest) ── */}
+        <Polygon
+          points={rightWall}
+          fill={sideColorR}
+        />
+
+        {/* ── Layer 3: Left side wall (mid-tone) ── */}
+        <Polygon
+          points={leftWall}
+          fill={sideColorL}
+        />
+
+        {/* ── Layer 4: Bottom shaft wall ── */}
+        <Polygon
+          points={bottomWall}
+          fill={backColor}
+        />
+
+        {/* ── Layer 5: Top face (bright, main visible surface) ── */}
+        <Polygon
+          points={topPoints}
+          fill="url(#topGrad)"
+          stroke="rgba(255,255,255,0.55)"
+          strokeWidth={1.2}
+          strokeLinejoin="round"
+        />
+
+        {/* ── Layer 6: Specular highlight line along top-left edge ── */}
         <Path
-          d="M40 2 L72 42 L54 38 L54 94 L26 94 L26 38 L8 42 Z"
-          fill="url(#arrowGrad)"
-          stroke="rgba(255,255,255,0.7)"
-          strokeWidth={2}
+          d={`M${TOP.tipX},${TOP.tipY} L${TOP.wL},${TOP.wLy} L${TOP.nL},${TOP.nLy} L${TOP.sL},${TOP.sLy}`}
+          fill="none"
+          stroke="rgba(255,255,255,0.45)"
+          strokeWidth={1.5}
+          strokeLinecap="round"
           strokeLinejoin="round"
         />
       </Svg>
@@ -256,26 +371,35 @@ export default function ARScreen({ route, navigation }) {
       } else break;
     }
 
-    if (orbTrailRef.current.length === 0) {
+    // ── Shared arrival handler ────────────────────────────────────────────────
+    // Called from both the orb-empty branch and the distance-check branch.
+    // Shows StaircasePicker for 2-staircase buildings, ArrivalPrompt for all
+    // others that have indoor navigable floors, and nothing for terminal nodes.
+    function handleArrival() {
       arrivedRef.current = true;
       setArrived(true);
+      if (NO_INDOOR_PROMPT.has(destinationId)) return; // terminal/parking — no room finder
+      if (BUILDINGS[destinationId] && TWO_STAIRCASE_BUILDINGS.has(destinationId)) {
+        setStaircasePickerVisible(true);
+      } else {
+        setArrivalPromptVisible(true);
+      }
+    }
+
+    // Branch 1: all orbs consumed — user has passed the destination
+    if (orbTrailRef.current.length === 0) {
+      handleArrival();
       return;
     }
 
-    // Arrival check
+    // Branch 2: proximity check — user is within ARRIVAL_DIST of destination node
     const dest = NODES[destinationId];
     if (dest) {
       const d = distanceTo(location.lat, location.lng, dest.lat, dest.lng);
       if (d < ARRIVAL_DIST) {
         arrivalCountRef.current += 1;
         if (arrivalCountRef.current >= 2) {
-          arrivedRef.current = true;
-          setArrived(true);
-          if (BUILDINGS[destinationId] && indoorStatus?.hasTwoStaircases) {
-            setStaircasePickerVisible(true);
-          } else {
-            setArrivalPromptVisible(true);
-          }
+          handleArrival();
           return;
         }
       } else {
@@ -389,6 +513,7 @@ export default function ARScreen({ route, navigation }) {
               angleDiff={nextAngle}
               distance={distToNext}
               destName={destName}
+              lang={lang}
             />
           </SafeAreaView>
         )}
@@ -404,7 +529,7 @@ export default function ARScreen({ route, navigation }) {
         {!isLoading && !arrived && distToNext !== null && (
           <View style={s.distChip} pointerEvents="none">
             <Text style={s.distVal}>{distToNext}m</Text>
-            <Text style={s.distLabel}>to next</Text>
+            <Text style={s.distLabel}>{t('ar.toNext', lang)}</Text>
           </View>
         )}
 
@@ -415,6 +540,7 @@ export default function ARScreen({ route, navigation }) {
               offset={compassOffset}
               onAdjust={handleOffsetChange}
               heading={heading}
+              lang={lang}
             />
           </View>
         )}
@@ -444,7 +570,7 @@ export default function ARScreen({ route, navigation }) {
           </View>
           {!arrived && (
             <View style={s.routeBarRight}>
-              <Text style={s.nextLabel}>next turn</Text>
+              <Text style={s.nextLabel}>{t('ar.nextTurn', lang)}</Text>
               <Text style={s.nextDist}>{distToNext != null ? `${distToNext}m` : "—"}</Text>
             </View>
           )}
@@ -512,13 +638,23 @@ export default function ARScreen({ route, navigation }) {
             <Text style={s.arrivedMapTitle}>{t('ar.arrived', lang)}</Text>
             <Text style={s.arrivedMapSub}>{destName}</Text>
             <View style={s.arrivedMapBtns}>
-              <TouchableOpacity
-                style={s.arrivedMapBtn}
-                onPress={() => setArrivalPromptVisible(true)}
-                activeOpacity={0.85}
-              >
-                <Text style={s.arrivedMapBtnText}>Find a Room</Text>
-              </TouchableOpacity>
+              {/* Only show room finder for buildings that have navigable indoor floors */}
+              {!NO_INDOOR_PROMPT.has(destinationId) && (
+                <TouchableOpacity
+                  style={s.arrivedMapBtn}
+                  onPress={() => {
+                    // For 2-staircase buildings: show picker first (unless already chosen)
+                    if (TWO_STAIRCASE_BUILDINGS.has(destinationId) && !selectedStaircase) {
+                      setStaircasePickerVisible(true);
+                    } else {
+                      setArrivalPromptVisible(true);
+                    }
+                  }}
+                  activeOpacity={0.85}
+                >
+                  <Text style={s.arrivedMapBtnText}>{t('ar.findRoom', lang)}</Text>
+                </TouchableOpacity>
+              )}
               <TouchableOpacity
                 style={[s.arrivedMapBtn, s.arrivedMapBtnBack]}
                 onPress={() => navigation.goBack()}
@@ -609,19 +745,19 @@ const s = StyleSheet.create({
     paddingTop: Platform.OS === "android" ? 36 : 8,
   },
 
-  // Single arrow
+  // Single arrow — updated for 3D arrow (96×120 rendered size)
   arrowWrap: {
     position: "absolute",
-    bottom: 24,
-    left: W / 2 - 40,  // centered (arrow is 80px wide)
-    width: 80,
-    height: 96,
+    bottom: 20,
+    left: W / 2 - 48,  // centered (arrow SVG renders at 96px wide)
+    width: 96,
+    height: 120,
     alignItems: "center",
     justifyContent: "center",
   },
   arrowContainer: {
-    width: 80,
-    height: 96,
+    width: 96,
+    height: 120,
     alignItems: "center",
     justifyContent: "center",
   },

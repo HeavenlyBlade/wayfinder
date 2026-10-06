@@ -321,7 +321,7 @@ export default function MapScreen({ navigation, route }) {
 
         {aiReply ? (
           <View style={s.aiBubble}>
-            <Text style={s.aiText}>{isOffline ? "📵" : "🤖"} {aiReply}</Text>
+            <Text style={s.aiText}>{isOffline ? "[offline]" : "[AI]"} {aiReply}</Text>
           </View>
         ) : null}
       </SafeAreaView>

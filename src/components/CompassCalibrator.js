@@ -18,27 +18,26 @@
 
 import React, { useState } from "react";
 import { View, Text, StyleSheet, TouchableOpacity } from "react-native";
+import { t } from "../constants/i18n";
 
 const GREEN = "#00C853";
 
-export default function CompassCalibrator({ offset, onAdjust, heading }) {
+export default function CompassCalibrator({ offset, onAdjust, heading, lang = "en" }) {
   const [expanded, setExpanded] = useState(false);
 
   if (!expanded) {
     return (
       <TouchableOpacity style={s.collapsed} onPress={() => setExpanded(true)} activeOpacity={0.8}>
         <Text style={s.collapsedText}>CAL {Math.round(heading)}°</Text>
-        <Text style={s.collapsedSub}>cal</Text>
+        <Text style={s.collapsedSub}>{t("compass.cal", lang)}</Text>
       </TouchableOpacity>
     );
   }
 
   return (
     <View style={s.panel}>
-      <Text style={s.panelTitle}>Compass Calibration</Text>
-      <Text style={s.panelSub}>
-        Face a known direction.{"\n"}Tap until arrows align.
-      </Text>
+      <Text style={s.panelTitle}>{t("compass.title", lang)}</Text>
+      <Text style={s.panelSub}>{t("compass.sub", lang)}</Text>
 
       <View style={s.row}>
         <TouchableOpacity
@@ -68,11 +67,11 @@ export default function CompassCalibrator({ offset, onAdjust, heading }) {
         onPress={() => onAdjust(0)}
         activeOpacity={0.7}
       >
-        <Text style={s.resetText}>Reset to 0°</Text>
+        <Text style={s.resetText}>{t("compass.reset", lang)}</Text>
       </TouchableOpacity>
 
       <TouchableOpacity style={s.closeBtn} onPress={() => setExpanded(false)} activeOpacity={0.7}>
-        <Text style={s.closeText}>Done</Text>
+        <Text style={s.closeText}>{t("compass.done", lang)}</Text>
       </TouchableOpacity>
     </View>
   );

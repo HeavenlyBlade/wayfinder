@@ -136,9 +136,7 @@ export default function StaircasePicker({
 
           {/* Dismiss */}
           <TouchableOpacity style={s.dismissBtn} onPress={onDismiss} activeOpacity={0.7}>
-            <Text style={s.dismissText}>
-              {lang === "fil" ? "Isara" : "Skip for now"}
-            </Text>
+            <Text style={s.dismissText}>{t("staircase.skip", lang)}</Text>
           </TouchableOpacity>
 
         </View>

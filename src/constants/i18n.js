@@ -59,6 +59,9 @@ const TRANSLATIONS = {
     'ar.arrived':         'You have arrived!',
     'ar.arrivedSub':      'You are near',
     'ar.backToMap':       '← Back to Map',
+    'ar.findRoom':        'Find a Room',
+    'ar.toNext':          'to next',
+    'ar.nextTurn':        'next turn',
     'ar.distLabel':       'm away',
     'ar.indoor.title':    'You are inside a building',
     'ar.indoor.body':     'AR navigation is for outdoor use. You are currently inside',
@@ -87,12 +90,34 @@ const TRANSLATIONS = {
     'staircase.stair2':   'Staircase 2',
     'staircase.front':    'Front Entrance',
     'staircase.back':     '2nd Entrance',
+    'staircase.skip':     'Skip for now',
 
     // ── Map screen ────────────────────────────────────────────────────────────
     'map.navigate':       'Navigate Here',
     'map.viewFloors':     'View Floors',
     'map.close':          'Close',
     'map.searchHint':     'Search buildings, rooms…',
+
+    // ── Bottom panel ──────────────────────────────────────────────────────────
+    'panel.swipeUp':      'Swipe up for destinations',
+    'panel.allBuildings': 'ALL BUILDINGS',
+    'panel.quickDest':    'QUICK DESTINATIONS',
+    'panel.noDestination':'Select a destination first',
+    'panel.noDestSub':    'Tap a building on the map or search above',
+    'panel.startNav':     'Start Navigation',
+
+    // ── Compass calibrator ────────────────────────────────────────────────────
+    'compass.title':      'Compass Calibration',
+    'compass.sub':        'Face a known direction.\nTap until arrows align.',
+    'compass.reset':      'Reset to 0°',
+    'compass.done':       'Done',
+    'compass.cal':        'cal',
+
+    // ── BearingHUD direction labels ───────────────────────────────────────────
+    'bearing.ahead':      'Ahead',
+    'bearing.behind':     'Behind',
+    'bearing.left':       'Left',
+    'bearing.right':      'Right',
 
     // ── Status chips ──────────────────────────────────────────────────────────
     'status.gpsActive':   'GPS Active',
@@ -161,6 +186,9 @@ const TRANSLATIONS = {
     'ar.arrived':         'Nakarating ka na!',
     'ar.arrivedSub':      'Malapit ka na sa',
     'ar.backToMap':       '← Bumalik sa Mapa',
+    'ar.findRoom':        'Hanapin ang Silid',
+    'ar.toNext':          'sa susunod',
+    'ar.nextTurn':        'susunod na liko',
     'ar.distLabel':       'm na layo',
     'ar.indoor.title':    'Nasa loob ka ng gusali',
     'ar.indoor.body':     'Ang AR navigation ay para sa labas lamang. Kasalukuyan kang nasa loob ng',
@@ -189,12 +217,34 @@ const TRANSLATIONS = {
     'staircase.stair2':   'Hagdan 2',
     'staircase.front':    'Pangunahing Pasukan',
     'staircase.back':     '2nd Pasukan',
+    'staircase.skip':     'Isara',
 
     // ── Map screen ────────────────────────────────────────────────────────────
     'map.navigate':       'Pumunta Dito',
     'map.viewFloors':     'Tingnan ang Palapag',
     'map.close':          'Isara',
     'map.searchHint':     'Maghanap ng gusali, silid…',
+
+    // ── Bottom panel ──────────────────────────────────────────────────────────
+    'panel.swipeUp':      'Mag-swipe pataas para sa mga destinasyon',
+    'panel.allBuildings': 'LAHAT NG GUSALI',
+    'panel.quickDest':    'MABILIS NA DESTINASYON',
+    'panel.noDestination':'Pumili muna ng destinasyon',
+    'panel.noDestSub':    'Pindutin ang isang gusali sa mapa o maghanap sa itaas',
+    'panel.startNav':     'Simulan ang Navigasyon',
+
+    // ── Compass calibrator ────────────────────────────────────────────────────
+    'compass.title':      'Pag-calibrate ng Compass',
+    'compass.sub':        'Harapin ang isang kilalang direksyon.\nPindutin hanggang ma-align ang arrow.',
+    'compass.reset':      'I-reset sa 0°',
+    'compass.done':       'Tapos na',
+    'compass.cal':        'cal',
+
+    // ── BearingHUD direction labels ───────────────────────────────────────────
+    'bearing.ahead':      'Narito',
+    'bearing.behind':     'Nasa likod',
+    'bearing.left':       'Kaliwa',
+    'bearing.right':      'Kanan',
 
     // ── Status chips ──────────────────────────────────────────────────────────
     'status.gpsActive':   'GPS Aktibo',

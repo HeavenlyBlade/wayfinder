@@ -20,6 +20,7 @@
 import React, { useEffect, useRef } from "react";
 import { View, Text, StyleSheet, Animated, Dimensions } from "react-native";
 import Svg, { Path, Circle, Line, Text as SvgText } from "react-native-svg";
+import { t } from "../constants/i18n";
 
 const { width: W } = Dimensions.get("window");
 const GREEN    = "#00C853";
@@ -34,7 +35,7 @@ function angleToX(angleDiff) {
   return HALF + (clamped / 90) * HALF;
 }
 
-export default function BearingHUD({ angleDiff, distance, destName }) {
+export default function BearingHUD({ angleDiff, distance, destName, lang = "en" }) {
   const animX = useRef(new Animated.Value(angleToX(angleDiff ?? 0))).current;
 
   useEffect(() => {
@@ -104,7 +105,16 @@ export default function BearingHUD({ angleDiff, distance, destName }) {
       {/* Destination label + distance */}
       <View style={s.label}>
         <Text style={s.labelIcon}>
-          {isBehind ? "↩" : isAhead ? "⬆" : angleDiff < 0 ? "↖" : "↗"}
+          {isBehind ? "<-" : isAhead ? "^" : angleDiff < 0 ? "<" : ">"}
+        </Text>
+        <Text style={s.labelDirHint}>
+          {isBehind
+            ? t("bearing.behind", lang)
+            : isAhead
+            ? t("bearing.ahead", lang)
+            : angleDiff < 0
+            ? t("bearing.left", lang)
+            : t("bearing.right", lang)}
         </Text>
         <Text style={s.labelName} numberOfLines={1}>{destName}</Text>
         {distance != null && (
@@ -157,7 +167,8 @@ const s = StyleSheet.create({
     borderColor: "rgba(0,200,83,0.25)",
     maxWidth: W - 60,
   },
-  labelIcon: { fontSize: 13, color: GREEN },
+  labelIcon: { fontSize: 13, color: GREEN, fontWeight: "900" },
+  labelDirHint: { fontSize: 10, fontWeight: "700", color: "rgba(255,255,255,0.45)" },
   labelName: { fontSize: 12, fontWeight: "800", color: "#fff", flex: 1 },
   labelDist: { fontSize: 11, fontWeight: "700", color: "rgba(255,255,255,0.5)" },
 });

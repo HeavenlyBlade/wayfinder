@@ -124,8 +124,8 @@ const BottomPanel = forwardRef(function BottomPanel({
         {panelHeight <= SNAP.collapsed + 10 && (
           <View style={s.peekRow}>
             <IconMap size={14} color={GREEN} />
-            <Text style={s.peekText}>{lang === 'fil' ? 'Mag-swipe pataas para sa mga destinasyon' : 'Swipe up for destinations'}</Text>
-            <Text style={s.peekArrow}>↑</Text>
+            <Text style={s.peekText}>{t('panel.swipeUp', lang)}</Text>
+            <Text style={s.peekArrow}>^</Text>
           </View>
         )}
       </View>
@@ -162,7 +162,7 @@ const BottomPanel = forwardRef(function BottomPanel({
           {activeTab === "EXPLORE" && (
             <View>
               <Text style={s.sectionLabel}>
-                {isExpanded ? "ALL BUILDINGS" : "QUICK DESTINATIONS"}
+                {isExpanded ? t('panel.allBuildings', lang) : t('panel.quickDest', lang)}
               </Text>
 
               {isExpanded ? (
@@ -237,10 +237,8 @@ const BottomPanel = forwardRef(function BottomPanel({
               {!selectedBuilding ? (
                 <View style={s.empty}>
                   <IconNavigation size={32} color="rgba(255,255,255,0.1)" />
-                  <Text style={s.emptyText}>Select a destination first</Text>
-                  <Text style={s.emptySub}>
-                    Tap a building on the map or search above
-                  </Text>
+                  <Text style={s.emptyText}>{t('panel.noDestination', lang)}</Text>
+                  <Text style={s.emptySub}>{t('panel.noDestSub', lang)}</Text>
                 </View>
               ) : (
                 <View>
@@ -282,7 +280,7 @@ const BottomPanel = forwardRef(function BottomPanel({
                     onPress={() => onStartNav(selectedBuilding)}
                     activeOpacity={0.85}
                   >
-                    <Text style={s.startBtnText}>▶ {lang === 'fil' ? 'Simulan ang Navigasyon' : 'Start Navigation'}</Text>
+                    <Text style={s.startBtnText}>{t('panel.startNav', lang)}</Text>
                   </TouchableOpacity>
                 </View>
               )}
@@ -300,10 +298,10 @@ const BottomPanel = forwardRef(function BottomPanel({
                 College Lucena, Inc.
               </Text>
               <View style={s.techRow}>
-                {["React Native", "Expo", "Three.js", "FastAPI", "LLaMA 3"].map(
-                  (t) => (
-                    <View key={t} style={s.techTag}>
-                      <Text style={s.techText}>{t}</Text>
+                {["React Native", "Expo", "FastAPI", "PostgreSQL", "LLaMA 3"].map(
+                  (tech) => (
+                    <View key={tech} style={s.techTag}>
+                      <Text style={s.techText}>{tech}</Text>
                     </View>
                   ),
                 )}

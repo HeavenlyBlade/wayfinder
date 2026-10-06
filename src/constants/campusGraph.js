@@ -2,9 +2,10 @@
 //
 // ROUTING RULES:
 //   - Gate → perimeter road → New Building (RFID) → campus interior
-//   - Canteen: ONLY via new_building or canteen bench path (no perimeter bypass)
-//   - Main Building: ONLY via MB1/MB2 approach nodes from J5 (not via R76 east spine)
-//   - EA Tower: terminal nodes only (not passthrough)
+//   - Canteen: ONLY via ibed_2 (interior path) — no direct new_building→canteen shortcut
+//   - Main Building: directly off R70 on the north spine (no MB1/MB2 hook)
+//   - EA Tower: entrance off R76 (west approach) — no U-turn past R77/R78
+//   - IBED: directly off R48 interior path — no J4 hook
 //   - Motor Parking: direct from gate only
 //   - CCSS / Car Parking: accessible from perimeter road south branch
 
@@ -91,19 +92,21 @@ export const NODES = {
   R84: { id: 'R84', lat: 13.962384, lng: 121.612815 },
 
   // Building entrance nodes
-  main_building:  { id: 'main_building',  lat: 13.9617,    lng: 121.6124   },
+  // main_building entrance on south face, directly north of R70 (clean north approach)
+  main_building:  { id: 'main_building',  lat: 13.961650,  lng: 121.612393 },
   main_building_2:{ id: 'main_building_2',lat: 13.962135,  lng: 121.612759 },
-  MB1:            { id: 'MB1',            lat: 13.961670,  lng: 121.612390 }, // main bldg approach 1
-  MB2:            { id: 'MB2',            lat: 13.961628,  lng: 121.612386 }, // main bldg approach 2
   new_building:   { id: 'new_building',   lat: 13.9613,    lng: 121.6121   }, // RFID — mandatory entry
   engineering:    { id: 'engineering',    lat: 13.961637,  lng: 121.612220 },
-  ea_tower:       { id: 'ea_tower',       lat: 13.961744,  lng: 121.612746 },
+  // ea_tower entrance north of R76 — path continues northeast, no south backtrack
+  ea_tower:       { id: 'ea_tower',       lat: 13.961820,  lng: 121.612720 },
   ea_tower_2:     { id: 'ea_tower_2',     lat: 13.962093,  lng: 121.612822 },
-  ibed:           { id: 'ibed',           lat: 13.9614,    lng: 121.6121   },
+  // ibed entrance north-west of R48 — path goes north into entrance, no south backtrack
+  ibed:           { id: 'ibed',           lat: 13.961490,  lng: 121.611980 },
   ibed_2:         { id: 'ibed_2',         lat: 13.961546,  lng: 121.612393 },
   sr_building:    { id: 'sr_building',    lat: 13.961530,  lng: 121.612643 },
   sr_building_2:  { id: 'sr_building_2',  lat: 13.961188,  lng: 121.612581 },
-  canteen:        { id: 'canteen',        lat: 13.9614,    lng: 121.6119   },
+  // canteen entrance between bench path and ibed_2 — south-west of ibed_2, east of bench nodes
+  canteen:        { id: 'canteen',        lat: 13.961500,  lng: 121.611960 },
   canteen_two:    { id: 'canteen_two',    lat: 13.9617,    lng: 121.6128   },
   kitchen_hall:   { id: 'kitchen_hall',   lat: 13.9624,    lng: 121.6129   },
   gymnasium:      { id: 'gymnasium',      lat: 13.9624,    lng: 121.6128   },
@@ -157,9 +160,8 @@ const EDGES = [
   // ── NEW BUILDING: MANDATORY CAMPUS ENTRY ──────────────────────────────────
   ['R15',              'new_building'],  // perimeter → RFID entrance
   ['new_building',     'R38'],           // RFID → interior hub
-  // Canteen ONLY accessible via new_building or internal bench path
-  // NO direct R12→canteen edge — prevents perimeter bypass
-  ['new_building',     'canteen'],
+  // Canteen ONLY via ibed_2 interior path — NO direct new_building→canteen shortcut
+  // (removed: ['new_building', 'canteen'])
 
   // ── INTERIOR CAMPUS HUB → internal paths ─────────────────────────────────
   ['R38',              'R47'],
@@ -181,21 +183,22 @@ const EDGES = [
   // ── J4 / J5 INTERSECTION ─────────────────────────────────────────────────
   ['J4',               'chapel'],
   ['J4',               'kindergarten'],
-  ['J4',               'ibed'],
+  // ibed removed from J4 — IBED now connects directly off R48 (no backtrack)
   ['J4',               'J5'],
   ['J5',               'sr_building'],
   ['J5',               'canteen_two'],
-  // Main Building: ONLY via MB approach nodes — R76 connection removed
-  ['J5',               'MB2'],
-  ['MB2',              'MB1'],
-  ['MB1',              'main_building'],
   ['J5',               'J7'],
   ['J7',               'gymnasium'],
   ['J7',               'kitchen_hall'],
   ['J7',               'R82'],           // direct north spine connection
 
-  // ── IBED 2nd entrance ────────────────────────────────────────────────────
-  ['R51',              'ibed_2'],
+  // ── CANTEEN: via ibed_2 interior node ────────────────────────────────────
+  // Canteen must be reached through the campus interior (past IBED), not via perimeter
+  ['ibed_2',           'canteen'],       // IBED 2nd entrance → canteen (internal path)
+
+  // ── IBED: direct off interior path — no J4 hook ─────────────────────────
+  ['R48',              'ibed'],          // interior path → IBED entrance (straight in, no backtrack)
+  ['R51',              'ibed_2'],        // interior path → IBED 2nd entrance
 
   // ── NORTH SPINE (canteen benches → top of campus) ────────────────────────
   ['R63',              'R66'],
@@ -204,6 +207,7 @@ const EDGES = [
   ['R67',              'R68'],
   ['R68',              'R69'],
   ['R69',              'R70'],
+  ['R70',              'main_building'], // Main Building: direct off spine — clean left turn, no backtrack
   ['R70',              'R71'],
   ['R71',              'R72'],
   ['R72',              'R73'],
@@ -211,10 +215,10 @@ const EDGES = [
   ['R74',              'canteen_two'],
   ['R74',              'R75'],
   ['R75',              'R76'],
-  // R76 NO LONGER connects to main_building — use J5→MB2→MB1→main_building instead
+  ['R76',              'ea_tower'],      // EA Tower 1st: direct west approach — no U-turn past R77/R78
   ['R76',              'R77'],
   ['R77',              'R78'],
-  ['R78',              'ea_tower'],      // EA Tower 1st: terminal only
+  // R78→ea_tower removed — ea_tower now connects at R76 (closer, no overshoot)
   ['R79',              'ea_tower_2'],    // EA Tower 2nd: terminal only
   ['R78',              'R79'],
   ['R79',              'R80'],

@@ -31,6 +31,7 @@
       ]
     },
     "plugins": [
+      "./plugins/withApkName",
       [
         "expo-camera",
         {
@@ -54,6 +55,15 @@
         }
       ]
     ],
-    "extra": {}
+    "extra": {
+      "expo-navigation-bar": {
+        "position": "absolute",
+        "visibility": "hidden"
+      },
+      "eas": {
+        "projectId": "30e57c87-7d6c-42bc-a7d3-6d6b630a5e38"
+      }
+    },
+    "owner": "hayven"
   }
 }

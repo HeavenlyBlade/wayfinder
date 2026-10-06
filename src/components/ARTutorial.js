@@ -108,7 +108,7 @@ export default function ARTutorial({ lang = "en" }) {
 
           {current.hint && (
             <View style={s.hintBox}>
-              <Text style={s.hintText}>💡 {current.hint}</Text>
+              <Text style={s.hintText}>* {current.hint}</Text>
             </View>
           )}
 

@@ -64,8 +64,8 @@ export function aStar(startId, goalId) {
 // ── Nearest graph node to an arbitrary GPS position ──────────────────────────
 // Snaps to path/junction nodes only — not dead-end building entrance nodes.
 // This prevents A* from starting at a building node and routing backwards.
-const PATH_NODE_PREFIXES = ['J', 'R', 'W', 'MB'];
-const PATH_NODE_IDS      = new Set(['gate', 'new_building', 'canteen']);
+const PATH_NODE_PREFIXES = ['J', 'R', 'W'];
+const PATH_NODE_IDS      = new Set(['gate', 'new_building']);
 
 export function nearestNode(lat, lng) {
   let bestId   = null;

@@ -19,7 +19,7 @@ import { NODES }       from '../constants/campusGraph';
 import { distanceTo }  from './arMath';
 
 // Buildings that have 2 staircases/entrances — used by staircase picker
-const TWO_STAIRCASE_BUILDINGS = new Set([
+export const TWO_STAIRCASE_BUILDINGS = new Set([
   'main_building',
   'ea_tower',
   'sr_building',
