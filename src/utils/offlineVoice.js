@@ -14,8 +14,16 @@
 import { BUILDINGS } from '../constants/buildings';
 
 // ── Alias table ───────────────────────────────────────────────────────────────
-// Common spoken names that differ from the official building name.
-// Add more as you hear students use them during testing.
+// Single source of truth for client-side spoken-name → building ID mapping.
+// Each building entry in buildings.js may optionally carry an `aliases` array.
+// Entries below are for spoken names that differ from the official building name
+// and are not already covered by building.name, building.shortName, or
+// building.facilities.
+//
+// NOTE: The backend (wayfinder-backend/utils/groq_ai.py) maintains its own
+// BUILDING_ALIASES and system-prompt building list. Keep those in sync
+// whenever you add buildings or aliases here. A shared JSON source of truth
+// (e.g. buildings.json consumed by both sides) is the preferred long-term fix.
 const ALIASES = {
   main_building:  ['main building', 'main', 'main bldg', 'main hall',
                    'registrar', 'cashier', 'library', 'clinic', 'guidance',
@@ -58,6 +66,7 @@ function scoreCandidate(transcript, buildingId, building) {
     building.name,
     building.shortName,
     ...(ALIASES[buildingId] ?? []),
+    ...(building.aliases ?? []),    // aliases array on the building object (future use)
     ...(building.facilities ?? []),
   ].map(normalise);
 

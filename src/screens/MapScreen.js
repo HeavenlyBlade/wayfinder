@@ -18,11 +18,9 @@ import { NODES }        from "../constants/campusGraph";
 import { distanceTo }   from "../utils/arMath";
 import { aStar, getWaypoints, nearestNode } from "../utils/pathfinding";
 import { fetchRoute }   from "../services/api";
-import { checkInternetConnection } from "../utils/networkStatus";
 import StatusChips      from "../components/StatusChips";
 import BottomPanel      from "../components/BottomPanel";
 import SearchModal      from "../components/SearchModal";
-import useVoiceCommand  from "../hooks/useVoiceCommand";
 import useLocation      from "../hooks/useLocation";
 import { useSettings }  from "../context/SettingsContext";
 import { t } from "../constants/i18n";
@@ -121,10 +119,6 @@ export default function MapScreen({ navigation, route }) {
   const { settings }               = useSettings();
   const lang = settings?.language ?? "en";
   const { location: userLocation } = useLocation();
-  const {
-    aiReply, destId,
-    isOffline,
-  } = useVoiceCommand();
 
   // ── Building selection helpers ────────────────────────────────────────────
   const selectBuilding = useCallback((buildingId, building) => {
@@ -147,12 +141,6 @@ export default function MapScreen({ navigation, route }) {
     setSelectedPolygonId(null);
   }, []);
 
-  // ── Voice command → auto-select building ──────────────────────────────────
-  useEffect(() => {
-    if (!destId || !BUILDINGS[destId]) return;
-    selectBuilding(destId, BUILDINGS[destId]);
-  }, [destId, selectBuilding]);
-
   // ── Deep-link from Home search ────────────────────────────────────────────
   useEffect(() => {
     const openId = route?.params?.openBuilding;
@@ -170,7 +158,7 @@ export default function MapScreen({ navigation, route }) {
     if (d < ARRIVAL_DIST) setRouteWaypoints(null);
   }, [userLocation, selectedBuilding]);
 
-  // ── Start navigation ──────────────────────────────────────────────────────
+  // ── Start navigation — always launches AR ────────────────────────────────
   const startNavigation = useCallback(async (building) => {
     closeCard();
     if (userLocation) {
@@ -313,17 +301,8 @@ export default function MapScreen({ navigation, route }) {
           </TouchableOpacity>
         </View>
 
-        <StatusChips
-          arActive={settings.arMode}
-          isOffline={isOffline}
-          offlineModeEnabled={settings.offlineMode}
-        />
-
-        {aiReply ? (
-          <View style={s.aiBubble}>
-            <Text style={s.aiText}>{isOffline ? "[offline]" : "[AI]"} {aiReply}</Text>
-          </View>
-        ) : null}
+        {/* GPS chip only — voice/AI/offline chips removed */}
+        <StatusChips />
       </SafeAreaView>
 
       {/* ── FABs ── */}
@@ -411,12 +390,6 @@ const s = StyleSheet.create({
   searchText: {
     flex: 1, fontSize: 13, fontWeight: "600", color: "rgba(0,0,0,0.45)",
   },
-  aiBubble: {
-    backgroundColor: "rgba(0,200,83,0.1)",
-    borderWidth: 1, borderColor: "rgba(0,200,83,0.25)",
-    borderRadius: 12, padding: 8, marginTop: 6,
-  },
-  aiText: { fontSize: 12, color: "#00C853", fontWeight: "600" },
 
   fabs: { position: "absolute", right: 14, gap: 10 },
   fab: {

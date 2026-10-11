@@ -12,13 +12,6 @@ const TRANSLATIONS = {
     // ── Settings ──────────────────────────────────────────────────────────────
     'settings.title':              'Settings',
     'settings.navigation':         'NAVIGATION',
-    'settings.arMode':             'AR Mode',
-    'settings.arMode.sub':         'Launch AR camera when navigating',
-    'settings.gpsTracking':        'GPS Tracking',
-    'settings.gpsTracking.sub':    'Show live location dot on map',
-    'settings.assistant':          'AI ASSISTANT',
-    'settings.offlineMode':        'Offline Mode',
-    'settings.offlineMode.sub':    'ON = always offline  |  OFF = auto-detect',
     'settings.app':                'APP',
     'settings.language':           'Language',
     'settings.language.sub':       'English / Filipino',
@@ -121,11 +114,6 @@ const TRANSLATIONS = {
 
     // ── Status chips ──────────────────────────────────────────────────────────
     'status.gpsActive':   'GPS Active',
-    'status.aiReady':     'AI Ready',
-    'status.aiOnline':    'AI Online',
-    'status.noInternet':  'No Internet',
-    'status.offlineMode': 'Offline Mode',
-    'status.arStandby':   'AR Standby',
 
     // ── Tutorial ──────────────────────────────────────────────────────────────
     'tutorial.skip':      'Skip',
@@ -139,13 +127,6 @@ const TRANSLATIONS = {
     // ── Settings ──────────────────────────────────────────────────────────────
     'settings.title':              'Mga Setting',
     'settings.navigation':         'NABIGASYON',
-    'settings.arMode':             'AR Mode',
-    'settings.arMode.sub':         'Buksan ang AR camera habang nag-navigate',
-    'settings.gpsTracking':        'GPS Tracking',
-    'settings.gpsTracking.sub':    'Ipakita ang live na lokasyon sa mapa',
-    'settings.assistant':          'AI ASSISTANT',
-    'settings.offlineMode':        'Offline Mode',
-    'settings.offlineMode.sub':    'ON = palaging offline  |  OFF = auto-detect',
     'settings.app':                'APP',
     'settings.language':           'Wika',
     'settings.language.sub':       'Ingles / Filipino',
@@ -248,11 +229,6 @@ const TRANSLATIONS = {
 
     // ── Status chips ──────────────────────────────────────────────────────────
     'status.gpsActive':   'GPS Aktibo',
-    'status.aiReady':     'AI Handa',
-    'status.aiOnline':    'AI Online',
-    'status.noInternet':  'Walang Internet',
-    'status.offlineMode': 'Offline Mode',
-    'status.arStandby':   'AR Standby',
 
     // ── Tutorial ──────────────────────────────────────────────────────────────
     'tutorial.skip':      'Laktawan',

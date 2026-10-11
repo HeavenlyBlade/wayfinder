@@ -28,26 +28,3 @@ export async function checkInternetConnection(timeout = 3000) {
     return false;
   }
 }
-
-/**
- * Check if the backend voice API is reachable.
- * More specific than general internet check.
- * @param {number} timeout - Timeout in milliseconds (default: 2000)
- * @returns {Promise<boolean>} - true if voice API reachable, false otherwise
- */
-export async function checkVoiceAPIAvailable(timeout = 2000) {
-  const controller = new AbortController();
-  const timer = setTimeout(() => controller.abort(), timeout);
-
-  try {
-    await fetch(`${API_BASE}/voice/command`, {
-      method: 'OPTIONS',
-      signal: controller.signal,
-    });
-    clearTimeout(timer);
-    return true; // any response means the server is reachable
-  } catch (error) {
-    clearTimeout(timer);
-    return false;
-  }
-}

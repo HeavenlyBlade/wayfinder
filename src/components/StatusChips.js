@@ -26,24 +26,12 @@ function Chip({ color, label }) {
   );
 }
 
-export default function StatusChips({ arActive, isOffline, offlineModeEnabled }) {
+// StatusChips — shows GPS Active chip only.
+// Voice/AI/offline/AR chips removed (features not implemented).
+export default function StatusChips() {
   return (
     <View style={s.row}>
       <Chip color={colors.primary} label="GPS Active" />
-      <Chip
-        color={isOffline || offlineModeEnabled ? colors.warning : "#8aabff"}
-        label={
-          offlineModeEnabled 
-            ? "Offline Mode" 
-            : isOffline 
-              ? "No Internet" 
-              : "AI Online"
-        }
-      />
-      <Chip
-        color={arActive ? colors.primary : colors.warning}
-        label={arActive ? "AR Active" : "AR Standby"}
-      />
     </View>
   );
 }

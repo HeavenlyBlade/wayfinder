@@ -44,19 +44,4 @@ export async function fetchRoute(userLat, userLng, destinationId) {
   }
 }
 
-// ── Send voice audio to backend ───────────────────────────────────────────────
-export async function sendVoiceCommand(audioUri) {
-  try {
-    const formData = new FormData();
-    formData.append('audio', { uri: audioUri, type: 'audio/m4a', name: 'command.m4a' });
-    const res = await fetchWithTimeout(`${API_BASE}/voice/command`, {
-      method: 'POST',
-      body:   formData,
-    });
-    if (!res.ok) throw new Error(`HTTP ${res.status}`);
-    return await res.json();
-  } catch (e) {
-    console.error('sendVoiceCommand error:', e.message);
-    return null;
-  }
-}
+
