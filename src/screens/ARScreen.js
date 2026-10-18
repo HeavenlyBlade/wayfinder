@@ -8,6 +8,7 @@ import {
   Easing,
   TouchableOpacity,
   Platform,
+  AppState,
 } from "react-native";
 import Svg, { Path, G, Defs, LinearGradient, RadialGradient, Stop, Polygon, Ellipse } from "react-native-svg";
 import { CameraView, useCameraPermissions } from "expo-camera";
@@ -250,7 +251,15 @@ export default function ARScreen({ route, navigation }) {
 
   // ── Connectivity check ─────────────────────────────────────────────────────
   useEffect(() => {
-    checkOnline().then(online => setIsOffline(!online));
+    let mounted = true;
+    function recheck() {
+      checkOnline().then(online => { if (mounted) setIsOffline(!online); });
+    }
+    recheck();
+    const sub = AppState.addEventListener('change', (state) => {
+      if (state === 'active') recheck();
+    });
+    return () => { mounted = false; sub.remove(); };
   }, []);
 
   const handleMiniMapError = useCallback(() => {
@@ -487,7 +496,7 @@ export default function ARScreen({ route, navigation }) {
 
         {/* AR orb trail — projected waypoints */}
         {!isLoading && !arrived && projectedOrbs.map((orb) => {
-          const ORB_RADIUS = orb.orbSize ? orb.orbSize / 2 : 12;
+          const ORB_RADIUS = Math.max(8, orb.orbSize ?? 24) / 2;
           return (
             <Animated.View
               key={orb.key}
@@ -625,7 +634,7 @@ export default function ARScreen({ route, navigation }) {
               urlTemplate="https://tile.openstreetmap.org/{z}/{x}/{y}.png"
               maximumZ={19}
               flipY={false}
-              zIndex={1}
+              zIndex={-1}
             />
           )}
 

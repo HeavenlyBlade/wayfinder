@@ -2,7 +2,7 @@ import "react-native-gesture-handler";
 import React, { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import {
   View, Text, TouchableOpacity, StyleSheet,
-  Dimensions,
+  Dimensions, AppState,
 } from "react-native";
 import MapView, {
   Polygon, Polyline, Marker, PROVIDER_GOOGLE, UrlTile,
@@ -138,7 +138,15 @@ export default function MapScreen({ navigation, route }) {
 
   // ── Connectivity check ────────────────────────────────────────────────────
   useEffect(() => {
-    checkOnline().then(online => setIsOffline(!online));
+    let mounted = true;
+    function recheck() {
+      checkOnline().then(online => { if (mounted) setIsOffline(!online); });
+    }
+    recheck();
+    const sub = AppState.addEventListener('change', (state) => {
+      if (state === 'active') recheck();
+    });
+    return () => { mounted = false; sub.remove(); };
   }, []);
 
   // Also treat a map load error as offline
@@ -242,7 +250,7 @@ export default function MapScreen({ navigation, route }) {
             urlTemplate="https://tile.openstreetmap.org/{z}/{x}/{y}.png"
             maximumZ={19}
             flipY={false}
-            zIndex={1}
+            zIndex={-1}
           />
         )}
 

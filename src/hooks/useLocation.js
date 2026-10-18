@@ -143,11 +143,15 @@ export default function useLocation() {
 
         const prev = fusedHeadingRef.current !== null ? fusedHeadingRef.current : magH;
         const ALPHA = 0.98;
-        let gyroContrib = prev + gz * (180 / Math.PI) * dt;
-        // Complementary filter
-        let fused = ALPHA * gyroContrib + (1 - ALPHA) * magH;
-        // Normalize to [0, 360)
-        fused = ((fused % 360) + 360) % 360;
+        // Negate gz: expo-sensors positive gz = CCW, compass convention positive = CW
+        let gyroContrib = prev + (-gz) * (180 / Math.PI) * dt;
+        // Normalize gyro contribution to [0, 360)
+        gyroContrib = ((gyroContrib % 360) + 360) % 360;
+        // Shortest-path correction to avoid 0°/360° wrap-around snap
+        let diff = magH - gyroContrib;
+        if (diff >  180) diff -= 360;
+        if (diff < -180) diff += 360;
+        let fused = ((gyroContrib + (1 - ALPHA) * diff) + 360) % 360;
         fusedHeadingRef.current = fused;
 
         // Apply user compass offset correction and update heading state

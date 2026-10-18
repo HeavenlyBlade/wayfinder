@@ -11,14 +11,12 @@ const SettingsContext = createContext(null);
 
 export function SettingsProvider({ children }) {
   const [settings, setSettings] = useState(DEFAULTS);
-  const [loaded,   setLoaded]   = useState(false);
 
   useEffect(() => {
     AsyncStorage.getItem(STORAGE_KEY).then((raw) => {
       if (raw) {
         try { setSettings({ ...DEFAULTS, ...JSON.parse(raw) }); } catch (_) {}
       }
-      setLoaded(true);
     });
   }, []);
 
