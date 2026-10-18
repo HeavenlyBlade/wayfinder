@@ -28,8 +28,6 @@ export function SettingsProvider({ children }) {
     await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(next));
   }
 
-  if (!loaded) return null;
-
   return (
     <SettingsContext.Provider value={{ settings, updateSetting }}>
       {children}

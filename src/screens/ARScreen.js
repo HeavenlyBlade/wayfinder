@@ -1,24 +1,25 @@
-﻿import React, { useEffect, useRef, useState, useCallback } from "react";
+﻿import React, { useEffect, useRef, useState, useCallback, useMemo } from "react";
 import {
   View,
   Text,
   StyleSheet,
   Dimensions,
   Animated,
+  Easing,
   TouchableOpacity,
   Platform,
 } from "react-native";
 import Svg, { Path, G, Defs, LinearGradient, RadialGradient, Stop, Polygon, Ellipse } from "react-native-svg";
 import { CameraView, useCameraPermissions } from "expo-camera";
 import MapView, {
-  Polyline, Marker, PROVIDER_GOOGLE,
+  Polyline, Marker, PROVIDER_GOOGLE, UrlTile,
 } from "react-native-maps";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { StatusBar } from "expo-status-bar";
 
 import useLocation from "../hooks/useLocation";
 import { setCompassOffset, getCompassOffset } from "../hooks/useLocation";
-import { bearingTo, distanceTo } from "../utils/arMath";
+import { bearingTo, distanceTo, projectToScreen } from "../utils/arMath";
 import { aStar, getWaypoints, nearestNode } from "../utils/pathfinding";
 import { getIndoorStatus, TWO_STAIRCASE_BUILDINGS } from "../utils/indoorDetection";
 import { NODES } from "../constants/campusGraph";
@@ -68,27 +69,25 @@ function buildOrbTrail(waypoints) {
 }
 
 // Buildings that should NOT trigger the indoor room-finder prompt on arrival.
-// These are terminal/parking nodes and secondary entrances that have no navigable
-// indoor floors — the arrived overlay still shows, but "Find a Room" is hidden.
 const NO_INDOOR_PROMPT = new Set([
   'gate', 'motorcycle_parking', 'parking_lot',
   'main_building_2', 'ea_tower_2', 'sr_building_2',
 ]);
 
+// ── Simple connectivity check via fetch ping ─────────────────────────────────
+async function checkOnline() {
+  try {
+    const res = await fetch('https://tile.openstreetmap.org/0/0/0.png', {
+      method: 'HEAD',
+      cache: 'no-store',
+    });
+    return res.ok;
+  } catch (_) {
+    return false;
+  }
+}
+
 // ── 3D Navigation Arrow ───────────────────────────────────────────────────────
-// Renders a perspective 3D arrow pointing up (north when angleDiff = 0).
-// The illusion is built from 5 SVG polygon faces:
-//   1. Drop shadow ellipse (blurred, beneath)
-//   2. Back/bottom face  — darker version of arrow shape, offset down-right
-//   3. Right side wall   — right extrusion faces, darkest (shadow side)
-//   4. Left side wall    — left extrusion faces, mid-tone
-//   5. Top face          — bright gradient, main visible surface
-//
-// viewBox: 0 0 100 126
-// Top-face arrow points upward (north). Depth vector: dx=+6, dy=+8.
-// angleDiff = 0 → straight ahead
-// angleDiff > 0 → turn right, < 0 → turn left
-// |angleDiff| > 120 → behind, arrow turns red
 function NavigationArrow({ angleDiff }) {
   const rotAnim = useRef(new Animated.Value(angleDiff ?? 0)).current;
 
@@ -98,10 +97,10 @@ function NavigationArrow({ angleDiff }) {
     let diff = target - (current % 360);
     if (diff > 180)  diff -= 360;
     if (diff < -180) diff += 360;
-    Animated.spring(rotAnim, {
-      toValue:    current + diff,
-      speed:      14,
-      bounciness: 3,
+    Animated.timing(rotAnim, {
+      toValue: current + diff,
+      duration: 80,
+      easing: Easing.out(Easing.quad),
       useNativeDriver: true,
     }).start();
   }, [angleDiff]);
@@ -112,17 +111,12 @@ function NavigationArrow({ angleDiff }) {
   });
 
   const isBehind   = Math.abs(angleDiff ?? 0) > 120;
-  const baseColor  = isBehind ? "#ff5555" : GREEN;    // #00C853 or red
-  const topColor   = isBehind ? "#ff8888" : "#4dff91";// highlight
-  const sideColorL = isBehind ? "#cc3333" : "#00993d";// left wall (mid)
-  const sideColorR = isBehind ? "#992222" : "#006628";// right wall (dark/shadow)
-  const backColor  = isBehind ? "#7a1a1a" : "#004d1f";// back face
+  const baseColor  = isBehind ? "#ff5555" : GREEN;
+  const topColor   = isBehind ? "#ff8888" : "#4dff91";
+  const sideColorL = isBehind ? "#cc3333" : "#00993d";
+  const sideColorR = isBehind ? "#992222" : "#006628";
+  const backColor  = isBehind ? "#7a1a1a" : "#004d1f";
 
-  // ── Top-face arrow vertices (pointing up, viewBox 0 0 100 126) ────────────
-  // Head triangle tip:      (50, 3)
-  // Head left wing:         (16, 50)  right wing: (84, 50)
-  // Shoulder left notch:    (36, 44)  right notch: (64, 44)
-  // Shaft bottom-left:      (36,108)  bottom-right: (64,108)
   const TOP = {
     tipX: 50,  tipY: 3,
     wL:  16,   wLy: 50,
@@ -136,30 +130,21 @@ function NavigationArrow({ angleDiff }) {
     `${TOP.tipX},${TOP.tipY} ${TOP.wR},${TOP.wRy} ${TOP.nR},${TOP.nRy} ` +
     `${TOP.sR},${TOP.sRy} ${TOP.sL},${TOP.sLy} ${TOP.nL},${TOP.nLy} ${TOP.wL},${TOP.wLy}`;
 
-  // ── Depth offset: simulate light from top-left ────────────────────────────
-  const DX = 6;  // shift right
-  const DY = 8;  // shift down
+  const DX = 6;
+  const DY = 8;
 
-  // Back/bottom face = top face shifted by (DX, DY)
   const backPoints =
     `${TOP.tipX+DX},${TOP.tipY+DY} ${TOP.wR+DX},${TOP.wRy+DY} ${TOP.nR+DX},${TOP.nRy+DY} ` +
     `${TOP.sR+DX},${TOP.sRy+DY} ${TOP.sL+DX},${TOP.sLy+DY} ${TOP.nL+DX},${TOP.nLy+DY} ${TOP.wL+DX},${TOP.wLy+DY}`;
 
-  // ── Side wall faces ───────────────────────────────────────────────────────
-  // Right side wall = right edge of top face + right edge of back face
-  // Vertices (clockwise from top):
-  //   top-tip → top-wR → top-nR → top-sR
-  //   back-sR → back-nR → back-wR → back-tip
   const rightWall =
     `${TOP.tipX},${TOP.tipY} ${TOP.wR},${TOP.wRy} ${TOP.nR},${TOP.nRy} ${TOP.sR},${TOP.sRy} ` +
     `${TOP.sR+DX},${TOP.sRy+DY} ${TOP.nR+DX},${TOP.nRy+DY} ${TOP.wR+DX},${TOP.wRy+DY} ${TOP.tipX+DX},${TOP.tipY+DY}`;
 
-  // Left side wall = left edge of top face + left edge of back face
   const leftWall =
     `${TOP.tipX},${TOP.tipY} ${TOP.wL},${TOP.wLy} ${TOP.nL},${TOP.nLy} ${TOP.sL},${TOP.sLy} ` +
     `${TOP.sL+DX},${TOP.sLy+DY} ${TOP.nL+DX},${TOP.nLy+DY} ${TOP.wL+DX},${TOP.wLy+DY} ${TOP.tipX+DX},${TOP.tipY+DY}`;
 
-  // Bottom shaft wall (bottom edge of shaft — connects top-sL,top-sR to back-sL,back-sR)
   const bottomWall =
     `${TOP.sL},${TOP.sLy} ${TOP.sR},${TOP.sRy} ` +
     `${TOP.sR+DX},${TOP.sRy+DY} ${TOP.sL+DX},${TOP.sLy+DY}`;
@@ -171,20 +156,17 @@ function NavigationArrow({ angleDiff }) {
     >
       <Svg width={96} height={120} viewBox="0 0 106 126" pointerEvents="none">
         <Defs>
-          {/* Top face gradient — top=bright highlight, bottom=base color */}
           <LinearGradient id="topGrad" x1="0.5" y1="0" x2="0.5" y2="1">
             <Stop offset="0"   stopColor={topColor}  stopOpacity="1" />
             <Stop offset="0.5" stopColor={baseColor} stopOpacity="1" />
             <Stop offset="1"   stopColor={sideColorL} stopOpacity="1" />
           </LinearGradient>
-          {/* Drop shadow gradient */}
           <RadialGradient id="shadowGrad" cx="50%" cy="50%" r="50%">
             <Stop offset="0"   stopColor="#000000" stopOpacity="0.55" />
             <Stop offset="1"   stopColor="#000000" stopOpacity="0" />
           </RadialGradient>
         </Defs>
 
-        {/* ── Layer 0: Drop shadow ── */}
         <Ellipse
           cx={53 + DX / 2}
           cy={112}
@@ -193,32 +175,27 @@ function NavigationArrow({ angleDiff }) {
           fill="url(#shadowGrad)"
         />
 
-        {/* ── Layer 1: Back face (darkest) ── */}
         <Polygon
           points={backPoints}
           fill={backColor}
           opacity={0.85}
         />
 
-        {/* ── Layer 2: Right side wall (shadow side — darkest) ── */}
         <Polygon
           points={rightWall}
           fill={sideColorR}
         />
 
-        {/* ── Layer 3: Left side wall (mid-tone) ── */}
         <Polygon
           points={leftWall}
           fill={sideColorL}
         />
 
-        {/* ── Layer 4: Bottom shaft wall ── */}
         <Polygon
           points={bottomWall}
           fill={backColor}
         />
 
-        {/* ── Layer 5: Top face (bright, main visible surface) ── */}
         <Polygon
           points={topPoints}
           fill="url(#topGrad)"
@@ -227,7 +204,6 @@ function NavigationArrow({ angleDiff }) {
           strokeLinejoin="round"
         />
 
-        {/* ── Layer 6: Specular highlight line along top-left edge ── */}
         <Path
           d={`M${TOP.tipX},${TOP.tipY} L${TOP.wL},${TOP.wLy} L${TOP.nL},${TOP.nLy} L${TOP.sL},${TOP.sLy}`}
           fill="none"
@@ -257,18 +233,30 @@ export default function ARScreen({ route, navigation }) {
   const [nextAngle,     setNextAngle]     = useState(0);
   const [indoorStatus,  setIndoorStatus]  = useState(null);
   const [compassOffset, setCompassOffsetState] = useState(getCompassOffset());
-  const [routeCoords,   setRouteCoords]   = useState(null); // for mini-map polyline
+  const [routeCoords,   setRouteCoords]   = useState(null);
   const [staircasePickerVisible, setStaircasePickerVisible] = useState(false);
   const [selectedStaircase,      setSelectedStaircase]      = useState(null);
   const [arrivalPromptVisible,   setArrivalPromptVisible]   = useState(false);
+  const [isOffline,     setIsOffline]     = useState(false);
+  const [miniMapError,  setMiniMapError]  = useState(false);
 
   const orbTrailRef     = useRef([]);
-  const waypointsRef    = useRef([]); // raw waypoints for map polyline
+  const waypointsRef    = useRef([]);
   const routeLoadedRef  = useRef(false);
   const arrivedRef      = useRef(false);
   const arrivalCountRef = useRef(0);
   const miniMapRef      = useRef(null);
-  const isReroutingRef  = useRef(false); // prevents loading flash during reroute
+  const isReroutingRef  = useRef(false);
+
+  // ── Connectivity check ─────────────────────────────────────────────────────
+  useEffect(() => {
+    checkOnline().then(online => setIsOffline(!online));
+  }, []);
+
+  const handleMiniMapError = useCallback(() => {
+    setMiniMapError(true);
+    setIsOffline(true);
+  }, []);
 
   function handleOffsetChange(newOffset) {
     setCompassOffset(newOffset);
@@ -316,11 +304,9 @@ export default function ARScreen({ route, navigation }) {
         : [];
     }
 
-    // Rebuild orb trail from new waypoints
     orbTrailRef.current  = buildOrbTrail(waypoints);
     waypointsRef.current = waypoints;
 
-    // Update map polyline with raw waypoints
     setRouteCoords(waypoints.map(w => ({ latitude: w.lat, longitude: w.lng })));
 
     let total = 0;
@@ -350,8 +336,6 @@ export default function ARScreen({ route, navigation }) {
     if (offDist > 40 && !isReroutingRef.current) {
       isReroutingRef.current = true;
       routeLoadedRef.current = false;
-      // Don't set routeReady(false) — avoids loading flash
-      // Just reload and update trail silently
       loadRoute(location).finally(() => {
         isReroutingRef.current = false;
       });
@@ -362,7 +346,6 @@ export default function ARScreen({ route, navigation }) {
   useEffect(() => {
     if (!location || orbTrailRef.current.length === 0 || arrivedRef.current) return;
 
-    // Consume passed waypoints
     while (orbTrailRef.current.length > 0) {
       const next = orbTrailRef.current[0];
       const d    = distanceTo(location.lat, location.lng, next.lat, next.lng);
@@ -371,14 +354,10 @@ export default function ARScreen({ route, navigation }) {
       } else break;
     }
 
-    // ── Shared arrival handler ────────────────────────────────────────────────
-    // Called from both the orb-empty branch and the distance-check branch.
-    // Shows StaircasePicker for 2-staircase buildings, ArrivalPrompt for all
-    // others that have indoor navigable floors, and nothing for terminal nodes.
     function handleArrival() {
       arrivedRef.current = true;
       setArrived(true);
-      if (NO_INDOOR_PROMPT.has(destinationId)) return; // terminal/parking — no room finder
+      if (NO_INDOOR_PROMPT.has(destinationId)) return;
       if (BUILDINGS[destinationId] && TWO_STAIRCASE_BUILDINGS.has(destinationId)) {
         setStaircasePickerVisible(true);
       } else {
@@ -386,13 +365,11 @@ export default function ARScreen({ route, navigation }) {
       }
     }
 
-    // Branch 1: all orbs consumed — user has passed the destination
     if (orbTrailRef.current.length === 0) {
       handleArrival();
       return;
     }
 
-    // Branch 2: proximity check — user is within ARRIVAL_DIST of destination node
     const dest = NODES[destinationId];
     if (dest) {
       const d = distanceTo(location.lat, location.lng, dest.lat, dest.lng);
@@ -407,7 +384,6 @@ export default function ARScreen({ route, navigation }) {
       }
     }
 
-    // Compute angle to next waypoint
     const next    = orbTrailRef.current[0];
     const bearing = bearingTo(location.lat, location.lng, next.lat, next.lng);
     let angle     = bearing - heading;
@@ -419,7 +395,6 @@ export default function ARScreen({ route, navigation }) {
     const d = distanceTo(location.lat, location.lng, next.lat, next.lng);
     setDistToNext(Math.round(d));
 
-    // Pan mini-map to follow user
     if (miniMapRef.current && location) {
       miniMapRef.current.animateToRegion({
         latitude:       location.lat,
@@ -430,6 +405,26 @@ export default function ARScreen({ route, navigation }) {
     }
 
   }, [location, heading, destinationId, indoorStatus]);
+
+  // ── Project orb trail onto camera screen ─────────────────────────────────
+  const projectedOrbs = useMemo(() => {
+    if (!location || heading == null || orbTrailRef.current.length === 0) return [];
+    const nextFive = orbTrailRef.current.slice(0, 5);
+    return nextFive.map((wp, i) => {
+      const projected = projectToScreen({
+        userLat: location.lat,
+        userLng: location.lng,
+        targetLat: wp.lat,
+        targetLng: wp.lng,
+        compassHeading: heading,
+        hFov: 65,
+        screenW: W,
+        screenH: CAM_HEIGHT,
+      });
+      return { ...projected, key: i };
+    }).filter(p => p.visible);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [location, heading]);
 
   // ── Destination info ──────────────────────────────────────────────────────
   const destBuilding = BUILDINGS[destinationId];
@@ -473,6 +468,11 @@ export default function ARScreen({ route, navigation }) {
 
   const isLoading = !location || !routeReady;
 
+  // Mini-map props: online = Google satellite, offline = OSM tile fallback
+  const miniMapProps = isOffline
+    ? { mapType: "none" }
+    : { provider: PROVIDER_GOOGLE, mapType: "satellite" };
+
   return (
     <View style={s.fill}>
       <StatusBar style="light" hidden />
@@ -484,6 +484,27 @@ export default function ARScreen({ route, navigation }) {
 
         {/* Camera feed */}
         <CameraView style={StyleSheet.absoluteFill} facing="back" />
+
+        {/* AR orb trail — projected waypoints */}
+        {!isLoading && !arrived && projectedOrbs.map((orb) => {
+          const ORB_RADIUS = orb.orbSize ? orb.orbSize / 2 : 12;
+          return (
+            <Animated.View
+              key={orb.key}
+              style={[
+                s.arOrb,
+                {
+                  position: 'absolute',
+                  left: orb.x - ORB_RADIUS,
+                  top: orb.y - ORB_RADIUS,
+                  width: ORB_RADIUS * 2,
+                  height: ORB_RADIUS * 2,
+                  borderRadius: ORB_RADIUS,
+                },
+              ]}
+            />
+          );
+        })}
 
         {/* Loading overlay */}
         {isLoading && !arrived && (
@@ -580,8 +601,7 @@ export default function ARScreen({ route, navigation }) {
         <MapView
           ref={miniMapRef}
           style={s.miniMap}
-          provider={PROVIDER_GOOGLE}
-          mapType="satellite"
+          {...miniMapProps}
           initialRegion={{
             latitude:       location?.lat ?? 13.9617,
             longitude:      location?.lng ?? 121.6124,
@@ -597,7 +617,18 @@ export default function ARScreen({ route, navigation }) {
           pitchEnabled={false}
           toolbarEnabled={false}
           pointerEvents="none"
+          onMapLoadingError={handleMiniMapError}
         >
+          {/* OSM tile fallback when offline */}
+          {isOffline && (
+            <UrlTile
+              urlTemplate="https://tile.openstreetmap.org/{z}/{x}/{y}.png"
+              maximumZ={19}
+              flipY={false}
+              zIndex={1}
+            />
+          )}
+
           {/* Route polyline */}
           {routeCoords && routeCoords.length > 1 && (
             <>
@@ -638,12 +669,10 @@ export default function ARScreen({ route, navigation }) {
             <Text style={s.arrivedMapTitle}>{t('ar.arrived', lang)}</Text>
             <Text style={s.arrivedMapSub}>{destName}</Text>
             <View style={s.arrivedMapBtns}>
-              {/* Only show room finder for buildings that have navigable indoor floors */}
               {!NO_INDOOR_PROMPT.has(destinationId) && (
                 <TouchableOpacity
                   style={s.arrivedMapBtn}
                   onPress={() => {
-                    // For 2-staircase buildings: show picker first (unless already chosen)
                     if (TWO_STAIRCASE_BUILDINGS.has(destinationId) && !selectedStaircase) {
                       setStaircasePickerVisible(true);
                     } else {
@@ -745,11 +774,11 @@ const s = StyleSheet.create({
     paddingTop: Platform.OS === "android" ? 36 : 8,
   },
 
-  // Single arrow — updated for 3D arrow (96×120 rendered size)
+  // Arrow
   arrowWrap: {
     position: "absolute",
     bottom: 20,
-    left: W / 2 - 48,  // centered (arrow SVG renders at 96px wide)
+    left: W / 2 - 48,
     width: 96,
     height: 120,
     alignItems: "center",
@@ -760,6 +789,16 @@ const s = StyleSheet.create({
     height: 120,
     alignItems: "center",
     justifyContent: "center",
+  },
+
+  // AR orb trail
+  arOrb: {
+    backgroundColor: 'rgba(0, 230, 180, 0.85)',
+    shadowColor: '#00e6b4',
+    shadowRadius: 10,
+    shadowOpacity: 0.9,
+    shadowOffset: { width: 0, height: 0 },
+    elevation: 8,
   },
 
   distChip: {

@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import * as Location from 'expo-location';
-import { Magnetometer } from 'expo-sensors';
+import { Magnetometer, Gyroscope, Accelerometer } from 'expo-sensors';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 // Number of magnetometer samples to average for heading smoothness.
@@ -9,10 +9,8 @@ const HEADING_SAMPLES = 8;
 // Storage key for the user-adjustable compass offset
 const COMPASS_OFFSET_KEY = 'wayfinder_compass_offset';
 
-// Default offset calibrated at SACLI campus (National Diversion Highway side).
-// -260 degrees corrects the magnetometer for outdoor use at this location.
-// Users can still fine-tune via the CAL button in AR screen if needed.
-const DEFAULT_COMPASS_OFFSET = -260;
+// Default offset — set to 0; users can fine-tune via the CAL button in AR screen.
+const DEFAULT_COMPASS_OFFSET = 0;
 
 // Load persisted compass offset — falls back to calibrated default if not set
 let _compassOffset = DEFAULT_COMPASS_OFFSET;
@@ -36,6 +34,14 @@ export default function useLocation() {
   const subRef      = useRef(null);
   const magRef      = useRef(null);
   const headingBuf  = useRef([]);
+
+  // Gyroscope / Accelerometer fusion refs
+  const gyroRef          = useRef(null);
+  const accelRef         = useRef(null);
+  const fusedHeadingRef  = useRef(null); // null = not yet initialized
+  const lastTimestampRef = useRef(null);
+  const accelDataRef     = useRef({ x: 0, y: 0, z: -1 }); // default: phone upright
+  const magHeadingRef    = useRef(null);
 
   useEffect(() => {
     let active = true;
@@ -75,11 +81,30 @@ export default function useLocation() {
         }
       );
 
-      magRef.current = Magnetometer.addListener(({ x, y }) => {
-        let raw = Math.atan2(-x, y) * (180 / Math.PI);
-        raw = (raw + 360) % 360;
+      // Set sensor update intervals
+      Gyroscope.setUpdateInterval(16);
+      Accelerometer.setUpdateInterval(16);
+      Magnetometer.setUpdateInterval(50);
 
-        headingBuf.current.push(raw);
+      magRef.current = Magnetometer.addListener(({ x, y, z }) => {
+        // ── Tilt-compensated heading ──────────────────────────────────────
+        const { x: ax, y: ay, z: az } = accelDataRef.current;
+        const mx = x;
+        const my = y;
+        const mz = z != null ? z : 0; // z may not be provided — fall back to 0
+
+        const pitch = Math.atan2(-ax, Math.sqrt(ay * ay + az * az));
+        const roll  = Math.atan2(ay, az);
+        const Xh = mx * Math.cos(pitch) + mz * Math.sin(pitch);
+        const Yh = mx * Math.sin(roll) * Math.sin(pitch) + my * Math.cos(roll) - mz * Math.sin(roll) * Math.cos(pitch);
+        let magHeading = Math.atan2(-Yh, Xh) * (180 / Math.PI);
+        magHeading = (magHeading + 360) % 360;
+
+        // Store latest tilt-compensated heading for gyro fusion
+        magHeadingRef.current = magHeading;
+
+        // Smooth via circular buffer
+        headingBuf.current.push(magHeading);
         if (headingBuf.current.length > HEADING_SAMPLES) {
           headingBuf.current.shift();
         }
@@ -89,9 +114,44 @@ export default function useLocation() {
         const cosSum = buf.reduce((s, a) => s + Math.cos(a * Math.PI / 180), 0);
         const smoothed = (Math.atan2(sinSum, cosSum) * 180 / Math.PI + 360) % 360;
 
+        // Initialize fused heading on first reading
+        if (fusedHeadingRef.current === null) {
+          fusedHeadingRef.current = smoothed;
+        }
+
         // Apply user compass offset correction
         const corrected = (smoothed + _compassOffset + 360) % 360;
 
+        if (active) setHeading(corrected);
+      });
+
+      // Accelerometer subscriber — feeds tilt compensation
+      accelRef.current = Accelerometer.addListener(({ x, y, z }) => {
+        accelDataRef.current = { x, y, z };
+      });
+
+      // Gyroscope subscriber — complementary filter fusion
+      gyroRef.current = Gyroscope.addListener(({ z: gz }) => {
+        const now = Date.now();
+        const dt = lastTimestampRef.current !== null
+          ? (now - lastTimestampRef.current) / 1000
+          : 0.016;
+        lastTimestampRef.current = now;
+
+        const magH = magHeadingRef.current;
+        if (magH === null) return; // not yet initialized
+
+        const prev = fusedHeadingRef.current !== null ? fusedHeadingRef.current : magH;
+        const ALPHA = 0.98;
+        let gyroContrib = prev + gz * (180 / Math.PI) * dt;
+        // Complementary filter
+        let fused = ALPHA * gyroContrib + (1 - ALPHA) * magH;
+        // Normalize to [0, 360)
+        fused = ((fused % 360) + 360) % 360;
+        fusedHeadingRef.current = fused;
+
+        // Apply user compass offset correction and update heading state
+        const corrected = (fused + _compassOffset + 360) % 360;
         if (active) setHeading(corrected);
       });
     }
@@ -102,6 +162,8 @@ export default function useLocation() {
       active = false;
       subRef.current?.remove();
       magRef.current?.remove();
+      if (gyroRef.current) { gyroRef.current.remove(); gyroRef.current = null; }
+      if (accelRef.current) { accelRef.current.remove(); accelRef.current = null; }
     };
   }, []);
 

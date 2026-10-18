@@ -1,11 +1,11 @@
 import "react-native-gesture-handler";
-import React, { useState, useEffect, useRef, useCallback } from "react";
+import React, { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import {
   View, Text, TouchableOpacity, StyleSheet,
   Dimensions,
 } from "react-native";
 import MapView, {
-  Polygon, Polyline, Marker, PROVIDER_GOOGLE,
+  Polygon, Polyline, Marker, PROVIDER_GOOGLE, UrlTile,
 } from "react-native-maps";
 import {
   IconSearch,
@@ -21,6 +21,7 @@ import { fetchRoute }   from "../services/api";
 import StatusChips      from "../components/StatusChips";
 import BottomPanel      from "../components/BottomPanel";
 import SearchModal      from "../components/SearchModal";
+import BuildingCard     from "../components/BuildingCard";
 import useLocation      from "../hooks/useLocation";
 import { useSettings }  from "../context/SettingsContext";
 import { t } from "../constants/i18n";
@@ -104,6 +105,19 @@ async function resolveRoute(userLat, userLng, destinationId) {
   return [];
 }
 
+// ── Simple connectivity check via fetch ping ─────────────────────────────────
+async function checkOnline() {
+  try {
+    const res = await fetch('https://tile.openstreetmap.org/0/0/0.png', {
+      method: 'HEAD',
+      cache: 'no-store',
+    });
+    return res.ok;
+  } catch (_) {
+    return false;
+  }
+}
+
 // ─────────────────────────────────────────────────────────────────────────────
 
 export default function MapScreen({ navigation, route }) {
@@ -112,6 +126,8 @@ export default function MapScreen({ navigation, route }) {
   const [panelHeight,      setPanelHeight]      = useState(58);
   const [searchVisible,    setSearchVisible]    = useState(false);
   const [routeWaypoints,   setRouteWaypoints]   = useState(null);
+  const [isOffline,        setIsOffline]        = useState(false);
+  const [mapError,         setMapError]         = useState(false);
 
   const mapRef    = useRef(null);
   const panelRef  = useRef(null);
@@ -119,6 +135,17 @@ export default function MapScreen({ navigation, route }) {
   const { settings }               = useSettings();
   const lang = settings?.language ?? "en";
   const { location: userLocation } = useLocation();
+
+  // ── Connectivity check ────────────────────────────────────────────────────
+  useEffect(() => {
+    checkOnline().then(online => setIsOffline(!online));
+  }, []);
+
+  // Also treat a map load error as offline
+  const handleMapLoadingError = useCallback(() => {
+    setMapError(true);
+    setIsOffline(true);
+  }, []);
 
   // ── Building selection helpers ────────────────────────────────────────────
   const selectBuilding = useCallback((buildingId, building) => {
@@ -179,15 +206,26 @@ export default function MapScreen({ navigation, route }) {
     ? routeWaypoints.map(w => ({ latitude: w.lat, longitude: w.lng }))
     : null;
 
+  // ── Map props: online = Google satellite, offline = OSM tile fallback ─────
+  const mapProps = isOffline
+    ? { mapType: "none" }
+    : { provider: PROVIDER_GOOGLE, mapType: "satellite" };
+
   return (
     <View style={s.container}>
 
-      {/* ── Map — always Google satellite ── */}
+      {/* ── Map error banner ── */}
+      {mapError && (
+        <View style={s.mapErrorBanner}>
+          <Text style={s.mapErrorText}>Map failed to load. Check your connection or API key.</Text>
+        </View>
+      )}
+
+      {/* ── Map ── */}
       <MapView
         ref={mapRef}
         style={StyleSheet.absoluteFill}
-        provider={PROVIDER_GOOGLE}
-        mapType="satellite"
+        {...mapProps}
         initialRegion={CAMPUS_CENTER}
         showsUserLocation={true}
         showsMyLocationButton={false}
@@ -196,7 +234,18 @@ export default function MapScreen({ navigation, route }) {
         toolbarEnabled={false}
         rotateEnabled={true}
         pitchEnabled={false}
+        onMapLoadingError={handleMapLoadingError}
       >
+        {/* OSM tile fallback when offline */}
+        {isOffline && (
+          <UrlTile
+            urlTemplate="https://tile.openstreetmap.org/{z}/{x}/{y}.png"
+            maximumZ={19}
+            flipY={false}
+            zIndex={1}
+          />
+        )}
+
         {/* Building polygon overlays */}
         {BUILDING_OVERLAYS.map(b => {
           const sel = selectedPolygonId === b.id;
@@ -340,6 +389,16 @@ export default function MapScreen({ navigation, route }) {
         </View>
       )}
 
+      {/* ── BuildingCard ── */}
+      {selectedBuilding && (
+        <BuildingCard
+          building={selectedBuilding}
+          userLocation={userLocation}
+          onClose={closeCard}
+          onNavigate={startNavigation}
+        />
+      )}
+
       {/* ── Bottom panel ── */}
       <BottomPanel
         ref={panelRef}
@@ -364,6 +423,24 @@ export default function MapScreen({ navigation, route }) {
 
 const s = StyleSheet.create({
   container: { flex: 1, backgroundColor: "#071209" },
+
+  mapErrorBanner: {
+    position: "absolute",
+    top: 0,
+    left: 0,
+    right: 0,
+    zIndex: 100,
+    backgroundColor: "rgba(200,50,50,0.92)",
+    paddingVertical: 10,
+    paddingHorizontal: 16,
+    alignItems: "center",
+  },
+  mapErrorText: {
+    fontSize: 12,
+    fontWeight: "700",
+    color: "#fff",
+    textAlign: "center",
+  },
 
   topOverlay: {
     position: "absolute",
