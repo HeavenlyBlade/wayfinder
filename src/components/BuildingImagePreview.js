@@ -1,6 +1,6 @@
 import React from 'react';
 import { View, Image, Text, StyleSheet } from 'react-native';
-import { colors, radius } from '../constants/theme';
+import { colors } from '../constants/theme';
 import { getImageForBuilding } from '../data/buildingImages';
 import { IconBuilding } from './icons';
 
@@ -50,8 +50,9 @@ const s = StyleSheet.create({
     height: 180,
     width: '100%',
     alignSelf: 'stretch',
-    borderRadius: radius.md,
     overflow: 'hidden',
+    // borderRadius intentionally omitted — parent (BuildingCard) sets it so
+    // overflow:hidden clips to the card's own corner radius, not a hardcoded value
   },
   image: {
     width: '100%',
