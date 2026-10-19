@@ -14,6 +14,7 @@ import { NODES } from "../constants/campusGraph";
 import FloorBrowser from "./FloorBrowser";
 import { useSettings } from "../context/SettingsContext";
 import { t } from "../constants/i18n";
+import BuildingImagePreview from "./BuildingImagePreview";
 
 const { width } = Dimensions.get("window");
 
@@ -99,6 +100,9 @@ export default function BuildingCard({ building, userLocation, onClose, onNaviga
     <Animated.View
       style={[s.card, { opacity: fadeIn, transform: [{ translateY: slideY }] }]}
     >
+      {/* Building image preview */}
+      <BuildingImagePreview buildingId={building.id} buildingName={building.name} style={s.imagePreview} />
+
       {/* Close button */}
       <TouchableOpacity style={s.close} onPress={onClose} activeOpacity={0.7}>
         <Text style={s.closeText}>✕</Text>
@@ -288,4 +292,13 @@ const s = StyleSheet.create({
     borderColor: colors.border,
   },
   btnSecondaryText: { fontSize: 13, fontWeight: "700", color: colors.textSecondary },
+
+  imagePreview: {
+    marginHorizontal: -20,
+    marginTop: -20,
+    marginBottom: 14,
+    borderTopLeftRadius: radius.lg,
+    borderTopRightRadius: radius.lg,
+    overflow: "hidden",
+  },
 });
