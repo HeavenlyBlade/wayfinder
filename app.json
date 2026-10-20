@@ -4,6 +4,7 @@
     "slug": "wayfinder",
     "version": "1.0.0",
     "orientation": "portrait",
+    "newArchEnabled": true,
     "userInterfaceStyle": "dark",
     "icon": "./assets/icon.png",
     "splash": {
@@ -52,6 +53,14 @@
         {
           "position": "absolute",
           "visibility": "hidden"
+        }
+      ],
+      [
+        "@reactvision/react-viro",
+        {
+          "android": {
+            "xRMode": "AR"
+          }
         }
       ]
     ],

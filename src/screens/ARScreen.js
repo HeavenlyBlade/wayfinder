@@ -1,17 +1,14 @@
-﻿import React, { useEffect, useRef, useState, useCallback, useMemo } from "react";
+﻿import React, { useEffect, useRef, useState, useCallback } from "react";
 import {
   View,
   Text,
   StyleSheet,
   Dimensions,
-  Animated,
-  Easing,
   TouchableOpacity,
   Platform,
   AppState,
 } from "react-native";
-import Svg, { Path, G, Defs, LinearGradient, RadialGradient, Stop, Polygon, Ellipse } from "react-native-svg";
-import { CameraView, useCameraPermissions } from "expo-camera";
+import { useCameraPermissions } from "expo-camera"; // kept for the camera permission gate
 import MapView, {
   Polyline, Marker, PROVIDER_GOOGLE, UrlTile,
 } from "react-native-maps";
@@ -20,7 +17,7 @@ import { StatusBar } from "expo-status-bar";
 
 import useLocation from "../hooks/useLocation";
 import { setCompassOffset, getCompassOffset } from "../hooks/useLocation";
-import { bearingTo, distanceTo, projectToScreen } from "../utils/arMath";
+import { bearingTo, distanceTo } from "../utils/arMath";
 import { aStar, getWaypoints, nearestNode } from "../utils/pathfinding";
 import { getIndoorStatus, TWO_STAIRCASE_BUILDINGS } from "../utils/indoorDetection";
 import { NODES } from "../constants/campusGraph";
@@ -34,6 +31,7 @@ import ArrivalPrompt from "../components/ArrivalPrompt";
 import BearingHUD from "../components/BearingHUD";
 import CompassCalibrator from "../components/CompassCalibrator";
 import ARTutorial from "../components/ARTutorial";
+import ViroARNavScene from "../components/ViroARNavScene";
 
 const { width: W, height: H } = Dimensions.get("window");
 const GREEN       = "#00C853";
@@ -86,136 +84,6 @@ async function checkOnline() {
   } catch (_) {
     return false;
   }
-}
-
-// ── 3D Navigation Arrow ───────────────────────────────────────────────────────
-function NavigationArrow({ angleDiff }) {
-  const rotAnim = useRef(new Animated.Value(angleDiff ?? 0)).current;
-
-  useEffect(() => {
-    const current = rotAnim.__getValue ? rotAnim.__getValue() : 0;
-    let target = angleDiff ?? 0;
-    let diff = target - (current % 360);
-    if (diff > 180)  diff -= 360;
-    if (diff < -180) diff += 360;
-    Animated.timing(rotAnim, {
-      toValue: current + diff,
-      duration: 80,
-      easing: Easing.out(Easing.quad),
-      useNativeDriver: true,
-    }).start();
-  }, [angleDiff]);
-
-  const rotation = rotAnim.interpolate({
-    inputRange:  [-360, 360],
-    outputRange: ["-360deg", "360deg"],
-  });
-
-  const isBehind   = Math.abs(angleDiff ?? 0) > 120;
-  const baseColor  = isBehind ? "#ff5555" : GREEN;
-  const topColor   = isBehind ? "#ff8888" : "#4dff91";
-  const sideColorL = isBehind ? "#cc3333" : "#00993d";
-  const sideColorR = isBehind ? "#992222" : "#006628";
-  const backColor  = isBehind ? "#7a1a1a" : "#004d1f";
-
-  const TOP = {
-    tipX: 50,  tipY: 3,
-    wL:  16,   wLy: 50,
-    wR:  84,   wRy: 50,
-    nL:  36,   nLy: 44,
-    nR:  64,   nRy: 44,
-    sL:  36,   sLy:108,
-    sR:  64,   sRy:108,
-  };
-  const topPoints =
-    `${TOP.tipX},${TOP.tipY} ${TOP.wR},${TOP.wRy} ${TOP.nR},${TOP.nRy} ` +
-    `${TOP.sR},${TOP.sRy} ${TOP.sL},${TOP.sLy} ${TOP.nL},${TOP.nLy} ${TOP.wL},${TOP.wLy}`;
-
-  const DX = 6;
-  const DY = 8;
-
-  const backPoints =
-    `${TOP.tipX+DX},${TOP.tipY+DY} ${TOP.wR+DX},${TOP.wRy+DY} ${TOP.nR+DX},${TOP.nRy+DY} ` +
-    `${TOP.sR+DX},${TOP.sRy+DY} ${TOP.sL+DX},${TOP.sLy+DY} ${TOP.nL+DX},${TOP.nLy+DY} ${TOP.wL+DX},${TOP.wLy+DY}`;
-
-  const rightWall =
-    `${TOP.tipX},${TOP.tipY} ${TOP.wR},${TOP.wRy} ${TOP.nR},${TOP.nRy} ${TOP.sR},${TOP.sRy} ` +
-    `${TOP.sR+DX},${TOP.sRy+DY} ${TOP.nR+DX},${TOP.nRy+DY} ${TOP.wR+DX},${TOP.wRy+DY} ${TOP.tipX+DX},${TOP.tipY+DY}`;
-
-  const leftWall =
-    `${TOP.tipX},${TOP.tipY} ${TOP.wL},${TOP.wLy} ${TOP.nL},${TOP.nLy} ${TOP.sL},${TOP.sLy} ` +
-    `${TOP.sL+DX},${TOP.sLy+DY} ${TOP.nL+DX},${TOP.nLy+DY} ${TOP.wL+DX},${TOP.wLy+DY} ${TOP.tipX+DX},${TOP.tipY+DY}`;
-
-  const bottomWall =
-    `${TOP.sL},${TOP.sLy} ${TOP.sR},${TOP.sRy} ` +
-    `${TOP.sR+DX},${TOP.sRy+DY} ${TOP.sL+DX},${TOP.sLy+DY}`;
-
-  return (
-    <Animated.View
-      style={[s.arrowContainer, { transform: [{ rotate: rotation }] }]}
-      pointerEvents="none"
-    >
-      <Svg width={96} height={120} viewBox="0 0 106 126" pointerEvents="none">
-        <Defs>
-          <LinearGradient id="topGrad" x1="0.5" y1="0" x2="0.5" y2="1">
-            <Stop offset="0"   stopColor={topColor}  stopOpacity="1" />
-            <Stop offset="0.5" stopColor={baseColor} stopOpacity="1" />
-            <Stop offset="1"   stopColor={sideColorL} stopOpacity="1" />
-          </LinearGradient>
-          <RadialGradient id="shadowGrad" cx="50%" cy="50%" r="50%">
-            <Stop offset="0"   stopColor="#000000" stopOpacity="0.55" />
-            <Stop offset="1"   stopColor="#000000" stopOpacity="0" />
-          </RadialGradient>
-        </Defs>
-
-        <Ellipse
-          cx={53 + DX / 2}
-          cy={112}
-          rx={22}
-          ry={6}
-          fill="url(#shadowGrad)"
-        />
-
-        <Polygon
-          points={backPoints}
-          fill={backColor}
-          opacity={0.85}
-        />
-
-        <Polygon
-          points={rightWall}
-          fill={sideColorR}
-        />
-
-        <Polygon
-          points={leftWall}
-          fill={sideColorL}
-        />
-
-        <Polygon
-          points={bottomWall}
-          fill={backColor}
-        />
-
-        <Polygon
-          points={topPoints}
-          fill="url(#topGrad)"
-          stroke="rgba(255,255,255,0.55)"
-          strokeWidth={1.2}
-          strokeLinejoin="round"
-        />
-
-        <Path
-          d={`M${TOP.tipX},${TOP.tipY} L${TOP.wL},${TOP.wLy} L${TOP.nL},${TOP.nLy} L${TOP.sL},${TOP.sLy}`}
-          fill="none"
-          stroke="rgba(255,255,255,0.45)"
-          strokeWidth={1.5}
-          strokeLinecap="round"
-          strokeLinejoin="round"
-        />
-      </Svg>
-    </Animated.View>
-  );
 }
 
 // ── Main screen ───────────────────────────────────────────────────────────────
@@ -415,26 +283,6 @@ export default function ARScreen({ route, navigation }) {
 
   }, [location, heading, destinationId, indoorStatus]);
 
-  // ── Project orb trail onto camera screen ─────────────────────────────────
-  const projectedOrbs = useMemo(() => {
-    if (!location || heading == null || orbTrailRef.current.length === 0) return [];
-    const nextFive = orbTrailRef.current.slice(0, 5);
-    return nextFive.map((wp, i) => {
-      const projected = projectToScreen({
-        userLat: location.lat,
-        userLng: location.lng,
-        targetLat: wp.lat,
-        targetLng: wp.lng,
-        compassHeading: heading,
-        hFov: 65,
-        screenW: W,
-        screenH: CAM_HEIGHT,
-      });
-      return { ...projected, key: i };
-    }).filter(p => p.visible);
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [location, heading]);
-
   // ── Destination info ──────────────────────────────────────────────────────
   const destBuilding = BUILDINGS[destinationId];
   const destName     = destBuilding?.name
@@ -491,29 +339,14 @@ export default function ARScreen({ route, navigation }) {
       ═══════════════════════════════════════════════════════════ */}
       <View style={s.cameraSection}>
 
-        {/* Camera feed */}
-        <CameraView style={StyleSheet.absoluteFill} facing="back" />
-
-        {/* AR orb trail — projected waypoints */}
-        {!isLoading && !arrived && projectedOrbs.map((orb) => {
-          const ORB_RADIUS = Math.max(8, orb.orbSize ?? 24) / 2;
-          return (
-            <Animated.View
-              key={orb.key}
-              style={[
-                s.arOrb,
-                {
-                  position: 'absolute',
-                  left: orb.x - ORB_RADIUS,
-                  top: orb.y - ORB_RADIUS,
-                  width: ORB_RADIUS * 2,
-                  height: ORB_RADIUS * 2,
-                  borderRadius: ORB_RADIUS,
-                },
-              ]}
-            />
-          );
-        })}
+        {/* ViroReact AR scene — ARCore ground detection + 3D arrow + orb trail */}
+        <ViroARNavScene
+          style={StyleSheet.absoluteFill}
+          angleDiff={nextAngle}
+          waypoints={orbTrailRef.current.slice(0, 5)}
+          userLocation={location}
+          heading={heading}
+        />
 
         {/* Loading overlay */}
         {isLoading && !arrived && (
@@ -548,12 +381,6 @@ export default function ARScreen({ route, navigation }) {
           </SafeAreaView>
         )}
 
-        {/* Single rotating arrow — ALWAYS visible during navigation */}
-        {!isLoading && !arrived && (
-          <View style={s.arrowWrap} pointerEvents="none">
-            <NavigationArrow angleDiff={nextAngle} />
-          </View>
-        )}
 
         {/* Distance chip — bottom-left of camera */}
         {!isLoading && !arrived && distToNext !== null && (
@@ -783,32 +610,6 @@ const s = StyleSheet.create({
     paddingTop: Platform.OS === "android" ? 36 : 8,
   },
 
-  // Arrow
-  arrowWrap: {
-    position: "absolute",
-    bottom: 20,
-    left: W / 2 - 48,
-    width: 96,
-    height: 120,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  arrowContainer: {
-    width: 96,
-    height: 120,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-
-  // AR orb trail
-  arOrb: {
-    backgroundColor: 'rgba(0, 230, 180, 0.85)',
-    shadowColor: '#00e6b4',
-    shadowRadius: 10,
-    shadowOpacity: 0.9,
-    shadowOffset: { width: 0, height: 0 },
-    elevation: 8,
-  },
 
   distChip: {
     position: "absolute",
