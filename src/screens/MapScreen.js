@@ -126,7 +126,7 @@ export default function MapScreen({ navigation, route }) {
   const [panelHeight,      setPanelHeight]      = useState(58);
   const [searchVisible,    setSearchVisible]    = useState(false);
   const [routeWaypoints,   setRouteWaypoints]   = useState(null);
-  const [isOffline,        setIsOffline]        = useState(false);
+  const [isOffline,        setIsOffline]        = useState(true); // assume offline until connectivity confirmed
   const [mapError,         setMapError]         = useState(false);
 
   const mapRef    = useRef(null);
@@ -168,7 +168,7 @@ export default function MapScreen({ navigation, route }) {
         longitudeDelta: 0.0015,
       }, 600);
     }
-    panelRef.current?.openRoute();
+    // Bottom panel stays collapsed — BuildingCard handles the selection UI
   }, []);
 
   const closeCard = useCallback(() => {
