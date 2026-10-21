@@ -23,8 +23,8 @@ import {
 
 // ── Materials (registered once at module load) ───────────────────────────────
 ViroMaterials.createMaterials({
-  arrowShaft: { lightingModel: "Blinn", diffuseColor: "#00FF88", specularColor: "#ffffff", shininess: 80 },
-  arrowHead:  { lightingModel: "Blinn", diffuseColor: "#00FF88", specularColor: "#ffffff", shininess: 80 },
+  arrowShaft: { lightingModel: "Blinn", diffuseColor: "#00FF88" },
+  arrowHead:  { lightingModel: "Blinn", diffuseColor: "#00FF88" },
   groundRing: { lightingModel: "Constant", diffuseColor: "#00FF88", transparency: 0.5 },
 });
 
