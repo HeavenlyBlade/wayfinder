@@ -1,174 +1,111 @@
 // ─────────────────────────────────────────────────────────────────────────────
 // WAYFINDER — ViroARNavScene
 //
-// A real ViroReact AR navigation scene. It detects a horizontal ground plane,
-// then renders a 3D green navigation arrow on that plane plus a trail of glowing
-// orbs marking the next few waypoints.
+// A ViroReact AR navigation scene. Uses onTrackingUpdated (no plane selector)
+// to show a 3D ViroCylinder + ViroCone arrow 2 m ahead in the AR world.
 //
-// Props (forwarded to the inner scene via ViroARSceneNavigator.viroAppProps):
-//   angleDiff     {number}            — degrees from current compass heading to
-//                                        the next waypoint (the arrow's Y rotation)
-//   waypoints     {Array<{lat,lng}>}   — the next few waypoints (orb trail)
-//   userLocation  {{lat,lng}}          — current GPS fix
-//   heading       {number}             — device compass heading (0 = north)
-//   style         {style}              — sizing for the navigator host view
+// Props (forwarded via ViroARSceneNavigator.viroAppProps):
+//   angleDiff  {number}  — degrees from heading to next waypoint (arrow Y rotation)
+//   style      {style}   — sizing for the navigator host view
 // ─────────────────────────────────────────────────────────────────────────────
 
-import React, { useRef, useState } from "react";
+import React, { useState } from "react";
 import {
   ViroARSceneNavigator,
   ViroARScene,
-  ViroARPlaneSelector,
   ViroText,
-  ViroSphere,
-  ViroBox,
   ViroNode,
+  ViroCylinder,
+  ViroCone,
   ViroMaterials,
   ViroAnimations,
-  ViroTrackingStateConstants,
 } from "@reactvision/react-viro";
-import { bearingTo, distanceTo } from "../utils/arMath";
 
 // ── Materials (registered once at module load) ───────────────────────────────
 ViroMaterials.createMaterials({
-  greenArrow:  { lightingModel: "Blinn",    diffuseColor: "#00C853" },
-  orb:         { lightingModel: "Blinn",    diffuseColor: "#00E6B4" },
-  groundCircle:{ lightingModel: "Constant", diffuseColor: "#00C853", transparency: 0.4 },
+  arrowShaft: { lightingModel: "Blinn", diffuseColor: "#00FF88", specularColor: "#ffffff", shininess: 80 },
+  arrowHead:  { lightingModel: "Blinn", diffuseColor: "#00FF88", specularColor: "#ffffff", shininess: 80 },
+  groundRing: { lightingModel: "Constant", diffuseColor: "#00FF88", transparency: 0.5 },
 });
 
 // ── Animations (registered once at module load) ──────────────────────────────
 ViroAnimations.registerAnimations({
-  arrowBob: {
-    properties: { positionY: "0.3 => 0.4 => 0.3" },
+  arrowGlow: {
+    properties: { scaleX: "1 => 1.08 => 1", scaleZ: "1 => 1.08 => 1" },
     easing: "EaseInOut",
-    duration: 1500,
-    loop: true,
-  },
-  arrowPulse: {
-    properties: { scaleX: "1 => 1.15 => 1", scaleY: "1 => 1.15 => 1", scaleZ: "1 => 1.15 => 1" },
-    easing: "EaseInOut",
-    duration: 1200,
+    duration: 1000,
     loop: true,
   },
 });
 
-// GPS → local AR-world offset (metres). north = −Z, east = +X (ARCore space).
-// anchorHeadingDeg aligns the AR −Z axis to the compass heading captured when
-// the user first selects a ground plane, mapping GPS bearings into the AR frame.
-function gpsToARWorld(userLat, userLng, wpLat, wpLng, anchorHeadingDeg) {
-  const bearing = bearingTo(userLat, userLng, wpLat, wpLng); // 0 = north, 90 = east
-  const dist    = distanceTo(userLat, userLng, wpLat, wpLng); // metres
-  const rad     = ((bearing - anchorHeadingDeg) * Math.PI) / 180;
-  const x =  dist * Math.sin(rad);  // east  = +X
-  const z = -dist * Math.cos(rad);  // north = −Z
-  return [x, 0.15, z];
-}
-
 // ── Inner AR scene (receives viroAppProps as its props) ───────────────────────
 function NavScene(props) {
-  const { angleDiff, waypoints, userLocation, heading } = props;
+  const { angleDiff } = props;
 
-  const [planeFound,    setPlaneFound]    = useState(false);
-  const [anchorHeading, setAnchorHeading] = useState(null);
-  const selectorRef = useRef(null);
+  const [isTracking, setIsTracking] = useState(false);
 
-  // The ground plane is chosen when the user taps a detected surface.
-  function handlePlaneSelected() {
-    setPlaneFound(true);
-    setAnchorHeading(heading ?? 0); // lock the AR frame to the current compass heading
-  }
-
-  // Re-show the scanning hint if AR tracking drops out entirely.
   function handleTrackingUpdated(state) {
-    if (state === ViroTrackingStateConstants.TRACKING_UNAVAILABLE) {
-      setPlaneFound(false);
-    }
+    setIsTracking(state === "NORMAL" || state === "LIMITED");
   }
-
-  // Recompute orb positions each render from the live userLocation + waypoints.
-  const orbs =
-    userLocation && anchorHeading != null && Array.isArray(waypoints) && waypoints.length > 0
-      ? waypoints.map((wp) =>
-          gpsToARWorld(userLocation.lat, userLocation.lng, wp.lat, wp.lng, anchorHeading)
-        )
-      : [];
 
   return (
-    <ViroARScene
-      anchorDetectionTypes={["planesHorizontal"]}
-      onTrackingUpdated={handleTrackingUpdated}
-      onAnchorFound={(a) => selectorRef.current && selectorRef.current.handleAnchorFound(a)}
-      onAnchorUpdated={(a) => selectorRef.current && selectorRef.current.handleAnchorUpdated(a)}
-      onAnchorRemoved={(a) => a && selectorRef.current && selectorRef.current.handleAnchorRemoved(a)}
-    >
-      {/* "scanning for surface…" until a ground plane is selected */}
-      {!planeFound && (
-        <ViroText
-          text="Scanning for surface…"
-          position={[0, 0.05, -1.5]}
-          scale={[0.5, 0.5, 0.5]}
-          width={2}
-          extrusionDepth={0.02}
-          color="#ffffff"
-          outerStroke={{ type: "Outline", width: 0.5, color: "#000000" }}
+    <ViroARScene onTrackingUpdated={handleTrackingUpdated}>
+      {isTracking && (
+        <ViroNode
+          position={[0, 0.15, -2.0]}
+          rotation={[0, angleDiff ?? 0, 0]}
+          animation={{ name: "arrowGlow", run: true, loop: true }}
+        >
+          {/* Shaft — cylinder lying along Z axis */}
+          <ViroCylinder
+            height={0.6}
+            radiusTop={0.04}
+            radiusBottom={0.04}
+            rotation={[-90, 0, 0]}
+            position={[0, 0, 0.15]}
+            materials={["arrowShaft"]}
+          />
+          {/* Cone arrowhead pointing in -Z (forward) direction */}
+          <ViroCone
+            height={0.4}
+            radiusBottom={0.15}
+            radiusTop={0}
+            rotation={[-90, 0, 0]}
+            position={[0, 0, -0.15]}
+            materials={["arrowHead"]}
+          />
+        </ViroNode>
+      )}
+
+      {isTracking && (
+        <ViroCylinder
+          height={0.01}
+          radiusTop={0.3}
+          radiusBottom={0.3}
+          position={[0, 0.01, -2.0]}
+          materials={["groundRing"]}
         />
       )}
 
-      {/* Ground detection + navigation content.
-          Children only render once a plane is selected (tap to place). */}
-      <ViroARPlaneSelector
-        ref={selectorRef}
-        alignment="Horizontal"
-        minWidth={1.5}
-        minHeight={1.5}
-        onPlaneSelected={handlePlaneSelected}
-      >
-        {/* Glowing orb trail — the next few waypoints on the detected plane */}
-        {orbs.map((pos, i) => (
-          <ViroSphere
-            key={i}
-            radius={0.15}
-            widthSegmentCount={16}
-            heightSegmentCount={16}
-            position={pos}
-            materials="orb"
-          />
-        ))}
-
-        {/* Green navigation arrow — ~1.5 m ahead on the plane, rotating with angleDiff */}
-        <ViroNode
-          position={[0, 0.3, -1.5]}
-          rotation={[0, angleDiff ?? 0, 0]}
-          animation={{ name: "arrowBob", run: true, loop: true }}
-        >
-          {/* Main shaft */}
-          <ViroBox width={0.10} height={0.06} length={0.55} position={[0, 0, 0]} materials="greenArrow" />
-          {/* Left wing */}
-          <ViroBox width={0.18} height={0.06} length={0.22} position={[-0.10, 0, -0.28]} rotation={[0, -35, 0]} materials="greenArrow" />
-          {/* Right wing */}
-          <ViroBox width={0.18} height={0.06} length={0.22} position={[0.10, 0, -0.28]} rotation={[0, 35, 0]} materials="greenArrow" />
-        </ViroNode>
-
-        {/* Ground circle shadow marker */}
-        <ViroBox
-          width={0.5}
-          height={0.005}
-          length={0.5}
-          position={[0, 0.002, -1.5]}
-          materials="groundCircle"
+      {!isTracking && (
+        <ViroText
+          text="Initializing AR..."
+          position={[0, 0, -2]}
+          scale={[0.5, 0.5, 0.5]}
+          color="#ffffff"
         />
-      </ViroARPlaneSelector>
+      )}
     </ViroARScene>
   );
 }
 
 // ── Wrapper: hosts the AR scene navigator and forwards props via viroAppProps ─
-export default function ViroARNavScene({ angleDiff, waypoints, userLocation, heading, style }) {
+export default function ViroARNavScene({ angleDiff, style }) {
   return (
     <ViroARSceneNavigator
       style={style}
       initialScene={{ scene: NavScene }}
-      viroAppProps={{ angleDiff, waypoints, userLocation, heading }}
+      viroAppProps={{ angleDiff }}
     />
   );
 }

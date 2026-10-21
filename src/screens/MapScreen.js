@@ -190,6 +190,7 @@ export default function MapScreen({ navigation, route }) {
         ref={mapRef}
         style={StyleSheet.absoluteFill}
         initialRegion={CAMPUS_CENTER}
+        mapType="standard"
         showsUserLocation={true}
         showsMyLocationButton={false}
         showsCompass={true}
