@@ -2,10 +2,10 @@ import "react-native-gesture-handler";
 import React, { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import {
   View, Text, TouchableOpacity, StyleSheet,
-  Dimensions, AppState,
+  Dimensions,
 } from "react-native";
 import MapView, {
-  Polygon, Polyline, Marker, UrlTile,
+  Polygon, Polyline, Marker,
 } from "react-native-maps";
 import {
   IconSearch,
@@ -105,19 +105,6 @@ async function resolveRoute(userLat, userLng, destinationId) {
   return [];
 }
 
-// ── Simple connectivity check via fetch ping ─────────────────────────────────
-async function checkOnline() {
-  try {
-    const res = await fetch('https://tile.openstreetmap.org/0/0/0.png', {
-      method: 'HEAD',
-      cache: 'no-store',
-    });
-    return res.ok;
-  } catch (_) {
-    return false;
-  }
-}
-
 // ─────────────────────────────────────────────────────────────────────────────
 
 export default function MapScreen({ navigation, route }) {
@@ -126,8 +113,6 @@ export default function MapScreen({ navigation, route }) {
   const [panelHeight,      setPanelHeight]      = useState(58);
   const [searchVisible,    setSearchVisible]    = useState(false);
   const [routeWaypoints,   setRouteWaypoints]   = useState(null);
-  const [isOffline,        setIsOffline]        = useState(true); // assume offline until connectivity confirmed
-  const [mapError,         setMapError]         = useState(false);
 
   const mapRef    = useRef(null);
   const panelRef  = useRef(null);
@@ -135,25 +120,6 @@ export default function MapScreen({ navigation, route }) {
   const { settings }               = useSettings();
   const lang = settings?.language ?? "en";
   const { location: userLocation } = useLocation();
-
-  // ── Connectivity check ────────────────────────────────────────────────────
-  useEffect(() => {
-    let mounted = true;
-    function recheck() {
-      checkOnline().then(online => { if (mounted) setIsOffline(!online); });
-    }
-    recheck();
-    const sub = AppState.addEventListener('change', (state) => {
-      if (state === 'active') recheck();
-    });
-    return () => { mounted = false; sub.remove(); };
-  }, []);
-
-  // Also treat a map load error as offline
-  const handleMapLoadingError = useCallback(() => {
-    setMapError(true);
-    setIsOffline(true);
-  }, []);
 
   // ── Building selection helpers ────────────────────────────────────────────
   const selectBuilding = useCallback((buildingId, building) => {
@@ -214,23 +180,15 @@ export default function MapScreen({ navigation, route }) {
     ? routeWaypoints.map(w => ({ latitude: w.lat, longitude: w.lng }))
     : null;
 
-  // ── Map always uses OSM tiles — no API key required ──────────────────────
+  // ── Map uses default provider (no API key needed) ─────────────────────────
 
   return (
     <View style={s.container}>
-
-      {/* ── Map error banner ── */}
-      {mapError && (
-        <View style={s.mapErrorBanner}>
-          <Text style={s.mapErrorText}>Map failed to load. Check your connection or API key.</Text>
-        </View>
-      )}
 
       {/* ── Map ── */}
       <MapView
         ref={mapRef}
         style={StyleSheet.absoluteFill}
-        mapType="none"
         initialRegion={CAMPUS_CENTER}
         showsUserLocation={true}
         showsMyLocationButton={false}
@@ -239,15 +197,7 @@ export default function MapScreen({ navigation, route }) {
         toolbarEnabled={false}
         rotateEnabled={true}
         pitchEnabled={false}
-        onMapLoadingError={handleMapLoadingError}
       >
-        {/* OSM tiles — always on, no API key needed */}
-        <UrlTile
-          urlTemplate="https://tile.openstreetmap.org/{z}/{x}/{y}.png"
-          maximumZ={19}
-          flipY={false}
-          zIndex={-1}
-        />
 
         {/* Building polygon overlays */}
         {BUILDING_OVERLAYS.map(b => {
@@ -426,24 +376,6 @@ export default function MapScreen({ navigation, route }) {
 
 const s = StyleSheet.create({
   container: { flex: 1, backgroundColor: "#071209" },
-
-  mapErrorBanner: {
-    position: "absolute",
-    top: 0,
-    left: 0,
-    right: 0,
-    zIndex: 100,
-    backgroundColor: "rgba(200,50,50,0.92)",
-    paddingVertical: 10,
-    paddingHorizontal: 16,
-    alignItems: "center",
-  },
-  mapErrorText: {
-    fontSize: 12,
-    fontWeight: "700",
-    color: "#fff",
-    textAlign: "center",
-  },
 
   topOverlay: {
     position: "absolute",

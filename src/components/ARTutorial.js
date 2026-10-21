@@ -16,7 +16,7 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 const { width: W, height: H } = Dimensions.get("window");
 const GREEN    = "#00C853";
 const CAM_H    = H * 0.58;
-const STORAGE  = "wayfinder_ar_tutorial_done";
+const STORAGE  = "wayfinder_ar_tutorial_v2";
 
 const STEPS = [
   {
@@ -29,7 +29,7 @@ const STEPS = [
   {
     // Step 2 — Arrow
     title:   "The Arrow",
-    body:    "A green arrow in the camera view always points toward the next waypoint on your route.\n\nFollow it and it will guide you to your destination.",
+    body:    "Point your camera at the floor and slowly move the phone. When a surface grid appears, tap it to place the navigation arrow on the ground.\n\nThe green arrow floats above the surface, always pointing toward your next waypoint.",
     hint:    "Arrow turns red if the destination is behind you.",
     anchor:  "arrow",   // highlight the camera bottom-center area
   },

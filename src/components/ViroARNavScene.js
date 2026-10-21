@@ -31,14 +31,15 @@ import { bearingTo, distanceTo } from "../utils/arMath";
 
 // ── Materials (registered once at module load) ───────────────────────────────
 ViroMaterials.createMaterials({
-  greenArrow: { lightingModel: "Blinn", diffuseColor: "#00C853" },
-  orb:        { lightingModel: "Blinn", diffuseColor: "#00E6B4" },
+  greenArrow:  { lightingModel: "Blinn",    diffuseColor: "#00C853" },
+  orb:         { lightingModel: "Blinn",    diffuseColor: "#00E6B4" },
+  groundCircle:{ lightingModel: "Constant", diffuseColor: "#00C853", transparency: 0.4 },
 });
 
 // ── Animations (registered once at module load) ──────────────────────────────
 ViroAnimations.registerAnimations({
   arrowBob: {
-    properties: { positionY: "0.02 => 0.12 => 0.02" },
+    properties: { positionY: "0.3 => 0.4 => 0.3" },
     easing: "EaseInOut",
     duration: 1500,
     loop: true,
@@ -136,22 +137,26 @@ function NavScene(props) {
 
         {/* Green navigation arrow — ~1.5 m ahead on the plane, rotating with angleDiff */}
         <ViroNode
-          position={[0, 0.02, -1.5]}
+          position={[0, 0.3, -1.5]}
           rotation={[0, angleDiff ?? 0, 0]}
           animation={{ name: "arrowBob", run: true, loop: true }}
         >
-          {/* shaft */}
-          <ViroBox width={0.12} height={0.04} length={0.5} position={[0, 0, 0]} materials="greenArrow" />
-          {/* arrowhead (diamond) */}
-          <ViroBox
-            width={0.34}
-            height={0.04}
-            length={0.34}
-            position={[0, 0, -0.42]}
-            rotation={[0, 45, 0]}
-            materials="greenArrow"
-          />
+          {/* Main shaft */}
+          <ViroBox width={0.10} height={0.06} length={0.55} position={[0, 0, 0]} materials="greenArrow" />
+          {/* Left wing */}
+          <ViroBox width={0.18} height={0.06} length={0.22} position={[-0.10, 0, -0.28]} rotation={[0, -35, 0]} materials="greenArrow" />
+          {/* Right wing */}
+          <ViroBox width={0.18} height={0.06} length={0.22} position={[0.10, 0, -0.28]} rotation={[0, 35, 0]} materials="greenArrow" />
         </ViroNode>
+
+        {/* Ground circle shadow marker */}
+        <ViroBox
+          width={0.5}
+          height={0.005}
+          length={0.5}
+          position={[0, 0.002, -1.5]}
+          materials="groundCircle"
+        />
       </ViroARPlaneSelector>
     </ViroARScene>
   );

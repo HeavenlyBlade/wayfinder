@@ -1,4 +1,4 @@
-﻿import React, { useEffect, useRef, useState, useCallback } from "react";
+﻿import React, { useEffect, useRef, useState } from "react";
 import {
   View,
   Text,
@@ -6,11 +6,10 @@ import {
   Dimensions,
   TouchableOpacity,
   Platform,
-  AppState,
 } from "react-native";
 import { useCameraPermissions } from "expo-camera"; // kept for the camera permission gate
 import MapView, {
-  Polyline, Marker, UrlTile,
+  Polyline, Marker,
 } from "react-native-maps";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { StatusBar } from "expo-status-bar";
@@ -73,19 +72,6 @@ const NO_INDOOR_PROMPT = new Set([
   'main_building_2', 'ea_tower_2', 'sr_building_2',
 ]);
 
-// ── Simple connectivity check via fetch ping ─────────────────────────────────
-async function checkOnline() {
-  try {
-    const res = await fetch('https://tile.openstreetmap.org/0/0/0.png', {
-      method: 'HEAD',
-      cache: 'no-store',
-    });
-    return res.ok;
-  } catch (_) {
-    return false;
-  }
-}
-
 // ── Main screen ───────────────────────────────────────────────────────────────
 export default function ARScreen({ route, navigation }) {
   const { destinationId = "main_building" } = route.params ?? {};
@@ -106,8 +92,6 @@ export default function ARScreen({ route, navigation }) {
   const [staircasePickerVisible, setStaircasePickerVisible] = useState(false);
   const [selectedStaircase,      setSelectedStaircase]      = useState(null);
   const [arrivalPromptVisible,   setArrivalPromptVisible]   = useState(false);
-  const [isOffline,     setIsOffline]     = useState(false);
-  const [miniMapError,  setMiniMapError]  = useState(false);
 
   const orbTrailRef     = useRef([]);
   const waypointsRef    = useRef([]);
@@ -116,24 +100,6 @@ export default function ARScreen({ route, navigation }) {
   const arrivalCountRef = useRef(0);
   const miniMapRef      = useRef(null);
   const isReroutingRef  = useRef(false);
-
-  // ── Connectivity check ─────────────────────────────────────────────────────
-  useEffect(() => {
-    let mounted = true;
-    function recheck() {
-      checkOnline().then(online => { if (mounted) setIsOffline(!online); });
-    }
-    recheck();
-    const sub = AppState.addEventListener('change', (state) => {
-      if (state === 'active') recheck();
-    });
-    return () => { mounted = false; sub.remove(); };
-  }, []);
-
-  const handleMiniMapError = useCallback(() => {
-    setMiniMapError(true);
-    setIsOffline(true);
-  }, []);
 
   function handleOffsetChange(newOffset) {
     setCompassOffset(newOffset);
@@ -325,7 +291,7 @@ export default function ARScreen({ route, navigation }) {
 
   const isLoading = !location || !routeReady;
 
-  // Mini-map always uses OSM tiles — no API key needed
+  // Mini-map uses default provider — no API key needed
 
   return (
     <View style={s.fill}>
@@ -434,7 +400,6 @@ export default function ARScreen({ route, navigation }) {
         <MapView
           ref={miniMapRef}
           style={s.miniMap}
-          mapType="none"
           initialRegion={{
             latitude:       location?.lat ?? 13.9617,
             longitude:      location?.lng ?? 121.6124,
@@ -450,15 +415,7 @@ export default function ARScreen({ route, navigation }) {
           pitchEnabled={false}
           toolbarEnabled={false}
           pointerEvents="none"
-          onMapLoadingError={handleMiniMapError}
         >
-          {/* OSM tiles — always on, no API key needed */}
-          <UrlTile
-            urlTemplate="https://tile.openstreetmap.org/{z}/{x}/{y}.png"
-            maximumZ={19}
-            flipY={false}
-            zIndex={-1}
-          />
 
           {/* Route polyline */}
           {routeCoords && routeCoords.length > 1 && (

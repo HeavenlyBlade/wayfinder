@@ -189,7 +189,7 @@ export default function BuildingCard({ building, userLocation, onClose, onNaviga
 const s = StyleSheet.create({
   card: {
     position: "absolute",
-    bottom: 320,
+    bottom: 80,
     alignSelf: "center",
     width: width - 32,
     backgroundColor: "rgba(10,14,20,0.97)",
