@@ -10,7 +10,7 @@ import {
 } from "react-native";
 import { useCameraPermissions } from "expo-camera"; // kept for the camera permission gate
 import MapView, {
-  Polyline, Marker, PROVIDER_GOOGLE, UrlTile,
+  Polyline, Marker, UrlTile,
 } from "react-native-maps";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { StatusBar } from "expo-status-bar";
@@ -325,10 +325,7 @@ export default function ARScreen({ route, navigation }) {
 
   const isLoading = !location || !routeReady;
 
-  // Mini-map props: online = Google satellite, offline = OSM tile fallback
-  const miniMapProps = isOffline
-    ? { mapType: "none" }
-    : { provider: PROVIDER_GOOGLE, mapType: "satellite" };
+  // Mini-map always uses OSM tiles — no API key needed
 
   return (
     <View style={s.fill}>
@@ -437,7 +434,7 @@ export default function ARScreen({ route, navigation }) {
         <MapView
           ref={miniMapRef}
           style={s.miniMap}
-          {...miniMapProps}
+          mapType="none"
           initialRegion={{
             latitude:       location?.lat ?? 13.9617,
             longitude:      location?.lng ?? 121.6124,
@@ -455,15 +452,13 @@ export default function ARScreen({ route, navigation }) {
           pointerEvents="none"
           onMapLoadingError={handleMiniMapError}
         >
-          {/* OSM tile fallback when offline */}
-          {isOffline && (
-            <UrlTile
-              urlTemplate="https://tile.openstreetmap.org/{z}/{x}/{y}.png"
-              maximumZ={19}
-              flipY={false}
-              zIndex={-1}
-            />
-          )}
+          {/* OSM tiles — always on, no API key needed */}
+          <UrlTile
+            urlTemplate="https://tile.openstreetmap.org/{z}/{x}/{y}.png"
+            maximumZ={19}
+            flipY={false}
+            zIndex={-1}
+          />
 
           {/* Route polyline */}
           {routeCoords && routeCoords.length > 1 && (

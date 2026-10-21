@@ -5,7 +5,7 @@ import {
   Dimensions, AppState,
 } from "react-native";
 import MapView, {
-  Polygon, Polyline, Marker, PROVIDER_GOOGLE, UrlTile,
+  Polygon, Polyline, Marker, UrlTile,
 } from "react-native-maps";
 import {
   IconSearch,
@@ -214,10 +214,7 @@ export default function MapScreen({ navigation, route }) {
     ? routeWaypoints.map(w => ({ latitude: w.lat, longitude: w.lng }))
     : null;
 
-  // ── Map props: online = Google satellite, offline = OSM tile fallback ─────
-  const mapProps = isOffline
-    ? { mapType: "none" }
-    : { provider: PROVIDER_GOOGLE, mapType: "satellite" };
+  // ── Map always uses OSM tiles — no API key required ──────────────────────
 
   return (
     <View style={s.container}>
@@ -233,7 +230,7 @@ export default function MapScreen({ navigation, route }) {
       <MapView
         ref={mapRef}
         style={StyleSheet.absoluteFill}
-        {...mapProps}
+        mapType="none"
         initialRegion={CAMPUS_CENTER}
         showsUserLocation={true}
         showsMyLocationButton={false}
@@ -244,15 +241,13 @@ export default function MapScreen({ navigation, route }) {
         pitchEnabled={false}
         onMapLoadingError={handleMapLoadingError}
       >
-        {/* OSM tile fallback when offline */}
-        {isOffline && (
-          <UrlTile
-            urlTemplate="https://tile.openstreetmap.org/{z}/{x}/{y}.png"
-            maximumZ={19}
-            flipY={false}
-            zIndex={-1}
-          />
-        )}
+        {/* OSM tiles — always on, no API key needed */}
+        <UrlTile
+          urlTemplate="https://tile.openstreetmap.org/{z}/{x}/{y}.png"
+          maximumZ={19}
+          flipY={false}
+          zIndex={-1}
+        />
 
         {/* Building polygon overlays */}
         {BUILDING_OVERLAYS.map(b => {
