@@ -1,4 +1,4 @@
-﻿import React, { useEffect, useRef, useState } from "react";
+﻿import React, { useCallback, useEffect, useRef, useState } from "react";
 import {
   View,
   Text,
@@ -8,9 +8,6 @@ import {
   Platform,
 } from "react-native";
 import { useCameraPermissions } from "expo-camera"; // kept for the camera permission gate
-import MapView, {
-  Polyline, Marker,
-} from "react-native-maps";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { StatusBar } from "expo-status-bar";
 
@@ -98,7 +95,6 @@ export default function ARScreen({ route, navigation }) {
   const routeLoadedRef  = useRef(false);
   const arrivedRef      = useRef(false);
   const arrivalCountRef = useRef(0);
-  const miniMapRef      = useRef(null);
   const isReroutingRef  = useRef(false);
 
   function handleOffsetChange(newOffset) {
@@ -238,15 +234,6 @@ export default function ARScreen({ route, navigation }) {
     const d = distanceTo(location.lat, location.lng, next.lat, next.lng);
     setDistToNext(Math.round(d));
 
-    if (miniMapRef.current && location) {
-      miniMapRef.current.animateToRegion({
-        latitude:       location.lat,
-        longitude:      location.lng,
-        latitudeDelta:  0.002,
-        longitudeDelta: 0.002,
-      }, 800);
-    }
-
   }, [location, heading, destinationId, indoorStatus]);
 
   // ── Destination info ──────────────────────────────────────────────────────
@@ -297,19 +284,19 @@ export default function ARScreen({ route, navigation }) {
     <View style={s.fill}>
       <StatusBar style="light" hidden />
 
-      {/* ═══════════════════════════════════════════════════════════
-          TOP 58% — LIVE CAMERA + ARROW
-      ═══════════════════════════════════════════════════════════ */}
-      <View style={s.cameraSection}>
+      {/* ViroReact AR scene — must be first child, fills entire screen */}
+      <ViroARNavScene
+        style={StyleSheet.absoluteFill}
+        angleDiff={nextAngle}
+        waypoints={orbTrailRef.current.slice(0, 5)}
+        userLocation={location}
+        heading={heading}
+      />
 
-        {/* ViroReact AR scene — ARCore ground detection + 3D arrow + orb trail */}
-        <ViroARNavScene
-          style={StyleSheet.absoluteFill}
-          angleDiff={nextAngle}
-          waypoints={orbTrailRef.current.slice(0, 5)}
-          userLocation={location}
-          heading={heading}
-        />
+      {/* ═══════════════════════════════════════════════════════════
+          HUD OVERLAY — absolutely positioned on top of AR camera
+      ═══════════════════════════════════════════════════════════ */}
+      <View style={s.hudOverlay} pointerEvents="box-none">
 
         {/* Loading overlay */}
         {isLoading && !arrived && (
@@ -332,7 +319,7 @@ export default function ARScreen({ route, navigation }) {
           </View>
         )}
 
-        {/* BearingHUD arc — top of camera */}
+        {/* BearingHUD arc — top of screen */}
         {!isLoading && !arrived && (
           <SafeAreaView style={s.hudTop} edges={["top"]} pointerEvents="box-none">
             <BearingHUD
@@ -344,8 +331,7 @@ export default function ARScreen({ route, navigation }) {
           </SafeAreaView>
         )}
 
-
-        {/* Distance chip — bottom-left of camera */}
+        {/* Distance chip — bottom-left, above mini-map */}
         {!isLoading && !arrived && distToNext !== null && (
           <View style={s.distChip} pointerEvents="none">
             <Text style={s.distVal}>{distToNext}m</Text>
@@ -353,7 +339,7 @@ export default function ARScreen({ route, navigation }) {
           </View>
         )}
 
-        {/* Compass calibrator — bottom-right of camera */}
+        {/* Compass calibrator — bottom-right, above mini-map */}
         {!isLoading && !arrived && (
           <View style={s.calibratorWrap}>
             <CompassCalibrator
@@ -376,7 +362,7 @@ export default function ARScreen({ route, navigation }) {
       </View>
 
       {/* ═══════════════════════════════════════════════════════════
-          BOTTOM 42% — MINI MAP
+          BOTTOM PANEL — Route overview (replaces white MapView)
       ═══════════════════════════════════════════════════════════ */}
       <View style={s.mapSection}>
 
@@ -396,59 +382,14 @@ export default function ARScreen({ route, navigation }) {
           )}
         </View>
 
-        {/* Mini map */}
-        <MapView
-          ref={miniMapRef}
-          style={s.miniMap}
-          initialRegion={{
-            latitude:       location?.lat ?? 13.9617,
-            longitude:      location?.lng ?? 121.6124,
-            latitudeDelta:  0.002,
-            longitudeDelta: 0.002,
-          }}
-          showsUserLocation={true}
-          showsMyLocationButton={false}
-          showsCompass={false}
-          scrollEnabled={false}
-          zoomEnabled={false}
-          rotateEnabled={false}
-          pitchEnabled={false}
-          toolbarEnabled={false}
-          pointerEvents="none"
-        >
-
-          {/* Route polyline */}
-          {routeCoords && routeCoords.length > 1 && (
-            <>
-              <Polyline
-                coordinates={routeCoords}
-                strokeColor="rgba(0,0,0,0.4)"
-                strokeWidth={6}
-                lineCap="round"
-              />
-              <Polyline
-                coordinates={routeCoords}
-                strokeColor={GREEN}
-                strokeWidth={3}
-                lineCap="round"
-                lineDashPattern={[8, 6]}
-              />
-            </>
+        {/* Route overview panel — replaces MapView to avoid white map issue */}
+        <View style={s.routeOverviewPanel}>
+          <Text style={s.routeOverviewTitle}>Route Overview</Text>
+          {totalDist != null && (
+            <Text style={s.routeOverviewDist}>{totalDist}m to {destName}</Text>
           )}
-
-          {/* Destination marker */}
-          {destNode && (
-            <Marker
-              coordinate={{ latitude: destNode.lat, longitude: destNode.lng }}
-              anchor={{ x: 0.5, y: 1 }}
-              tracksViewChanges={false}
-            >
-              <View style={s.destMarker}>
-                <Text style={s.destMarkerText}>*</Text>
-              </View>
-            </Marker>
-          )}
-        </MapView>
+          <Text style={s.routeOverviewHint}>▶ Follow the AR arrows to navigate</Text>
+        </View>
 
         {/* Arrived overlay on map section */}
         {arrived && (
@@ -521,12 +462,10 @@ const s = StyleSheet.create({
   fill:   { flex: 1, backgroundColor: "#000" },
   center: { flex: 1, alignItems: "center", justifyContent: "center", gap: 12, padding: 24 },
 
-  // ── Camera section ──
-  cameraSection: {
-    width: W,
-    height: CAM_HEIGHT,
-    overflow: "hidden",
-    backgroundColor: "#000",
+  // ── HUD overlay ──
+  hudOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    zIndex: 10,
   },
 
   loadingOverlay: {
@@ -565,7 +504,7 @@ const s = StyleSheet.create({
 
   distChip: {
     position: "absolute",
-    bottom: 24,
+    bottom: MAP_HEIGHT + 24,
     left: 16,
     backgroundColor: GREEN,
     borderRadius: 12,
@@ -579,7 +518,7 @@ const s = StyleSheet.create({
 
   calibratorWrap: {
     position: "absolute",
-    bottom: 20,
+    bottom: MAP_HEIGHT + 20,
     right: 12,
   },
 
@@ -598,7 +537,10 @@ const s = StyleSheet.create({
 
   // ── Map section ──
   mapSection: {
-    width: W,
+    position: "absolute",
+    bottom: 0,
+    left: 0,
+    right: 0,
     height: MAP_HEIGHT,
     backgroundColor: "#0d1a10",
   },
@@ -620,12 +562,31 @@ const s = StyleSheet.create({
   nextLabel:     { fontSize: 9,  color: "rgba(255,255,255,0.4)" },
   nextDist:      { fontSize: 14, fontWeight: "900", color: GREEN },
 
-  miniMap: {
+  routeOverviewPanel: {
     flex: 1,
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 8,
+    paddingHorizontal: 24,
   },
-
-  destMarker: { padding: 2 },
-  destMarkerText: { fontSize: 20 },
+  routeOverviewTitle: {
+    fontSize: 13,
+    fontWeight: "700",
+    color: "rgba(255,255,255,0.35)",
+    textTransform: "uppercase",
+    letterSpacing: 1.5,
+  },
+  routeOverviewDist: {
+    fontSize: 20,
+    fontWeight: "900",
+    color: GREEN,
+    textAlign: "center",
+  },
+  routeOverviewHint: {
+    fontSize: 12,
+    color: "rgba(255,255,255,0.4)",
+    marginTop: 4,
+  },
 
   // Arrived overlay on map
   arrivedMapOverlay: {
