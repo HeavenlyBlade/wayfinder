@@ -21,6 +21,8 @@ export const NODES = {
   J4: { id: 'J4', lat: 13.9616, lng: 121.6121 },
   J5: { id: 'J5', lat: 13.9616, lng: 121.6126 },
   J7: { id: 'J7', lat: 13.9624, lng: 121.6128 },
+  MB1: { id: 'MB1', lat: 13.96167,  lng: 121.61239  },
+  MB2: { id: 'MB2', lat: 13.961628, lng: 121.612386 },
 
   // R-nodes: Bottom perimeter road (southwest to east)
   R01: { id: 'R01', lat: 13.960943, lng: 121.611350 },
@@ -98,15 +100,15 @@ export const NODES = {
   new_building:   { id: 'new_building',   lat: 13.9613,    lng: 121.6121   }, // RFID — mandatory entry
   engineering:    { id: 'engineering',    lat: 13.961637,  lng: 121.612220 },
   // ea_tower entrance north of R76 — path continues northeast, no south backtrack
-  ea_tower:       { id: 'ea_tower',       lat: 13.961820,  lng: 121.612720 },
+  ea_tower:       { id: 'ea_tower',       lat: 13.961744,  lng: 121.612746 },
   ea_tower_2:     { id: 'ea_tower_2',     lat: 13.962093,  lng: 121.612822 },
   // ibed entrance north-west of R48 — path goes north into entrance, no south backtrack
-  ibed:           { id: 'ibed',           lat: 13.961490,  lng: 121.611980 },
+  ibed:           { id: 'ibed',           lat: 13.9614,    lng: 121.6121   },
   ibed_2:         { id: 'ibed_2',         lat: 13.961546,  lng: 121.612393 },
   sr_building:    { id: 'sr_building',    lat: 13.961530,  lng: 121.612643 },
   sr_building_2:  { id: 'sr_building_2',  lat: 13.961188,  lng: 121.612581 },
   // canteen entrance between bench path and ibed_2 — south-west of ibed_2, east of bench nodes
-  canteen:        { id: 'canteen',        lat: 13.961500,  lng: 121.611960 },
+  canteen:        { id: 'canteen',        lat: 13.9614,    lng: 121.6119   },
   canteen_two:    { id: 'canteen_two',    lat: 13.9617,    lng: 121.6128   },
   kitchen_hall:   { id: 'kitchen_hall',   lat: 13.9624,    lng: 121.6129   },
   gymnasium:      { id: 'gymnasium',      lat: 13.9624,    lng: 121.6128   },
@@ -159,6 +161,8 @@ const EDGES = [
 
   // ── NEW BUILDING: MANDATORY CAMPUS ENTRY ──────────────────────────────────
   ['R15',              'new_building'],  // perimeter → RFID entrance
+  ['R15',              'R37'],           // perimeter → interior shortcut node
+  ['R37',              'R38'],           // R37 → interior hub
   ['new_building',     'R38'],           // RFID → interior hub
   // Canteen ONLY via ibed_2 interior path — NO direct new_building→canteen shortcut
   // (removed: ['new_building', 'canteen'])
@@ -188,6 +192,10 @@ const EDGES = [
   ['J5',               'sr_building'],
   ['J5',               'canteen_two'],
   ['J5',               'J7'],
+  ['J5',               'MB2'],
+  ['MB2',              'MB1'],
+  ['MB1',              'main_building'],
+  ['sr_building_2',    'R22'],
   ['J7',               'gymnasium'],
   ['J7',               'kitchen_hall'],
   ['J7',               'R82'],           // direct north spine connection
