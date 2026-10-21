@@ -43,12 +43,12 @@ const STEPS = [
 ];
 
 export default function ARTutorial({ lang = "en" }) {
-  const [visible, setVisible] = useState(false);
+  const [visible, setVisible] = useState(true); // default true, hide only if already seen
   const [step,    setStep]    = useState(0);
 
   useEffect(() => {
     AsyncStorage.getItem(STORAGE).then(val => {
-      if (val !== "true") setVisible(true);
+      if (val === "true") setVisible(false); // already seen — hide it
     });
   }, []);
 

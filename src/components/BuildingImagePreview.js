@@ -51,8 +51,6 @@ const s = StyleSheet.create({
     width: '100%',
     alignSelf: 'stretch',
     overflow: 'hidden',
-    // borderRadius intentionally omitted — parent (BuildingCard) sets it so
-    // overflow:hidden clips to the card's own corner radius, not a hardcoded value
   },
   image: {
     width: '100%',
@@ -60,6 +58,7 @@ const s = StyleSheet.create({
   },
   placeholder: {
     flex: 1,
+    width: '100%',
     backgroundColor: 'rgba(20,30,22,0.95)',
     borderBottomWidth: 1,
     borderBottomColor: colors.border,

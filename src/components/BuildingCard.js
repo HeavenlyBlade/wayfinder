@@ -299,6 +299,5 @@ const s = StyleSheet.create({
     marginBottom: 14,
     borderTopLeftRadius: radius.lg,
     borderTopRightRadius: radius.lg,
-    overflow: "hidden",
   },
 });
