@@ -16,22 +16,25 @@
 // ─────────────────────────────────────────────────────────────────────────────
 
 export const BUILDING_IMAGES = {
-  gate:               null,
-  motorcycle_parking: null,
-  parking_lot:        null,
-  canteen:            null,
-  canteen_two:        null,
-  ccss:               null,
-  chapel:             null,
-  new_building:       null,
-  ibed:               null,
-  kindergarten:       null,
-  engineering:        null,
-  main_building:      null,
-  sr_building:        null,
-  ea_tower:           null,
-  kitchen_hall:       null,
-  gymnasium:          null,
+  // ── Photos available ──────────────────────────────────────────────────────
+  chapel:             require('../../assets/buildings/chapel.jpg'),
+  ea_tower:           require('../../assets/buildings/ea_tower.jpg'),
+  gymnasium:          require('../../assets/buildings/gymnasium.jpg'),
+  kindergarten:       require('../../assets/buildings/kindergarten.jpg'),
+  kitchen_hall:       require('../../assets/buildings/kitchen_hall.jpg'),
+  main_building:      require('../../assets/buildings/main_building.jpg'),
+  engineering:        require('../../assets/buildings/engineering.jpg'),
+  canteen_two:        require('../../assets/buildings/canteen_two.jpg'),
+  sr_building:        require('../../assets/buildings/sr_building.jpg'),
+
+  // ── Photos still needed ───────────────────────────────────────────────────
+  gate:               null,   // Main Gate
+  motorcycle_parking: null,   // Moto Parking
+  parking_lot:        null,   // Parking Lot
+  canteen:            null,   // Big Canteen (Canteen 1)
+  new_building:       null,   // New Building (RFID entrance)
+  ibed:               null,   // IBED Building
+  ccss:               null,   // CCSS Building
 };
 
 /**
