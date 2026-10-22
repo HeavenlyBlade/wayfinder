@@ -16,28 +16,28 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 const { width: W, height: H } = Dimensions.get("window");
 const GREEN    = "#00C853";
 const CAM_H    = H * 0.58;
-const STORAGE  = "wayfinder_ar_tutorial_v2";
+const STORAGE  = "wayfinder_ar_tutorial_v3";
 
 const STEPS = [
   {
     // Step 1 — Overview
     title:   "AR Navigation",
-    body:    "The screen is split into two parts.\n\nTop half = live camera.\nBottom half = live map with your route.",
+    body:    "The screen is split into two parts.\n\nTop = live AR camera view.\nBottom = route overview with destination and distance.",
     hint:    null,
     anchor:  null,
   },
   {
-    // Step 2 — Arrow
-    title:   "The Arrow",
-    body:    "Point your camera at the floor and slowly move the phone. When a surface grid appears, tap it to place the navigation arrow on the ground.\n\nThe green arrow floats above the surface, always pointing toward your next waypoint.",
-    hint:    "Arrow turns red if the destination is behind you.",
-    anchor:  "arrow",   // highlight the camera bottom-center area
+    // Step 2 — AR Arrow (updated for ViroReact tap-to-place)
+    title:   "The AR Arrow",
+    body:    "Point your camera at the floor in front of you. A green 3D arrow will appear on the ground surface, pointing toward your next waypoint.\n\nFollow it and it will guide you to your destination.",
+    hint:    "The arrow appears automatically — no tapping needed. Just point at the floor.",
+    anchor:  "arrow",
   },
   {
     // Step 3 — Calibration
     title:   "Compass Calibration",
-    body:    "If the arrow feels off, tap the Calibrate button (bottom-right of camera).\n\nTap +5 or -5 degrees to correct the heading until the arrow aligns with the real path.",
-    hint:    "Do the figure-8 motion in Google Maps first for best accuracy.",
+    body:    "If the arrow feels off, tap the CAL button (bottom-right of camera).\n\nTap + or - to correct the heading until the arrow aligns with the real path.",
+    hint:    "Do the figure-8 motion first for best accuracy.",
     anchor:  "cal",
   },
 ];

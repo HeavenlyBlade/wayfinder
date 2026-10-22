@@ -136,7 +136,7 @@ export default function SettingsScreen({ navigation }) {
                     {
                       text: "Reset",
                       onPress: async () => {
-                        await AsyncStorage.removeItem("wayfinder_ar_tutorial_v2");
+                        await AsyncStorage.removeItem("wayfinder_ar_tutorial_v3");
                         Alert.alert("Done", "AR tutorial will appear on your next navigation.");
                       },
                     },

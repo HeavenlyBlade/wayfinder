@@ -5,7 +5,7 @@ import {
   Dimensions,
 } from "react-native";
 import MapView, {
-  Polygon, Polyline, Marker,
+  Polygon, Polyline, Marker, PROVIDER_GOOGLE,
 } from "react-native-maps";
 import {
   IconSearch,
@@ -180,7 +180,6 @@ export default function MapScreen({ navigation, route }) {
     ? routeWaypoints.map(w => ({ latitude: w.lat, longitude: w.lng }))
     : null;
 
-  // ── Map uses default provider (no API key needed) ─────────────────────────
 
   return (
     <View style={s.container}>
@@ -189,8 +188,9 @@ export default function MapScreen({ navigation, route }) {
       <MapView
         ref={mapRef}
         style={StyleSheet.absoluteFill}
+        provider={PROVIDER_GOOGLE}
+        mapType="satellite"
         initialRegion={CAMPUS_CENTER}
-        mapType="standard"
         showsUserLocation={true}
         showsMyLocationButton={false}
         showsCompass={true}
