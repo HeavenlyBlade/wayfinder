@@ -283,6 +283,17 @@ export default function HomeScreen({ navigation }) {
           setSearchVisible(false);
           navigation.navigate("Map", { openBuilding: building.id });
         }}
+        onSelectRoom={(roomEntry, building) => {
+          setSearchVisible(false);
+          navigation.navigate("Map", {
+            openBuilding: building.id,
+            openRoom: {
+              room:       roomEntry.room,
+              floor:      roomEntry.floor,
+              floorLabel: roomEntry.floorLabel,
+            },
+          });
+        }}
       />
     </View>
   );

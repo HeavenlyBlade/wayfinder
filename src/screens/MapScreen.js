@@ -113,6 +113,7 @@ export default function MapScreen({ navigation, route }) {
   const [panelHeight,      setPanelHeight]      = useState(58);
   const [searchVisible,    setSearchVisible]    = useState(false);
   const [routeWaypoints,   setRouteWaypoints]   = useState(null);
+  const [roomBanner,       setRoomBanner]       = useState(null); // { room, floor, floorLabel, buildingName }
 
   const mapRef    = useRef(null);
   const panelRef  = useRef(null);
@@ -140,15 +141,27 @@ export default function MapScreen({ navigation, route }) {
   const closeCard = useCallback(() => {
     setSelectedBuilding(null);
     setSelectedPolygonId(null);
+    setRoomBanner(null);
   }, []);
 
   // ── Deep-link from Home search ────────────────────────────────────────────
   useEffect(() => {
-    const openId = route?.params?.openBuilding;
+    const openId   = route?.params?.openBuilding;
+    const openRoom = route?.params?.openRoom;
     if (openId && BUILDINGS[openId]) {
-      setTimeout(() => selectBuilding(openId, BUILDINGS[openId]), 300);
+      setTimeout(() => {
+        selectBuilding(openId, BUILDINGS[openId]);
+        if (openRoom) {
+          setRoomBanner({
+            room:         openRoom.room,
+            floor:        openRoom.floor,
+            floorLabel:   openRoom.floorLabel,
+            buildingName: BUILDINGS[openId].name,
+          });
+        }
+      }, 300);
     }
-  }, [route?.params?.openBuilding, selectBuilding]);
+  }, [route?.params?.openBuilding, route?.params?.openRoom, selectBuilding]);
 
   // ── Auto-clear route on arrival ───────────────────────────────────────────
   useEffect(() => {
@@ -183,6 +196,21 @@ export default function MapScreen({ navigation, route }) {
 
   return (
     <View style={s.container}>
+
+      {/* ── Room banner — shown when user searched for a room ── */}
+      {roomBanner && (
+        <View style={s.roomBanner}>
+          <View style={s.roomBannerLeft}>
+            <Text style={s.roomBannerTitle}>{roomBanner.room}</Text>
+            <Text style={s.roomBannerSub}>
+              {roomBanner.buildingName}  ·  {roomBanner.floor}
+            </Text>
+          </View>
+          <TouchableOpacity onPress={() => setRoomBanner(null)} style={s.roomBannerClose}>
+            <Text style={s.roomBannerCloseText}>✕</Text>
+          </TouchableOpacity>
+        </View>
+      )}
 
       {/* ── Map ── */}
       <MapView
@@ -369,6 +397,16 @@ export default function MapScreen({ navigation, route }) {
           setSearchVisible(false);
           selectBuilding(building.id, building);
         }}
+        onSelectRoom={(roomEntry, building) => {
+          setSearchVisible(false);
+          setRoomBanner({
+            room:         roomEntry.room,
+            floor:        roomEntry.floor,
+            floorLabel:   roomEntry.floorLabel,
+            buildingName: roomEntry.buildingName,
+          });
+          selectBuilding(building.id, building);
+        }}
       />
     </View>
   );
@@ -376,6 +414,29 @@ export default function MapScreen({ navigation, route }) {
 
 const s = StyleSheet.create({
   container: { flex: 1, backgroundColor: "#071209" },
+
+  // Room search banner
+  roomBanner: {
+    position: "absolute",
+    top: 0, left: 0, right: 0,
+    zIndex: 50,
+    backgroundColor: "rgba(255,193,7,0.95)",
+    flexDirection: "row",
+    alignItems: "center",
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    paddingTop: 48, // below status bar
+    gap: 10,
+  },
+  roomBannerLeft: { flex: 1 },
+  roomBannerTitle: { fontSize: 13, fontWeight: "900", color: "#1a1000" },
+  roomBannerSub:   { fontSize: 11, fontWeight: "600", color: "rgba(0,0,0,0.55)", marginTop: 1 },
+  roomBannerClose: {
+    width: 24, height: 24, borderRadius: 12,
+    backgroundColor: "rgba(0,0,0,0.15)",
+    alignItems: "center", justifyContent: "center",
+  },
+  roomBannerCloseText: { fontSize: 12, color: "#1a1000", fontWeight: "700" },
 
   topOverlay: {
     position: "absolute",
