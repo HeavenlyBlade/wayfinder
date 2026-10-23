@@ -5,7 +5,7 @@ import {
   Dimensions,
 } from "react-native";
 import MapView, {
-  Polygon, Polyline, Marker, PROVIDER_GOOGLE,
+  Polygon, Polyline, Marker,
 } from "react-native-maps";
 import {
   IconSearch,
@@ -188,8 +188,7 @@ export default function MapScreen({ navigation, route }) {
       <MapView
         ref={mapRef}
         style={StyleSheet.absoluteFill}
-        provider={PROVIDER_GOOGLE}
-        mapType="satellite"
+        mapType="standard"
         initialRegion={CAMPUS_CENTER}
         showsUserLocation={true}
         showsMyLocationButton={false}
