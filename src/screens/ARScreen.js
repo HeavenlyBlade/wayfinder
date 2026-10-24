@@ -28,6 +28,7 @@ import BearingHUD from "../components/BearingHUD";
 import CompassCalibrator from "../components/CompassCalibrator";
 import ARTutorial from "../components/ARTutorial";
 import ViroARNavScene from "../components/ViroARNavScene";
+import CampusMap from "../components/CampusMap";
 
 const { width: W, height: H } = Dimensions.get("window");
 const GREEN       = "#00C853";
@@ -382,14 +383,15 @@ export default function ARScreen({ route, navigation }) {
           )}
         </View>
 
-        {/* Route overview panel — replaces MapView to avoid white map issue */}
-        <View style={s.routeOverviewPanel}>
-          <Text style={s.routeOverviewTitle}>Route Overview</Text>
-          {totalDist != null && (
-            <Text style={s.routeOverviewDist}>{totalDist}m to {destName}</Text>
-          )}
-          <Text style={s.routeOverviewHint}>▶ Follow the AR arrows to navigate</Text>
-        </View>
+        {/* Campus mini-map — SVG, no API key needed */}
+        {!arrived && (
+          <CampusMap
+            style={s.miniMap}
+            userLocation={location}
+            routeWaypoints={waypointsRef.current}
+            mini={true}
+          />
+        )}
 
         {/* Arrived overlay on map section */}
         {arrived && (
@@ -564,7 +566,10 @@ const s = StyleSheet.create({
 
   routeOverviewPanel: {
     flex: 1,
-    alignItems: "center",
+  },
+  miniMap: {
+    flex: 1,
+  },
     justifyContent: "center",
     gap: 8,
     paddingHorizontal: 24,

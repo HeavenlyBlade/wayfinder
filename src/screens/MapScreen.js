@@ -1,12 +1,9 @@
 import "react-native-gesture-handler";
-import React, { useState, useEffect, useRef, useCallback, useMemo } from "react";
+import React, { useState, useEffect, useRef, useCallback } from "react";
 import {
   View, Text, TouchableOpacity, StyleSheet,
   Dimensions,
 } from "react-native";
-import MapView, {
-  Polygon, Polyline, Marker,
-} from "react-native-maps";
 import {
   IconSearch,
   IconPin, IconLayers, IconArrowLeft,
@@ -22,6 +19,7 @@ import StatusChips      from "../components/StatusChips";
 import BottomPanel      from "../components/BottomPanel";
 import SearchModal      from "../components/SearchModal";
 import BuildingCard     from "../components/BuildingCard";
+import CampusMap        from "../components/CampusMap";
 import useLocation      from "../hooks/useLocation";
 import { useSettings }  from "../context/SettingsContext";
 import { t } from "../constants/i18n";
@@ -115,7 +113,6 @@ export default function MapScreen({ navigation, route }) {
   const [routeWaypoints,   setRouteWaypoints]   = useState(null);
   const [roomBanner,       setRoomBanner]       = useState(null); // { room, floor, floorLabel, buildingName }
 
-  const mapRef    = useRef(null);
   const panelRef  = useRef(null);
 
   const { settings }               = useSettings();
@@ -126,15 +123,6 @@ export default function MapScreen({ navigation, route }) {
   const selectBuilding = useCallback((buildingId, building) => {
     setSelectedPolygonId(buildingId);
     setSelectedBuilding(building);
-    const node = NODES[buildingId];
-    if (node && mapRef.current) {
-      mapRef.current.animateToRegion({
-        latitude:      node.lat,
-        longitude:     node.lng,
-        latitudeDelta:  0.0015,
-        longitudeDelta: 0.0015,
-      }, 600);
-    }
     // Bottom panel stays collapsed — BuildingCard handles the selection UI
   }, []);
 
@@ -178,20 +166,12 @@ export default function MapScreen({ navigation, route }) {
     if (userLocation) {
       const wps = await resolveRoute(userLocation.lat, userLocation.lng, building.id);
       setRouteWaypoints(wps.length > 0 ? wps : null);
-      if (wps.length > 0 && mapRef.current) {
-        mapRef.current.fitToCoordinates(
-          wps.map(w => ({ latitude: w.lat, longitude: w.lng })),
-          { edgePadding: { top: 120, right: 40, bottom: 200, left: 40 }, animated: true },
-        );
-      }
     }
     navigation.navigate("AR", { destinationId: building.id });
   }, [userLocation, navigation, closeCard]);
 
-  // Convert route waypoints to MapView coordinate format
-  const routeCoords = routeWaypoints
-    ? routeWaypoints.map(w => ({ latitude: w.lat, longitude: w.lng }))
-    : null;
+  // Convert route waypoints for CampusMap (it accepts {lat,lng} format directly)
+  const routeCoords = routeWaypoints ?? null;
 
 
   return (
@@ -212,101 +192,17 @@ export default function MapScreen({ navigation, route }) {
         </View>
       )}
 
-      {/* ── Map ── */}
-      <MapView
-        ref={mapRef}
+      {/* ── Campus Map (SVG — no API key needed) ── */}
+      <CampusMap
         style={StyleSheet.absoluteFill}
-        mapType="standard"
-        initialRegion={CAMPUS_CENTER}
-        showsUserLocation={true}
-        showsMyLocationButton={false}
-        showsCompass={true}
-        showsScale={false}
-        toolbarEnabled={false}
-        rotateEnabled={true}
-        pitchEnabled={false}
-      >
-
-        {/* Building polygon overlays */}
-        {BUILDING_OVERLAYS.map(b => {
-          const sel = selectedPolygonId === b.id;
-          return (
-            <Polygon
-              key={b.id}
-              coordinates={b.coordinates}
-              fillColor={sel ? 'rgba(0,200,83,0.55)' : 'rgba(0,200,83,0.25)'}
-              strokeColor='#00C853'
-              strokeWidth={sel ? 3 : 1.5}
-              tappable
-              onPress={() => {
-                const building = BUILDINGS[b.id];
-                if (building) selectBuilding(b.id, building);
-              }}
-            />
-          );
-        })}
-
-        {/* Building label markers */}
-        {BUILDING_OVERLAYS.map(b => {
-          const node = NODES[b.id];
-          if (!node) return null;
-          const sel = selectedPolygonId === b.id;
-          return (
-            <Marker
-              key={`m-${b.id}`}
-              coordinate={{ latitude: node.lat, longitude: node.lng }}
-              anchor={{ x: 0.5, y: 0.5 }}
-              tracksViewChanges={false}
-              onPress={() => {
-                const building = BUILDINGS[b.id];
-                if (building) selectBuilding(b.id, building);
-              }}
-            >
-              <View style={[s.markerLabel, sel && s.markerLabelSel]}>
-                <Text style={[s.markerText, sel && s.markerTextSel]} numberOfLines={1}>
-                  {b.name}
-                </Text>
-              </View>
-            </Marker>
-          );
-        })}
-
-        {/* Route polyline */}
-        {routeCoords && routeCoords.length > 1 && (
-          <>
-            {/* Shadow */}
-            <Polyline
-              coordinates={routeCoords}
-              strokeColor="rgba(0,0,0,0.4)"
-              strokeWidth={8}
-              lineCap="round"
-              lineJoin="round"
-            />
-            {/* Main route line */}
-            <Polyline
-              coordinates={routeCoords}
-              strokeColor="#00C853"
-              strokeWidth={4}
-              lineDashPattern={[16, 10]}
-              lineCap="round"
-              lineJoin="round"
-            />
-          </>
-        )}
-
-        {/* Route destination pin */}
-        {routeCoords && routeCoords.length > 0 && (
-          <Marker
-            coordinate={routeCoords[routeCoords.length - 1]}
-            anchor={{ x: 0.5, y: 1 }}
-            tracksViewChanges={false}
-          >
-            <View style={s.destPin}>
-              <View style={s.destPinInner} />
-            </View>
-          </Marker>
-        )}
-      </MapView>
+        selectedId={selectedPolygonId}
+        userLocation={userLocation}
+        routeWaypoints={routeWaypoints}
+        onPressBuilding={(id) => {
+          const building = BUILDINGS[id];
+          if (building) selectBuilding(id, building);
+        }}
+      />
 
       {/* ── Top overlay ── */}
       <SafeAreaView style={s.topOverlay} edges={["top"]}>
@@ -341,28 +237,15 @@ export default function MapScreen({ navigation, route }) {
           {routeWaypoints && (
             <TouchableOpacity
               style={s.fab}
-              onPress={() => {
-                setRouteWaypoints(null);
-                mapRef.current?.animateToRegion(CAMPUS_CENTER, 500);
-              }}
+              onPress={() => setRouteWaypoints(null)}
               activeOpacity={0.8}
             >
               <IconLayers size={20} color="#1a3a1a" />
             </TouchableOpacity>
           )}
-          {/* Locate me — re-centres map on user's current GPS position */}
           <TouchableOpacity
             style={[s.fab, s.fabLocate]}
-            onPress={() => {
-              if (userLocation && mapRef.current) {
-                mapRef.current.animateToRegion({
-                  latitude:      userLocation.lat,
-                  longitude:     userLocation.lng,
-                  latitudeDelta:  0.0015,
-                  longitudeDelta: 0.0015,
-                }, 600);
-              }
-            }}
+            onPress={() => {/* CampusMap auto-centers on GPS */}}
             activeOpacity={0.8}
           >
             <IconPin size={20} color="#071209" />
