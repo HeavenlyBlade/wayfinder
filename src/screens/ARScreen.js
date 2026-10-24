@@ -605,7 +605,7 @@ const s = StyleSheet.create({
   arrivedMapIcon:  { fontSize: 48 },
   arrivedMapTitle: { fontSize: 22, fontWeight: "900", color: GREEN },
   arrivedMapSub:   { fontSize: 14, color: "rgba(255,255,255,0.5)" },
-  arrivedMapBtns:  { flexDirection: "column", gap: 8, marginTop: 12, width: W - 64 },
+  arrivedMapBtns:  { flexDirection: "column", gap: 8, marginTop: 12, width: "100%" },
   arrivedMapBtn: {
     backgroundColor: GREEN,
     borderRadius: 999,
