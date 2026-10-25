@@ -15,7 +15,7 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 
 const { width: W, height: H } = Dimensions.get("window");
 const GREEN    = "#00C853";
-const CAM_H    = H * 0.58;
+const CAM_H    = H; // AR is now full-screen, no mini-map section
 const STORAGE  = "wayfinder_ar_tutorial_v4";
 
 const STEPS = [
