@@ -4,7 +4,9 @@
   "main": "index.js",
   "expo": {
     "install": {
-      "exclude": ["expo-constants"]
+      "exclude": [
+        "expo-constants"
+      ]
     }
   },
   "scripts": {
@@ -19,7 +21,7 @@
     "@react-navigation/stack": "^7.9.3",
     "@reactvision/react-viro": "2.53.1",
     "expo": "~54.0.37",
-    "expo-asset": "~12.0.13",
+    "expo-asset": "12.0.14",
     "expo-audio": "~1.1.1",
     "expo-av": "~16.0.8",
     "expo-camera": "~17.0.10",
