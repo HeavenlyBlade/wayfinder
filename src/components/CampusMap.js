@@ -6,12 +6,11 @@
 // Supports tap-to-select buildings.
 // ─────────────────────────────────────────────────────────────────────────────
 
-import React, { useMemo } from 'react';
+import React, { useMemo, useEffect } from 'react';
 import { View, StyleSheet } from 'react-native';
 import MapLibreGL from '@maplibre/maplibre-react-native';
 
-// No token needed for OpenFreeMap
-MapLibreGL.setAccessToken(null);
+// No token needed for OpenFreeMap — set inside component, not at module load
 
 // OpenFreeMap — free, no key, no rate limit, production-grade OSM tiles
 const MAP_STYLE   = 'https://tiles.openfreemap.org/styles/liberty';
@@ -119,6 +118,10 @@ export default function CampusMap({
   onPressBuilding,
   mini = false,
 }) {
+  // Initialize MapLibre after native bridge is ready — not at module load time
+  useEffect(() => {
+    MapLibreGL.setAccessToken(null);
+  }, []);
   const buildingsFC = useMemo(() => buildingsGeoJSON(selectedId), [selectedId]);
   const routeFC     = useMemo(() => routeGeoJSON(routeWaypoints),  [routeWaypoints]);
   const userLocFC   = useMemo(() => userLocGeoJSON(userLocation),   [userLocation]);
