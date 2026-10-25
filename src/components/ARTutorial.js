@@ -22,7 +22,7 @@ const STEPS = [
   {
     // Step 1 — Overview
     title:   "AR Navigation",
-    body:    "The screen is split into two parts.\n\nTop = live AR camera view.\nBottom = route overview with destination and distance.",
+    body:    "The top half shows your live AR camera.\n\nA green arrow will appear on the ground pointing toward your next waypoint. Follow it to reach your destination.",
     hint:    null,
     anchor:  null,
   },
@@ -89,12 +89,6 @@ export default function ARTutorial({ lang = "en" }) {
           )}
         </View>
 
-        {/* Map region divider label */}
-        {step === 0 && (
-          <View style={s.mapLabel} pointerEvents="none">
-            <Text style={s.mapLabelText}>↓ Live map below</Text>
-          </View>
-        )}
 
         {/* Tutorial card — pinned to bottom */}
         <View style={s.card}>
@@ -200,18 +194,6 @@ const s = StyleSheet.create({
     textAlign: "center",
   },
 
-  // Map section divider label
-  mapLabel: {
-    height: H * 0.42,
-    alignItems: "center",
-    justifyContent: "flex-start",
-    paddingTop: 12,
-  },
-  mapLabelText: {
-    fontSize: 13,
-    fontWeight: "800",
-    color: "rgba(255,255,255,0.5)",
-  },
 
   // Tutorial card
   card: {
