@@ -16,7 +16,7 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 const { width: W, height: H } = Dimensions.get("window");
 const GREEN    = "#00C853";
 const CAM_H    = H * 0.58;
-const STORAGE  = "wayfinder_ar_tutorial_v3";
+const STORAGE  = "wayfinder_ar_tutorial_v4";
 
 const STEPS = [
   {
@@ -47,9 +47,12 @@ export default function ARTutorial({ lang = "en" }) {
   const [step,    setStep]    = useState(0);
 
   useEffect(() => {
-    AsyncStorage.getItem(STORAGE).then(val => {
-      if (val === "true") setVisible(false); // already seen — hide it
-    });
+    const t = setTimeout(() => {
+      AsyncStorage.getItem(STORAGE).then(val => {
+        if (val === "true") setVisible(false);
+      });
+    }, 100);
+    return () => clearTimeout(t);
   }, []);
 
   async function dismiss() {

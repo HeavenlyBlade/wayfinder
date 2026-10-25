@@ -28,11 +28,9 @@ import BearingHUD from "../components/BearingHUD";
 import CompassCalibrator from "../components/CompassCalibrator";
 import ARTutorial from "../components/ARTutorial";
 import ViroARNavScene from "../components/ViroARNavScene";
-import CampusMap from "../components/CampusMap";
 
 const { width: W, height: H } = Dimensions.get("window");
 const GREEN      = "#00C853";
-const MAP_HEIGHT = H * 0.42;
 
 const ORB_SPACING_METRES = 6;
 const ORB_ADVANCE_DIST   = 4;
@@ -348,69 +346,50 @@ export default function ARScreen({ route, navigation }) {
         )}
       </View>
 
-      {/* ── Bottom panel: route bar + campus mini-map ── */}
-      <View style={s.mapSection}>
-
-        <View style={s.routeBar}>
-          <View style={s.routeBarLeft}>
-            <Text style={s.routeDestName} numberOfLines={1}>{destName}</Text>
-            {totalDist != null && (
-              <Text style={s.routeTotalDist}>{totalDist}m total</Text>
-            )}
-          </View>
-          {!arrived && (
-            <View style={s.routeBarRight}>
-              <Text style={s.nextLabel}>{t("ar.nextTurn", lang)}</Text>
-              <Text style={s.nextDist}>{distToNext != null ? `${distToNext}m` : "—"}</Text>
-            </View>
-          )}
+      {/* ── Compact bottom info bar ── */}
+      {!arrived && !isLoading && (
+        <View style={s.bottomBar} pointerEvents="none">
+          <Text style={s.bottomDestName} numberOfLines={1}>{destName}</Text>
+          <Text style={s.bottomDistText}>
+            {distToNext != null ? `${distToNext}m` : '—'}
+          </Text>
         </View>
+      )}
 
-        {/* SVG campus mini-map — no API key needed */}
-        {!arrived && (
-          <CampusMap
-            style={s.miniMap}
-            userLocation={location}
-            routeWaypoints={waypointsRef.current}
-            mini={true}
-          />
-        )}
-
-        {/* Arrived overlay */}
-        {arrived && (
-          <View style={s.arrivedOverlay}>
-            <Text style={s.arrivedIcon}>OK</Text>
-            <Text style={s.arrivedTitle}>{t("ar.arrived", lang)}</Text>
-            <Text style={s.arrivedSub}>{destName}</Text>
-            <View style={s.arrivedBtns}>
-              {!NO_INDOOR_PROMPT.has(destinationId) && (
-                <TouchableOpacity
-                  style={s.arrivedBtn}
-                  onPress={() => {
-                    if (TWO_STAIRCASE_BUILDINGS.has(destinationId) && !selectedStaircase) {
-                      setStaircasePickerVisible(true);
-                    } else {
-                      setArrivalPromptVisible(true);
-                    }
-                  }}
-                  activeOpacity={0.85}
-                >
-                  <Text style={s.arrivedBtnText}>{t("ar.findRoom", lang)}</Text>
-                </TouchableOpacity>
-              )}
+      {/* ── Arrived overlay — full screen ── */}
+      {arrived && (
+        <View style={s.arrivedOverlay}>
+          <Text style={s.arrivedIcon}>OK</Text>
+          <Text style={s.arrivedTitle}>{t('ar.arrived', lang)}</Text>
+          <Text style={s.arrivedSub}>{destName}</Text>
+          <View style={s.arrivedBtns}>
+            {!NO_INDOOR_PROMPT.has(destinationId) && (
               <TouchableOpacity
-                style={[s.arrivedBtn, s.arrivedBtnBack]}
-                onPress={() => navigation.goBack()}
+                style={s.arrivedBtn}
+                onPress={() => {
+                  if (TWO_STAIRCASE_BUILDINGS.has(destinationId) && !selectedStaircase) {
+                    setStaircasePickerVisible(true);
+                  } else {
+                    setArrivalPromptVisible(true);
+                  }
+                }}
                 activeOpacity={0.85}
               >
-                <Text style={[s.arrivedBtnText, { color: "rgba(255,255,255,0.6)" }]}>
-                  {t("ar.backToMap", lang)}
-                </Text>
+                <Text style={s.arrivedBtnText}>{t('ar.findRoom', lang)}</Text>
               </TouchableOpacity>
-            </View>
+            )}
+            <TouchableOpacity
+              style={[s.arrivedBtn, s.arrivedBtnBack]}
+              onPress={() => navigation.goBack()}
+              activeOpacity={0.85}
+            >
+              <Text style={[s.arrivedBtnText, { color: 'rgba(255,255,255,0.6)' }]}>
+                {t('ar.backToMap', lang)}
+              </Text>
+            </TouchableOpacity>
           </View>
-        )}
-      </View>
+        </View>
+      )}
 
       {/* ── Staircase picker ── */}
       <StaircasePicker
@@ -492,7 +471,7 @@ const s = StyleSheet.create({
   // Distance chip
   distChip: {
     position: "absolute",
-    bottom: MAP_HEIGHT + 24,
+    bottom: 80,
     left: 16,
     backgroundColor: GREEN,
     borderRadius: 12,
@@ -507,7 +486,7 @@ const s = StyleSheet.create({
   // Calibrator
   calibratorWrap: {
     position: "absolute",
-    bottom: MAP_HEIGHT + 20,
+    bottom: 76,
     right: 12,
   },
 
@@ -525,33 +504,33 @@ const s = StyleSheet.create({
     justifyContent: "center",
   },
 
-  // Bottom panel
-  mapSection: {
-    position: "absolute",
+  // Compact bottom info bar
+  bottomBar: {
+    position: 'absolute',
     bottom: 0, left: 0, right: 0,
-    height: MAP_HEIGHT,
-    backgroundColor: "#0d1a10",
-  },
-  routeBar: {
-    height: 44,
-    backgroundColor: "#0d1a10",
-    borderBottomWidth: 1,
-    borderBottomColor: "rgba(0,200,83,0.15)",
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
+    height: 60,
+    backgroundColor: 'rgba(7,18,9,0.85)',
+    borderTopWidth: 1,
+    borderTopColor: 'rgba(0,200,83,0.2)',
+    flexDirection: 'row',
+    alignItems: 'center',
     paddingHorizontal: 16,
+    justifyContent: 'space-between',
   },
-  routeBarLeft:   { flex: 1 },
-  routeBarRight:  { alignItems: "flex-end" },
-  routeDestName:  { fontSize: 13, fontWeight: "800", color: "#fff" },
-  routeTotalDist: { fontSize: 10, color: "rgba(255,255,255,0.4)", marginTop: 1 },
-  nextLabel:      { fontSize: 9,  color: "rgba(255,255,255,0.4)" },
-  nextDist:       { fontSize: 14, fontWeight: "900", color: GREEN },
+  bottomDestName: {
+    flex: 1,
+    fontSize: 13,
+    fontWeight: '800',
+    color: '#ffffff',
+    marginRight: 12,
+  },
+  bottomDistText: {
+    fontSize: 16,
+    fontWeight: '900',
+    color: GREEN,
+  },
 
-  miniMap: { flex: 1 },
-
-  // Arrived overlay
+  // Arrived overlay — full screen
   arrivedOverlay: {
     ...StyleSheet.absoluteFillObject,
     backgroundColor: "rgba(7,18,9,0.92)",
@@ -563,7 +542,7 @@ const s = StyleSheet.create({
   arrivedIcon:  { fontSize: 48 },
   arrivedTitle: { fontSize: 22, fontWeight: "900", color: GREEN },
   arrivedSub:   { fontSize: 14, color: "rgba(255,255,255,0.5)" },
-  arrivedBtns:  { flexDirection: "column", gap: 8, marginTop: 12, width: "100%" },
+  arrivedBtns:  { flexDirection: "column", gap: 8, marginTop: 12, width: W - 64 },
   arrivedBtn: {
     backgroundColor: GREEN,
     borderRadius: 999,

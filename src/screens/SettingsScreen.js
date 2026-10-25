@@ -136,7 +136,7 @@ export default function SettingsScreen({ navigation }) {
                     {
                       text: "Reset",
                       onPress: async () => {
-                        await AsyncStorage.removeItem("wayfinder_ar_tutorial_v3");
+                        await AsyncStorage.removeItem("wayfinder_ar_tutorial_v4");
                         Alert.alert("Done", "AR tutorial will appear on your next navigation.");
                       },
                     },
@@ -158,7 +158,7 @@ export default function SettingsScreen({ navigation }) {
                     {
                       text: t("settings.tutorial.reset", lang),
                       onPress: async () => {
-                        await AsyncStorage.removeItem("wayfinder_tutorial_done");
+                        await AsyncStorage.removeItem("wayfinder_home_tutorial_v2");
                         Alert.alert(
                           t("settings.tutorial.done", lang),
                           t("settings.tutorial.doneMsg", lang),

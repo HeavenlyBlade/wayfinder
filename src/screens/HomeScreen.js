@@ -166,13 +166,16 @@ export default function HomeScreen({ navigation }) {
 
   // Show tutorial only on first launch
   useEffect(() => {
-    AsyncStorage.getItem("wayfinder_tutorial_done").then((val) => {
-      if (val === "true") setShowTutorial(false);
-    });
+    const t = setTimeout(() => {
+      AsyncStorage.getItem("wayfinder_home_tutorial_v2").then((val) => {
+        if (val === "true") setShowTutorial(false);
+      });
+    }, 100);
+    return () => clearTimeout(t);
   }, []);
 
   async function handleTutorialFinish() {
-    await AsyncStorage.setItem("wayfinder_tutorial_done", "true");
+    await AsyncStorage.setItem("wayfinder_home_tutorial_v2", "true");
     setShowTutorial(false);
   }
 
