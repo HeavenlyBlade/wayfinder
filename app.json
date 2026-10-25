@@ -27,6 +27,7 @@
       ]
     },
     "plugins": [
+      "@maplibre/maplibre-react-native",
       "./plugins/withApkName",
       [
         "expo-camera",
