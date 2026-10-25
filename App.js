@@ -5,6 +5,10 @@ import { createStackNavigator } from "@react-navigation/stack";
 import { AppState, Platform } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import * as NavigationBar from "expo-navigation-bar";
+import MapLibreGL from "@maplibre/maplibre-react-native";
+
+// Initialize MapLibre once at app startup — no token needed for OpenFreeMap
+MapLibreGL.setAccessToken(null);
 
 import SplashScreen from "./src/screens/SplashScreen";
 import HomeScreen from "./src/screens/HomeScreen";

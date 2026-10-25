@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+﻿import React, { useState, useEffect } from "react";
 import {
   View,
   Text,
@@ -160,18 +160,15 @@ const STATUS_CHIPS = (lang) => [
 // ── Main screen ───────────────────────────────────────────────────────────────
 export default function HomeScreen({ navigation }) {
   const [searchVisible,   setSearchVisible]   = useState(false);
-  const [showTutorial,    setShowTutorial]    = useState(true); // default true, hide only if already seen
+  const [showTutorial, setShowTutorial] = useState(null); // null = not checked yet
   const { settings } = useSettings();
   const lang = settings?.language ?? "en";
 
-  // Show tutorial only on first launch
+  // Show tutorial only on first install — null prevents flash while checking
   useEffect(() => {
-    const t = setTimeout(() => {
-      AsyncStorage.getItem("wayfinder_home_tutorial_v2").then((val) => {
-        if (val === "true") setShowTutorial(false);
-      });
-    }, 100);
-    return () => clearTimeout(t);
+    AsyncStorage.getItem("wayfinder_home_tutorial_v2").then((val) => {
+      setShowTutorial(val !== "true");
+    });
   }, []);
 
   async function handleTutorialFinish() {
