@@ -160,18 +160,14 @@ const STATUS_CHIPS = (lang) => [
 // ── Main screen ───────────────────────────────────────────────────────────────
 export default function HomeScreen({ navigation }) {
   const [searchVisible,   setSearchVisible]   = useState(false);
-  const [showTutorial,    setShowTutorial]    = useState(true); // default true, hide only if already seen
+  const [showTutorial, setShowTutorial] = useState(null);
   const { settings } = useSettings();
   const lang = settings?.language ?? "en";
 
-  // Show tutorial only on first launch
   useEffect(() => {
-    const t = setTimeout(() => {
-      AsyncStorage.getItem("wayfinder_home_tutorial_v2").then((val) => {
-        if (val === "true") setShowTutorial(false);
-      });
-    }, 100);
-    return () => clearTimeout(t);
+    AsyncStorage.getItem("wayfinder_home_tutorial_v2").then((val) => {
+      setShowTutorial(val !== "true");
+    });
   }, []);
 
   async function handleTutorialFinish() {
