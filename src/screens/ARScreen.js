@@ -7,7 +7,7 @@ import {
   TouchableOpacity,
   Platform,
 } from "react-native";
-import { useCameraPermissions } from "expo-camera"; // kept for the camera permission gate
+import { useCameraPermissions } from "expo-camera";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { StatusBar } from "expo-status-bar";
 
@@ -31,11 +31,9 @@ import ViroARNavScene from "../components/ViroARNavScene";
 import CampusMap from "../components/CampusMap";
 
 const { width: W, height: H } = Dimensions.get("window");
-const GREEN       = "#00C853";
-const CAM_HEIGHT  = H * 0.58;   // top 58% = camera
-const MAP_HEIGHT  = H * 0.42;   // bottom 42% = map
+const GREEN      = "#00C853";
+const MAP_HEIGHT = H * 0.42;
 
-// ── Tuning ────────────────────────────────────────────────────────────────────
 const ORB_SPACING_METRES = 6;
 const ORB_ADVANCE_DIST   = 4;
 const ARRIVAL_DIST       = 12;
@@ -47,7 +45,10 @@ function interpolateSegment(a, b, spacingM) {
   const pts   = [];
   for (let i = 1; i <= steps; i++) {
     const ratio = i / steps;
-    pts.push({ lat: a.lat + (b.lat - a.lat) * ratio, lng: a.lng + (b.lng - a.lng) * ratio });
+    pts.push({
+      lat: a.lat + (b.lat - a.lat) * ratio,
+      lng: a.lng + (b.lng - a.lng) * ratio,
+    });
   }
   return pts;
 }
@@ -64,10 +65,9 @@ function buildOrbTrail(waypoints) {
   return orbs;
 }
 
-// Buildings that should NOT trigger the indoor room-finder prompt on arrival.
 const NO_INDOOR_PROMPT = new Set([
-  'gate', 'motorcycle_parking', 'parking_lot',
-  'main_building_2', 'ea_tower_2', 'sr_building_2',
+  "gate", "motorcycle_parking", "parking_lot",
+  "main_building_2", "ea_tower_2", "sr_building_2",
 ]);
 
 // ── Main screen ───────────────────────────────────────────────────────────────
@@ -79,14 +79,13 @@ export default function ARScreen({ route, navigation }) {
   const [permission, requestPermission] = useCameraPermissions();
   const { location, heading, error: locError } = useLocation();
 
-  const [distToNext,    setDistToNext]    = useState(null);
-  const [totalDist,     setTotalDist]     = useState(null);
-  const [arrived,       setArrived]       = useState(false);
-  const [routeReady,    setRouteReady]    = useState(false);
-  const [nextAngle,     setNextAngle]     = useState(0);
-  const [indoorStatus,  setIndoorStatus]  = useState(null);
-  const [compassOffset, setCompassOffsetState] = useState(getCompassOffset());
-  const [routeCoords,   setRouteCoords]   = useState(null);
+  const [distToNext,             setDistToNext]             = useState(null);
+  const [totalDist,              setTotalDist]              = useState(null);
+  const [arrived,                setArrived]                = useState(false);
+  const [routeReady,             setRouteReady]             = useState(false);
+  const [nextAngle,              setNextAngle]              = useState(0);
+  const [indoorStatus,           setIndoorStatus]           = useState(null);
+  const [compassOffset,          setCompassOffsetState]     = useState(getCompassOffset());
   const [staircasePickerVisible, setStaircasePickerVisible] = useState(false);
   const [selectedStaircase,      setSelectedStaircase]      = useState(null);
   const [arrivalPromptVisible,   setArrivalPromptVisible]   = useState(false);
@@ -103,7 +102,7 @@ export default function ARScreen({ route, navigation }) {
     setCompassOffsetState(newOffset);
   }
 
-  // ── Reset all state when destinationId changes ────────────────────────────
+  // ── Reset on new destination ──────────────────────────────────────────────
   useEffect(() => {
     orbTrailRef.current     = [];
     waypointsRef.current    = [];
@@ -115,7 +114,6 @@ export default function ARScreen({ route, navigation }) {
     setArrived(false);
     setDistToNext(null);
     setTotalDist(null);
-    setRouteCoords(null);
     setNextAngle(0);
     setStaircasePickerVisible(false);
     setArrivalPromptVisible(false);
@@ -147,11 +145,12 @@ export default function ARScreen({ route, navigation }) {
     orbTrailRef.current  = buildOrbTrail(waypoints);
     waypointsRef.current = waypoints;
 
-    setRouteCoords(waypoints.map(w => ({ latitude: w.lat, longitude: w.lng })));
-
     let total = 0;
     for (let i = 0; i < waypoints.length - 1; i++) {
-      total += distanceTo(waypoints[i].lat, waypoints[i].lng, waypoints[i+1].lat, waypoints[i+1].lng);
+      total += distanceTo(
+        waypoints[i].lat, waypoints[i].lng,
+        waypoints[i + 1].lat, waypoints[i + 1].lng,
+      );
     }
     setTotalDist(Math.round(total));
     setRouteReady(true);
@@ -167,7 +166,7 @@ export default function ARScreen({ route, navigation }) {
     setIndoorStatus(getIndoorStatus(location.lat, location.lng));
   }, [location]);
 
-  // ── Re-route ──────────────────────────────────────────────────────────────
+  // ── Re-route if off-path ──────────────────────────────────────────────────
   useEffect(() => {
     if (!location || !routeReady || arrivedRef.current) return;
     if (orbTrailRef.current.length === 0) return;
@@ -176,22 +175,19 @@ export default function ARScreen({ route, navigation }) {
     if (offDist > 40 && !isReroutingRef.current) {
       isReroutingRef.current = true;
       routeLoadedRef.current = false;
-      loadRoute(location).finally(() => {
-        isReroutingRef.current = false;
-      });
+      loadRoute(location).finally(() => { isReroutingRef.current = false; });
     }
   }, [location, routeReady, loadRoute]);
 
-  // ── Update arrow angle + arrival check ───────────────────────────────────
+  // ── Arrow angle + arrival check ───────────────────────────────────────────
   useEffect(() => {
     if (!location || orbTrailRef.current.length === 0 || arrivedRef.current) return;
 
     while (orbTrailRef.current.length > 0) {
       const next = orbTrailRef.current[0];
       const d    = distanceTo(location.lat, location.lng, next.lat, next.lng);
-      if (d < ORB_ADVANCE_DIST) {
-        orbTrailRef.current = orbTrailRef.current.slice(1);
-      } else break;
+      if (d < ORB_ADVANCE_DIST) orbTrailRef.current = orbTrailRef.current.slice(1);
+      else break;
     }
 
     function handleArrival() {
@@ -205,20 +201,14 @@ export default function ARScreen({ route, navigation }) {
       }
     }
 
-    if (orbTrailRef.current.length === 0) {
-      handleArrival();
-      return;
-    }
+    if (orbTrailRef.current.length === 0) { handleArrival(); return; }
 
     const dest = NODES[destinationId];
     if (dest) {
       const d = distanceTo(location.lat, location.lng, dest.lat, dest.lng);
       if (d < ARRIVAL_DIST) {
         arrivalCountRef.current += 1;
-        if (arrivalCountRef.current >= 2) {
-          handleArrival();
-          return;
-        }
+        if (arrivalCountRef.current >= 2) { handleArrival(); return; }
       } else {
         arrivalCountRef.current = 0;
       }
@@ -229,11 +219,8 @@ export default function ARScreen({ route, navigation }) {
     let angle     = bearing - heading;
     if (angle >  180) angle -= 360;
     if (angle < -180) angle += 360;
-
     setNextAngle(angle);
-
-    const d = distanceTo(location.lat, location.lng, next.lat, next.lng);
-    setDistToNext(Math.round(d));
+    setDistToNext(Math.round(distanceTo(location.lat, location.lng, next.lat, next.lng)));
 
   }, [location, heading, destinationId, indoorStatus]);
 
@@ -243,7 +230,6 @@ export default function ARScreen({ route, navigation }) {
     ?? (NODES[destinationId]
         ? destinationId.charAt(0).toUpperCase() + destinationId.slice(1).replace(/_/g, " ")
         : "Destination");
-  const destNode = NODES[destinationId];
 
   // ── Permission gates ──────────────────────────────────────────────────────
   if (!permission) return <View style={s.fill} />;
@@ -279,13 +265,11 @@ export default function ARScreen({ route, navigation }) {
 
   const isLoading = !location || !routeReady;
 
-  // Mini-map uses default provider — no API key needed
-
   return (
     <View style={s.fill}>
       <StatusBar style="light" hidden />
 
-      {/* ViroReact AR scene — must be first child, fills entire screen */}
+      {/* ── ViroReact AR scene — fullscreen, behind everything ── */}
       <ViroARNavScene
         style={StyleSheet.absoluteFill}
         angleDiff={nextAngle}
@@ -294,33 +278,31 @@ export default function ARScreen({ route, navigation }) {
         heading={heading}
       />
 
-      {/* ═══════════════════════════════════════════════════════════
-          HUD OVERLAY — absolutely positioned on top of AR camera
-      ═══════════════════════════════════════════════════════════ */}
+      {/* ── HUD overlay ── */}
       <View style={s.hudOverlay} pointerEvents="box-none">
 
-        {/* Loading overlay */}
+        {/* Loading */}
         {isLoading && !arrived && (
           <View style={s.loadingOverlay}>
             <Text style={s.loadingIcon}>[...]</Text>
             <Text style={s.loadingText}>
-              {!location ? t('ar.gpsAcquiring', lang) : t('ar.plotting', lang)}
+              {!location ? t("ar.gpsAcquiring", lang) : t("ar.plotting", lang)}
             </Text>
-            <Text style={s.loadingSub}>{t('ar.pointAhead', lang)}</Text>
+            <Text style={s.loadingSub}>{t("ar.pointAhead", lang)}</Text>
           </View>
         )}
 
-        {/* Indoor warning */}
+        {/* Indoor banner */}
         {indoorStatus && !arrived && !isLoading && (
           <View style={s.indoorBanner}>
-            <Text style={s.indoorBannerText}>{t('ar.indoor.title', lang)}</Text>
+            <Text style={s.indoorBannerText}>{t("ar.indoor.title", lang)}</Text>
             <TouchableOpacity onPress={() => setIndoorStatus(null)}>
-              <Text style={s.indoorBannerDismiss}>{t('ar.indoor.dismiss', lang)}</Text>
+              <Text style={s.indoorBannerDismiss}>{t("ar.indoor.dismiss", lang)}</Text>
             </TouchableOpacity>
           </View>
         )}
 
-        {/* BearingHUD arc — top of screen */}
+        {/* Bearing HUD */}
         {!isLoading && !arrived && (
           <SafeAreaView style={s.hudTop} edges={["top"]} pointerEvents="box-none">
             <BearingHUD
@@ -332,15 +314,15 @@ export default function ARScreen({ route, navigation }) {
           </SafeAreaView>
         )}
 
-        {/* Distance chip — bottom-left, above mini-map */}
+        {/* Distance chip */}
         {!isLoading && !arrived && distToNext !== null && (
           <View style={s.distChip} pointerEvents="none">
             <Text style={s.distVal}>{distToNext}m</Text>
-            <Text style={s.distLabel}>{t('ar.toNext', lang)}</Text>
+            <Text style={s.distLabel}>{t("ar.toNext", lang)}</Text>
           </View>
         )}
 
-        {/* Compass calibrator — bottom-right, above mini-map */}
+        {/* Compass calibrator */}
         {!isLoading && !arrived && (
           <View style={s.calibratorWrap}>
             <CompassCalibrator
@@ -355,19 +337,20 @@ export default function ARScreen({ route, navigation }) {
         {/* Back button */}
         {!arrived && (
           <SafeAreaView style={s.backWrap} edges={["top"]}>
-            <TouchableOpacity style={s.backBtn} onPress={() => navigation.goBack()} activeOpacity={0.8}>
+            <TouchableOpacity
+              style={s.backBtn}
+              onPress={() => navigation.goBack()}
+              activeOpacity={0.8}
+            >
               <IconArrowLeft size={18} color="#ffffff" />
             </TouchableOpacity>
           </SafeAreaView>
         )}
       </View>
 
-      {/* ═══════════════════════════════════════════════════════════
-          BOTTOM PANEL — Route overview (replaces white MapView)
-      ═══════════════════════════════════════════════════════════ */}
+      {/* ── Bottom panel: route bar + campus mini-map ── */}
       <View style={s.mapSection}>
 
-        {/* Route info bar */}
         <View style={s.routeBar}>
           <View style={s.routeBarLeft}>
             <Text style={s.routeDestName} numberOfLines={1}>{destName}</Text>
@@ -377,13 +360,13 @@ export default function ARScreen({ route, navigation }) {
           </View>
           {!arrived && (
             <View style={s.routeBarRight}>
-              <Text style={s.nextLabel}>{t('ar.nextTurn', lang)}</Text>
+              <Text style={s.nextLabel}>{t("ar.nextTurn", lang)}</Text>
               <Text style={s.nextDist}>{distToNext != null ? `${distToNext}m` : "—"}</Text>
             </View>
           )}
         </View>
 
-        {/* Campus mini-map — SVG, no API key needed */}
+        {/* SVG campus mini-map — no API key needed */}
         {!arrived && (
           <CampusMap
             style={s.miniMap}
@@ -393,16 +376,16 @@ export default function ARScreen({ route, navigation }) {
           />
         )}
 
-        {/* Arrived overlay on map section */}
+        {/* Arrived overlay */}
         {arrived && (
-          <View style={s.arrivedMapOverlay}>
-            <Text style={s.arrivedMapIcon}>OK</Text>
-            <Text style={s.arrivedMapTitle}>{t('ar.arrived', lang)}</Text>
-            <Text style={s.arrivedMapSub}>{destName}</Text>
-            <View style={s.arrivedMapBtns}>
+          <View style={s.arrivedOverlay}>
+            <Text style={s.arrivedIcon}>OK</Text>
+            <Text style={s.arrivedTitle}>{t("ar.arrived", lang)}</Text>
+            <Text style={s.arrivedSub}>{destName}</Text>
+            <View style={s.arrivedBtns}>
               {!NO_INDOOR_PROMPT.has(destinationId) && (
                 <TouchableOpacity
-                  style={s.arrivedMapBtn}
+                  style={s.arrivedBtn}
                   onPress={() => {
                     if (TWO_STAIRCASE_BUILDINGS.has(destinationId) && !selectedStaircase) {
                       setStaircasePickerVisible(true);
@@ -412,16 +395,16 @@ export default function ARScreen({ route, navigation }) {
                   }}
                   activeOpacity={0.85}
                 >
-                  <Text style={s.arrivedMapBtnText}>{t('ar.findRoom', lang)}</Text>
+                  <Text style={s.arrivedBtnText}>{t("ar.findRoom", lang)}</Text>
                 </TouchableOpacity>
               )}
               <TouchableOpacity
-                style={[s.arrivedMapBtn, s.arrivedMapBtnBack]}
+                style={[s.arrivedBtn, s.arrivedBtnBack]}
                 onPress={() => navigation.goBack()}
                 activeOpacity={0.85}
               >
-                <Text style={[s.arrivedMapBtnText, { color: "rgba(255,255,255,0.6)" }]}>
-                  {t('ar.backToMap', lang)}
+                <Text style={[s.arrivedBtnText, { color: "rgba(255,255,255,0.6)" }]}>
+                  {t("ar.backToMap", lang)}
                 </Text>
               </TouchableOpacity>
             </View>
@@ -453,7 +436,7 @@ export default function ARScreen({ route, navigation }) {
         onClose={() => setArrivalPromptVisible(false)}
       />
 
-      {/* ── AR Tutorial — first launch only ── */}
+      {/* ── AR Tutorial (first launch only) ── */}
       <ARTutorial lang={lang} />
     </View>
   );
@@ -464,12 +447,13 @@ const s = StyleSheet.create({
   fill:   { flex: 1, backgroundColor: "#000" },
   center: { flex: 1, alignItems: "center", justifyContent: "center", gap: 12, padding: 24 },
 
-  // ── HUD overlay ──
+  // HUD overlay (sits above ViroReact)
   hudOverlay: {
     ...StyleSheet.absoluteFillObject,
     zIndex: 10,
   },
 
+  // Loading
   loadingOverlay: {
     ...StyleSheet.absoluteFillObject,
     backgroundColor: "rgba(0,0,0,0.72)",
@@ -481,6 +465,7 @@ const s = StyleSheet.create({
   loadingText: { fontSize: 18, fontWeight: "800", color: GREEN },
   loadingSub:  { fontSize: 13, color: "rgba(255,255,255,0.5)", textAlign: "center", paddingHorizontal: 32 },
 
+  // Indoor banner
   indoorBanner: {
     position: "absolute",
     top: Platform.OS === "android" ? 90 : 60,
@@ -496,6 +481,7 @@ const s = StyleSheet.create({
   indoorBannerText:    { fontSize: 13, fontWeight: "800", color: "#071209", flex: 1 },
   indoorBannerDismiss: { fontSize: 12, fontWeight: "700", color: "#071209", opacity: 0.6 },
 
+  // Bearing HUD container
   hudTop: {
     position: "absolute",
     top: 0, left: 0, right: 0,
@@ -503,7 +489,7 @@ const s = StyleSheet.create({
     paddingTop: Platform.OS === "android" ? 36 : 8,
   },
 
-
+  // Distance chip
   distChip: {
     position: "absolute",
     bottom: MAP_HEIGHT + 24,
@@ -518,12 +504,14 @@ const s = StyleSheet.create({
   distVal:   { fontSize: 22, fontWeight: "900", color: "#071209" },
   distLabel: { fontSize: 9,  fontWeight: "700", color: "rgba(7,18,9,0.6)" },
 
+  // Calibrator
   calibratorWrap: {
     position: "absolute",
     bottom: MAP_HEIGHT + 20,
     right: 12,
   },
 
+  // Back button
   backWrap: { position: "absolute", top: 0, left: 0 },
   backBtn: {
     marginTop: Platform.OS === "android" ? 36 : 8,
@@ -537,16 +525,13 @@ const s = StyleSheet.create({
     justifyContent: "center",
   },
 
-  // ── Map section ──
+  // Bottom panel
   mapSection: {
     position: "absolute",
-    bottom: 0,
-    left: 0,
-    right: 0,
+    bottom: 0, left: 0, right: 0,
     height: MAP_HEIGHT,
     backgroundColor: "#0d1a10",
   },
-
   routeBar: {
     height: 44,
     backgroundColor: "#0d1a10",
@@ -557,44 +542,17 @@ const s = StyleSheet.create({
     justifyContent: "space-between",
     paddingHorizontal: 16,
   },
-  routeBarLeft:  { flex: 1 },
-  routeBarRight: { alignItems: "flex-end" },
-  routeDestName: { fontSize: 13, fontWeight: "800", color: "#fff" },
-  routeTotalDist:{ fontSize: 10, color: "rgba(255,255,255,0.4)", marginTop: 1 },
-  nextLabel:     { fontSize: 9,  color: "rgba(255,255,255,0.4)" },
-  nextDist:      { fontSize: 14, fontWeight: "900", color: GREEN },
+  routeBarLeft:   { flex: 1 },
+  routeBarRight:  { alignItems: "flex-end" },
+  routeDestName:  { fontSize: 13, fontWeight: "800", color: "#fff" },
+  routeTotalDist: { fontSize: 10, color: "rgba(255,255,255,0.4)", marginTop: 1 },
+  nextLabel:      { fontSize: 9,  color: "rgba(255,255,255,0.4)" },
+  nextDist:       { fontSize: 14, fontWeight: "900", color: GREEN },
 
-  routeOverviewPanel: {
-    flex: 1,
-  },
-  miniMap: {
-    flex: 1,
-  },
-    justifyContent: "center",
-    gap: 8,
-    paddingHorizontal: 24,
-  },
-  routeOverviewTitle: {
-    fontSize: 13,
-    fontWeight: "700",
-    color: "rgba(255,255,255,0.35)",
-    textTransform: "uppercase",
-    letterSpacing: 1.5,
-  },
-  routeOverviewDist: {
-    fontSize: 20,
-    fontWeight: "900",
-    color: GREEN,
-    textAlign: "center",
-  },
-  routeOverviewHint: {
-    fontSize: 12,
-    color: "rgba(255,255,255,0.4)",
-    marginTop: 4,
-  },
+  miniMap: { flex: 1 },
 
-  // Arrived overlay on map
-  arrivedMapOverlay: {
+  // Arrived overlay
+  arrivedOverlay: {
     ...StyleSheet.absoluteFillObject,
     backgroundColor: "rgba(7,18,9,0.92)",
     alignItems: "center",
@@ -602,24 +560,25 @@ const s = StyleSheet.create({
     gap: 8,
     zIndex: 10,
   },
-  arrivedMapIcon:  { fontSize: 48 },
-  arrivedMapTitle: { fontSize: 22, fontWeight: "900", color: GREEN },
-  arrivedMapSub:   { fontSize: 14, color: "rgba(255,255,255,0.5)" },
-  arrivedMapBtns:  { flexDirection: "column", gap: 8, marginTop: 12, width: "100%" },
-  arrivedMapBtn: {
+  arrivedIcon:  { fontSize: 48 },
+  arrivedTitle: { fontSize: 22, fontWeight: "900", color: GREEN },
+  arrivedSub:   { fontSize: 14, color: "rgba(255,255,255,0.5)" },
+  arrivedBtns:  { flexDirection: "column", gap: 8, marginTop: 12, width: "100%" },
+  arrivedBtn: {
     backgroundColor: GREEN,
     borderRadius: 999,
     paddingVertical: 13,
     alignItems: "center",
   },
-  arrivedMapBtnBack: {
-    backgroundColor: "rgba(255,255,255,0.08)",
-  },
-  arrivedMapBtnText: { fontSize: 14, fontWeight: "800", color: "#071209" },
+  arrivedBtnBack: { backgroundColor: "rgba(255,255,255,0.08)" },
+  arrivedBtnText: { fontSize: 14, fontWeight: "800", color: "#071209" },
 
   // Permission screens
   permIcon: { fontSize: 52 },
-  permText: { fontSize: 16, fontWeight: "700", color: "#fff", textAlign: "center", paddingHorizontal: 20 },
+  permText: {
+    fontSize: 16, fontWeight: "700", color: "#fff",
+    textAlign: "center", paddingHorizontal: 20,
+  },
   permBtn: {
     backgroundColor: GREEN, borderRadius: 12,
     paddingHorizontal: 28, paddingVertical: 13, marginTop: 8,
