@@ -177,7 +177,8 @@ const EDGES = [
   ['R51',              'R60'],
   ['R60',              'R61'],
   ['R61',              'R62'],
-  ['R38',              'R66'],           // direct hub → north spine
+  ['R62',              'R63'],           // connects interior path to canteen bench area
+  // NOTE: R38→R66 removed — it creates a 33m diagonal cut through the IBED building
   ['R38',              'J4'],            // hub → mid-campus junction
 
   // ── CANTEEN BENCH PATH (internal only) ───────────────────────────────────
@@ -193,9 +194,7 @@ const EDGES = [
   ['J5',               'sr_building'],
   ['J5',               'canteen_two'],
   ['J5',               'J7'],
-  ['J5',               'MB2'],
-  ['MB2',              'MB1'],
-  ['MB1',              'main_building'],
+  // MB2/MB1 removed — main_building connects directly from R70 on north spine (no J5 westward detour)
   ['sr_building_2',    'R22'],
   ['J7',               'gymnasium'],
   ['J7',               'kitchen_hall'],
@@ -224,7 +223,7 @@ const EDGES = [
   ['R74',              'canteen_two'],
   ['R74',              'R75'],
   ['R75',              'R76'],
-  ['R76',              'ea_tower'],      // EA Tower 1st: direct west approach — no U-turn past R77/R78
+  ['R76',              'ea_tower'],      // EA Tower: connects at R76 (lat 13.961780, ea_tower lat 13.961744 — just south)
   ['R76',              'R77'],
   ['R77',              'R78'],
   // R78→ea_tower removed — ea_tower now connects at R76 (closer, no overshoot)
