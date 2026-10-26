@@ -77,9 +77,9 @@ function buildLeafletHTML(buildings) {
     attributionControl: true
   });
 
-  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+  L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
     maxZoom: 20,
-    attribution: '© OpenStreetMap contributors'
+    attribution: 'Tiles &copy; Esri &mdash; Source: Esri, Maxar, GeoEye, Earthstar Geographics'
   }).addTo(map);
 
   var FILL_DEFAULT  = 'rgba(0,200,83,0.20)';
