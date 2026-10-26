@@ -19,6 +19,7 @@ import {
   ViroCone,
   ViroMaterials,
   ViroAnimations,
+  ViroTrackingStateConstants,
 } from "@reactvision/react-viro";
 
 // ── Materials (registered once at module load) ───────────────────────────────
@@ -45,7 +46,11 @@ function NavScene(props) {
   const [isTracking, setIsTracking] = useState(false);
 
   function handleTrackingUpdated(state) {
-    setIsTracking(state === "NORMAL" || state === "LIMITED");
+    // ViroReact passes numeric constants, not strings
+    setIsTracking(
+      state === ViroTrackingStateConstants.TRACKING_NORMAL ||
+      state === ViroTrackingStateConstants.TRACKING_LIMITED
+    );
   }
 
   return (
