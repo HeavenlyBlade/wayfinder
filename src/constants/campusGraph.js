@@ -163,7 +163,8 @@ const EDGES = [
   ['R15',              'new_building'],  // perimeter → RFID entrance
   ['R15',              'R37'],           // perimeter → interior shortcut node
   ['R37',              'R38'],           // R37 → interior hub
-  ['new_building',     'R38'],           // RFID → interior hub
+  ['new_building',     'R38'],           // RFID → interior hub (via R38 westward — kept for backwards compat)
+  ['new_building',     'R47'],           // RFID → interior path direct north — eliminates westward R38 first step
   // Canteen ONLY via ibed_2 interior path — NO direct new_building→canteen shortcut
   // (removed: ['new_building', 'canteen'])
 
