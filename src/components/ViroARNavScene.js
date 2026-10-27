@@ -1,12 +1,11 @@
 // ─────────────────────────────────────────────────────────────────────────────
 // WAYFINDER — ViroARNavScene
 //
-// A ViroReact AR navigation scene. Uses onTrackingUpdated (no plane selector)
-// to show a 3D ViroCylinder + ViroCone arrow 2 m ahead in the AR world.
+// ViroReact AR navigation scene. Uses ViroBox primitives only (compatible with
+// @reactvision/react-viro@2.53.1 which does not export ViroCylinder/ViroCone).
 //
-// Props (forwarded via ViroARSceneNavigator.viroAppProps):
-//   angleDiff  {number}  — degrees from heading to next waypoint (arrow Y rotation)
-//   style      {style}   — sizing for the navigator host view
+// Arrow shape: a flat shaft box + wider head box, forming a clear directional
+// arrow lying horizontally 0.15m above the detected surface, 2m ahead.
 // ─────────────────────────────────────────────────────────────────────────────
 
 import React, { useState } from "react";
@@ -15,38 +14,34 @@ import {
   ViroARScene,
   ViroText,
   ViroNode,
-  ViroCylinder,
-  ViroCone,
+  ViroBox,
   ViroMaterials,
   ViroAnimations,
   ViroTrackingStateConstants,
 } from "@reactvision/react-viro";
 
-// ── Materials (registered once at module load) ───────────────────────────────
+// ── Materials ─────────────────────────────────────────────────────────────────
 ViroMaterials.createMaterials({
-  arrowShaft: { lightingModel: "Blinn", diffuseColor: "#00FF88" },
-  arrowHead:  { lightingModel: "Blinn", diffuseColor: "#00FF88" },
-  groundRing: { lightingModel: "Constant", diffuseColor: "#00FF88", transparency: 0.5 },
+  arrowGreen: { lightingModel: "Blinn", diffuseColor: "#00FF88" },
+  ringGreen:  { lightingModel: "Constant", diffuseColor: "#00FF88", transparency: 0.5 },
 });
 
-// ── Animations (registered once at module load) ──────────────────────────────
+// ── Animations ────────────────────────────────────────────────────────────────
 ViroAnimations.registerAnimations({
-  arrowGlow: {
-    properties: { scaleX: "1 => 1.08 => 1", scaleZ: "1 => 1.08 => 1" },
+  arrowBob: {
+    properties: { positionY: "0.15 => 0.25 => 0.15" },
     easing: "EaseInOut",
-    duration: 1000,
+    duration: 1200,
     loop: true,
   },
 });
 
-// ── Inner AR scene (receives viroAppProps as its props) ───────────────────────
+// ── Inner scene ───────────────────────────────────────────────────────────────
 function NavScene(props) {
   const { angleDiff } = props;
-
   const [isTracking, setIsTracking] = useState(false);
 
   function handleTrackingUpdated(state) {
-    // ViroReact passes numeric constants, not strings
     setIsTracking(
       state === ViroTrackingStateConstants.TRACKING_NORMAL ||
       state === ViroTrackingStateConstants.TRACKING_LIMITED
@@ -55,43 +50,55 @@ function NavScene(props) {
 
   return (
     <ViroARScene onTrackingUpdated={handleTrackingUpdated}>
+
+      {/* Arrow — shown once tracking starts */}
       {isTracking && (
         <ViroNode
           position={[0, 0.15, -2.0]}
           rotation={[0, angleDiff ?? 0, 0]}
-          animation={{ name: "arrowGlow", run: true, loop: true }}
+          animation={{ name: "arrowBob", run: true, loop: true }}
         >
-          {/* Shaft — cylinder lying along Z axis */}
-          <ViroCylinder
-            height={0.6}
-            radiusTop={0.04}
-            radiusBottom={0.04}
-            rotation={[-90, 0, 0]}
-            position={[0, 0, 0.15]}
-            materials={["arrowShaft"]}
+          {/* Shaft — long thin box along -Z axis */}
+          <ViroBox
+            width={0.10}
+            height={0.06}
+            length={0.55}
+            position={[0, 0, 0.10]}
+            materials={["arrowGreen"]}
           />
-          {/* Cone arrowhead pointing in -Z (forward) direction */}
-          <ViroCone
-            height={0.4}
-            radiusBottom={0.15}
-            radiusTop={0}
-            rotation={[-90, 0, 0]}
-            position={[0, 0, -0.15]}
-            materials={["arrowHead"]}
+          {/* Left wing of arrowhead */}
+          <ViroBox
+            width={0.20}
+            height={0.06}
+            length={0.22}
+            position={[-0.12, 0, -0.22]}
+            rotation={[0, -38, 0]}
+            materials={["arrowGreen"]}
+          />
+          {/* Right wing of arrowhead */}
+          <ViroBox
+            width={0.20}
+            height={0.06}
+            length={0.22}
+            position={[0.12, 0, -0.22]}
+            rotation={[0, 38, 0]}
+            materials={["arrowGreen"]}
           />
         </ViroNode>
       )}
 
+      {/* Ground ring under the arrow */}
       {isTracking && (
-        <ViroCylinder
+        <ViroBox
+          width={0.6}
           height={0.01}
-          radiusTop={0.3}
-          radiusBottom={0.3}
-          position={[0, 0.01, -2.0]}
-          materials={["groundRing"]}
+          length={0.6}
+          position={[0, 0.005, -2.0]}
+          materials={["ringGreen"]}
         />
       )}
 
+      {/* Scanning text while not tracking */}
       {!isTracking && (
         <ViroText
           text="Initializing AR..."
@@ -104,7 +111,7 @@ function NavScene(props) {
   );
 }
 
-// ── Wrapper: hosts the AR scene navigator and forwards props via viroAppProps ─
+// ── Wrapper ───────────────────────────────────────────────────────────────────
 export default function ViroARNavScene({ angleDiff, style }) {
   return (
     <ViroARSceneNavigator

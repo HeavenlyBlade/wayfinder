@@ -192,8 +192,9 @@ const EDGES = [
   // ibed removed from J4 — IBED now connects directly off R48 (no backtrack)
   ['J4',               'J5'],
   ['J5',               'sr_building'],
-  ['J5',               'canteen_two'],
   ['J5',               'J7'],
+  ['J5',               'R70'],            // J5 → north spine — main path to ea_tower/kitchen/gym
+  // canteen_two removed from J5 — it's a building destination reachable from R74 on the spine
   // MB2/MB1 removed — main_building connects directly from R70 on north spine (no J5 westward detour)
   ['sr_building_2',    'R22'],
   ['J7',               'gymnasium'],
