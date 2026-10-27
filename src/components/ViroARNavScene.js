@@ -54,34 +54,34 @@ function NavScene(props) {
       {/* Arrow — shown once tracking starts */}
       {isTracking && (
         <ViroNode
-          position={[0, 0.15, -2.0]}
-          rotation={[0, angleDiff ?? 0, 0]}
+          position={[0, 0.2, -2.0]}
+          rotation={[-15, angleDiff ?? 0, 0]}
           animation={{ name: "arrowBob", run: true, loop: true }}
         >
-          {/* Shaft — long thin box along -Z axis */}
+          {/* Shaft — tall enough to read as 3D */}
           <ViroBox
             width={0.10}
-            height={0.06}
+            height={0.22}
             length={0.55}
             position={[0, 0, 0.10]}
             materials={["arrowGreen"]}
           />
           {/* Left wing of arrowhead */}
           <ViroBox
-            width={0.20}
-            height={0.06}
-            length={0.22}
-            position={[-0.12, 0, -0.22]}
-            rotation={[0, -38, 0]}
+            width={0.25}
+            height={0.22}
+            length={0.26}
+            position={[-0.14, 0, -0.22]}
+            rotation={[0, -40, 0]}
             materials={["arrowGreen"]}
           />
           {/* Right wing of arrowhead */}
           <ViroBox
-            width={0.20}
-            height={0.06}
-            length={0.22}
-            position={[0.12, 0, -0.22]}
-            rotation={[0, 38, 0]}
+            width={0.25}
+            height={0.22}
+            length={0.26}
+            position={[0.14, 0, -0.22]}
+            rotation={[0, 40, 0]}
             materials={["arrowGreen"]}
           />
         </ViroNode>
