@@ -78,7 +78,8 @@ function buildLeafletHTML(buildings) {
   });
 
   L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
-    maxZoom: 20,
+    maxZoom: 21,
+    maxNativeZoom: 19,
     attribution: 'Tiles &copy; Esri &mdash; Source: Esri, Maxar, GeoEye, Earthstar Geographics'
   }).addTo(map);
 
