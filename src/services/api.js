@@ -1,4 +1,5 @@
 import { API_BASE } from '../constants/api';
+import { getHardcodedRoute } from '../constants/hardcodedRoutes';
 
 const TIMEOUT_MS = 8000;
 
@@ -25,6 +26,13 @@ export async function fetchBuildings() {
 
 // ── Get A* route waypoints from backend ──────────────────────────────────────
 export async function fetchRoute(userLat, userLng, destinationId) {
+  // Hardcoded routes take precedence: they are correct regardless of backend/DB
+  // state and bypass the buggy local A* graph. Any destination not present here
+  // falls through to the backend POST (and the caller's A* / straight-line
+  // fallbacks) below.
+  const hardcoded = getHardcodedRoute(destinationId);
+  if (hardcoded) return hardcoded;
+
   try {
     const res = await fetchWithTimeout(`${API_BASE}/navigation/route`, {
       method:  'POST',

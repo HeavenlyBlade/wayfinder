@@ -4,8 +4,11 @@
 // ViroReact AR navigation scene. Uses ViroBox primitives only (compatible with
 // @reactvision/react-viro@2.53.1 which does not export ViroCylinder/ViroCone).
 //
-// Arrow shape: a flat shaft box + wider head box, forming a clear directional
-// arrow lying horizontally 0.15m above the detected surface, 2m ahead.
+// Arrow shape: an UPRIGHT navigation pin — a thin tall vertical shaft (the
+// flagpole stem) with a wide flat arrowhead at the top, tilted 45 deg on Z so it
+// reads as a diamond/arrow from any angle. The whole pin stands vertically like a
+// flagpole and rotates about Y (angleDiff) to face the direction of travel. A
+// gentle scale pulse replaces the former flat-horizontal bob animation.
 // ─────────────────────────────────────────────────────────────────────────────
 
 import React, { useState } from "react";
@@ -28,8 +31,12 @@ ViroMaterials.createMaterials({
 
 // ── Animations ────────────────────────────────────────────────────────────────
 ViroAnimations.registerAnimations({
-  arrowBob: {
-    properties: { positionY: "0.15 => 0.25 => 0.15" },
+  arrowPulse: {
+    properties: {
+      scaleX: "1.0 => 1.08 => 1.0",
+      scaleY: "1.0 => 1.08 => 1.0",
+      scaleZ: "1.0 => 1.08 => 1.0",
+    },
     easing: "EaseInOut",
     duration: 1200,
     loop: true,
@@ -51,49 +58,42 @@ function NavScene(props) {
   return (
     <ViroARScene onTrackingUpdated={handleTrackingUpdated}>
 
-      {/* Arrow — shown once tracking starts */}
+      {/* Upright navigation pin — shown once tracking starts */}
       {isTracking && (
         <ViroNode
-          position={[0, 0.2, -2.0]}
-          rotation={[-15, angleDiff ?? 0, 0]}
-          animation={{ name: "arrowBob", run: true, loop: true }}
+          position={[0, 0.8, -2.5]}
+          rotation={[0, angleDiff ?? 0, 0]}
+          animation={{ name: "arrowPulse", run: true, loop: true }}
         >
-          {/* Shaft — tall enough to read as 3D */}
+          {/* Shaft — thin tall vertical flagpole stem */}
           <ViroBox
-            width={0.10}
-            height={0.22}
-            length={0.55}
-            position={[0, 0, 0.10]}
+            width={0.08}
+            height={0.6}
+            length={0.08}
+            position={[0, 0, 0]}
             materials={["arrowGreen"]}
           />
-          {/* Left wing of arrowhead */}
+          {/* Head — wide flat arrowhead at the top, tilted 45 deg on Z so it
+              reads as a diamond/arrow from any angle. The parent ViroNode's Y
+              rotation (angleDiff) orients it toward the direction of travel. */}
           <ViroBox
-            width={0.25}
-            height={0.22}
-            length={0.26}
-            position={[-0.14, 0, -0.22]}
-            rotation={[0, -40, 0]}
-            materials={["arrowGreen"]}
-          />
-          {/* Right wing of arrowhead */}
-          <ViroBox
-            width={0.25}
-            height={0.22}
-            length={0.26}
-            position={[0.14, 0, -0.22]}
-            rotation={[0, 40, 0]}
+            width={0.28}
+            height={0.08}
+            length={0.28}
+            position={[0, 0.36, 0]}
+            rotation={[0, 0, 45]}
             materials={["arrowGreen"]}
           />
         </ViroNode>
       )}
 
-      {/* Ground ring under the arrow */}
+      {/* Ground ring beneath the pin */}
       {isTracking && (
         <ViroBox
           width={0.6}
           height={0.01}
           length={0.6}
-          position={[0, 0.005, -2.0]}
+          position={[0, 0.005, -2.5]}
           materials={["ringGreen"]}
         />
       )}
