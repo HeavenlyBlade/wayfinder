@@ -76,17 +76,21 @@ function NavScene(props) {
   // This makes the arrow point the correct compass direction regardless of
   // where the camera was pointing when the AR session started.
   function handleCameraTransform(cameraTransform) {
-    const camYaw = cameraTransform?.rotation?.[1] ?? 0;
+    const rawYaw = cameraTransform?.rotation?.[1] ?? 0;
+    // Normalize to 0-360 range — ViroReact may return -180 to +180 or 0 to 360
+    const camYaw = ((rawYaw % 360) + 360) % 360;
     cameraYawRef.current = camYaw;
 
     if (heading != null && angleDiff != null) {
       // absoluteCompassBearing: the absolute world compass bearing to next waypoint
-      const absoluteBearing = (heading + angleDiff + 360) % 360;
-      // arrowYRotation: how much to rotate the arrow in the AR world to face that bearing
-      const arrowY = absoluteBearing - camYaw;
+      const absoluteBearing = ((heading + angleDiff) % 360 + 360) % 360;
+      // arrowYRotation: rotate arrow in AR world to face that compass bearing
+      let arrowY = absoluteBearing - camYaw;
+      // Normalize to shortest rotation path
+      if (arrowY > 180) arrowY -= 360;
+      if (arrowY < -180) arrowY += 360;
       setArrowRotation(arrowY);
     } else {
-      // Fallback: just use angleDiff as relative rotation (original behavior)
       setArrowRotation(angleDiff ?? 0);
     }
   }

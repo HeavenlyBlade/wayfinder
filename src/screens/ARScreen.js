@@ -34,7 +34,9 @@ const GREEN      = "#00C853";
 
 const ORB_SPACING_METRES = 6;
 const ORB_ADVANCE_DIST   = 4;
-const ARRIVAL_DIST       = 12;
+const ARRIVAL_DIST        = 20;  // 20m — accounts for GPS inaccuracy near buildings
+const ARRIVAL_CONFIRMATIONS = 3;  // 3 consecutive readings — reduces false positives from GPS jumps
+const GPS_ACCURACY_FILTER  = 25;  // ignore readings worse than 25m accuracy
 
 // ── Waypoint interpolation ────────────────────────────────────────────────────
 function interpolateSegment(a, b, spacingM) {
@@ -223,7 +225,7 @@ export default function ARScreen({ route, navigation }) {
       const d = distanceTo(location.lat, location.lng, dest.lat, dest.lng);
       if (d < ARRIVAL_DIST) {
         arrivalCountRef.current += 1;
-        if (arrivalCountRef.current >= 2) { handleArrival(); return; }
+        if (arrivalCountRef.current >= ARRIVAL_CONFIRMATIONS) { handleArrival(); return; }
       } else {
         arrivalCountRef.current = 0;
       }

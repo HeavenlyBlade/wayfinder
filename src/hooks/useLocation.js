@@ -68,7 +68,7 @@ export default function useLocation() {
         {
           accuracy: Location.Accuracy.BestForNavigation,
           timeInterval: 1000,
-          distanceInterval: 0.5,
+          distanceInterval: 3, // 3m minimum — 0.5m caused GPS noise jitter
         },
         pos => {
           if (active) {
