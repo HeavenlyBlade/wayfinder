@@ -86,8 +86,14 @@ const BUILDING_OVERLAYS = [
     ] },
 ];
 
-// ── Resolve route waypoints (server → local A* fallback) ────────────────────
+import { getHardcodedRoute } from '../constants/hardcodedRoutes';
+
+// ── Resolve route waypoints — hardcoded first, then server, then local A* ──
 async function resolveRoute(userLat, userLng, destinationId) {
+  // Hardcoded routes are always correct — use them first, no backend needed
+  const hardcoded = getHardcodedRoute(destinationId);
+  if (hardcoded) return hardcoded;
+
   try {
     const wps = await fetchRoute(userLat, userLng, destinationId);
     if (wps && wps.length > 0) return wps;

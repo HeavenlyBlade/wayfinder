@@ -121,40 +121,40 @@ function NavScene(props) {
       onTrackingUpdated={handleTrackingUpdated}
       onCameraTransformUpdate={handleCameraTransform}
     >
-      {/* Upright navigation pin */}
+      {/* Upright navigation pin — at eye level, 2.5m ahead */}
       {isTracking && (
         <ViroNode
-          position={[0, 0.8, -2.5]}
+          position={[0, 0.0, -2.5]}
           rotation={[0, arrowRotation, 0]}
           animation={{ name: "arrowPulse", run: true, loop: true }}
         >
-          {/* Shaft — thin tall vertical stem */}
+          {/* Shaft — thin vertical stem */}
           <ViroBox
             width={0.08}
-            height={0.6}
+            height={0.5}
             length={0.08}
             position={[0, 0, 0]}
             materials={["arrowGreen"]}
           />
-          {/* Head — diamond arrowhead at top pointing forward */}
+          {/* Head — diamond arrowhead at top */}
           <ViroBox
-            width={0.28}
+            width={0.26}
             height={0.08}
-            length={0.28}
-            position={[0, 0.36, 0]}
+            length={0.26}
+            position={[0, 0.30, 0]}
             rotation={[0, 0, 45]}
             materials={["arrowGreen"]}
           />
         </ViroNode>
       )}
 
-      {/* Ground ring */}
+      {/* Ground ring below the arrow */}
       {isTracking && (
         <ViroBox
-          width={0.6}
+          width={0.5}
           height={0.01}
-          length={0.6}
-          position={[0, 0.005, -2.5]}
+          length={0.5}
+          position={[0, -0.26, -2.5]}
           materials={["ringGreen"]}
         />
       )}
