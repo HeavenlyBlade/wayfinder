@@ -37,6 +37,7 @@ const ORB_ADVANCE_DIST   = 4;
 const ARRIVAL_DIST        = 20;  // 20m — accounts for GPS inaccuracy near buildings
 const ARRIVAL_CONFIRMATIONS = 3;  // 3 consecutive readings — reduces false positives from GPS jumps
 const GPS_ACCURACY_FILTER  = 25;  // ignore readings worse than 25m accuracy
+const APPROACHING_DIST      = 40;  // 40m — show "Almost there" approaching chip
 
 // ── Waypoint interpolation ────────────────────────────────────────────────────
 function interpolateSegment(a, b, spacingM) {
@@ -89,6 +90,7 @@ export default function ARScreen({ route, navigation }) {
   const [staircasePickerVisible, setStaircasePickerVisible] = useState(false);
   const [selectedStaircase,      setSelectedStaircase]      = useState(null);
   const [arrivalPromptVisible,   setArrivalPromptVisible]   = useState(false);
+  const [isApproaching,          setIsApproaching]          = useState(false);
 
   const orbTrailRef     = useRef([]);
   const waypointsRef    = useRef([]);
@@ -118,6 +120,7 @@ export default function ARScreen({ route, navigation }) {
     setStaircasePickerVisible(false);
     setArrivalPromptVisible(false);
     setSelectedStaircase(null);
+    setIsApproaching(false);
   }, [destinationId]);
 
   // ── Load route ────────────────────────────────────────────────────────────
@@ -222,6 +225,15 @@ export default function ARScreen({ route, navigation }) {
 
     const dest = NODES[destinationId];
     if (dest) {
+      const dApp = distanceTo(location.lat, location.lng, dest.lat, dest.lng);
+      if (dApp < APPROACHING_DIST && dApp > ARRIVAL_DIST) {
+        setIsApproaching(true);
+      } else if (dApp >= APPROACHING_DIST) {
+        setIsApproaching(false);
+      }
+    }
+
+    if (dest) {
       const d = distanceTo(location.lat, location.lng, dest.lat, dest.lng);
       if (d < ARRIVAL_DIST) {
         arrivalCountRef.current += 1;
@@ -312,10 +324,21 @@ export default function ARScreen({ route, navigation }) {
         {/* Indoor banner */}
         {indoorStatus && !arrived && !isLoading && (
           <View style={s.indoorBanner}>
-            <Text style={s.indoorBannerText}>{t("ar.indoor.title", lang)}</Text>
+            <Text style={s.indoorBannerText}>
+              {indoorStatus.buildingId === destinationId
+                ? t('ar.indoor.title', lang)
+                : `You are inside ${indoorStatus.buildingName} — keep going to ${destName}!`}
+            </Text>
             <TouchableOpacity onPress={() => setIndoorStatus(null)}>
               <Text style={s.indoorBannerDismiss}>{t("ar.indoor.dismiss", lang)}</Text>
             </TouchableOpacity>
+          </View>
+        )}
+
+        {/* Approaching chip */}
+        {isApproaching && !arrived && !isLoading && (
+          <View style={s.approachingChip}>
+            <Text style={s.approachingText}>Almost there! {destName} is ahead</Text>
           </View>
         )}
 
@@ -478,6 +501,26 @@ const s = StyleSheet.create({
   },
   indoorBannerText:    { fontSize: 13, fontWeight: "800", color: "#071209", flex: 1 },
   indoorBannerDismiss: { fontSize: 12, fontWeight: "700", color: "#071209", opacity: 0.6 },
+
+  // Approaching chip
+  approachingChip: {
+    position: 'absolute',
+    bottom: 80,
+    left: 0,
+    right: 0,
+    marginHorizontal: 16,
+    backgroundColor: 'rgba(255,193,7,0.9)',
+    borderRadius: 12,
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+    alignItems: 'center',
+    zIndex: 20,
+  },
+  approachingText: {
+    fontSize: 13,
+    fontWeight: '800',
+    color: '#071209',
+  },
 
   // Bearing HUD container
   hudTop: {

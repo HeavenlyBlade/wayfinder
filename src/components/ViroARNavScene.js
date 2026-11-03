@@ -17,7 +17,7 @@
 //        rotates in Y to face direction of travel, scale-pulse animation.
 // ─────────────────────────────────────────────────────────────────────────────
 
-import React, { useState, useRef } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import { Platform } from "react-native";
 import {
   ViroARSceneNavigator,
@@ -32,7 +32,7 @@ import {
 
 // ── Materials ─────────────────────────────────────────────────────────────────
 ViroMaterials.createMaterials({
-  arrowGreen: { lightingModel: "Blinn", diffuseColor: "#00FF88" },
+  arrowGreen: { lightingModel: "Constant", diffuseColor: "#00FF88" },
   ringGreen:  { lightingModel: "Constant", diffuseColor: "#00FF88", transparency: 0.5 },
 });
 
@@ -59,13 +59,32 @@ function NavScene(props) {
   const [isTracking,   setIsTracking]   = useState(false);
   const [arrowRotation, setArrowRotation] = useState(angleDiff ?? 0);
   const cameraYawRef = useRef(0); // camera's current Y rotation in AR world
+  const lastArrowYRef = useRef(0);
+  const [isLimitedMode, setIsLimitedMode] = useState(false);
+  const trackingTimeoutRef = useRef(null);
 
   function handleTrackingUpdated(state) {
-    const tracking =
-      state === ViroTrackingStateConstants.TRACKING_NORMAL ||
-      state === ViroTrackingStateConstants.TRACKING_LIMITED;
+    const tracking = state === ViroTrackingStateConstants.TRACKING_NORMAL ||
+                     state === ViroTrackingStateConstants.TRACKING_LIMITED;
+    if (tracking && trackingTimeoutRef.current) {
+      clearTimeout(trackingTimeoutRef.current);
+      trackingTimeoutRef.current = null;
+    }
     setIsTracking(tracking);
   }
+
+  useEffect(() => {
+    trackingTimeoutRef.current = setTimeout(() => {
+      setIsTracking(prev => {
+        if (!prev) {
+          setIsLimitedMode(true);
+          return true;
+        }
+        return prev;
+      });
+    }, 10000);
+    return () => { if (trackingTimeoutRef.current) clearTimeout(trackingTimeoutRef.current); };
+  }, []);
 
   // onCameraTransformUpdate fires every frame with the camera's world-space transform.
   // rotation[1] is the camera's Y (yaw) in the AR world frame.
@@ -89,6 +108,8 @@ function NavScene(props) {
       // Normalize to shortest rotation path
       if (arrowY > 180) arrowY -= 360;
       if (arrowY < -180) arrowY += 360;
+      if (Math.abs(arrowY - lastArrowYRef.current) < 1.0) return;
+      lastArrowYRef.current = arrowY;
       setArrowRotation(arrowY);
     } else {
       setArrowRotation(angleDiff ?? 0);
@@ -145,6 +166,15 @@ function NavScene(props) {
           position={[0, 0, -2]}
           scale={[0.5, 0.5, 0.5]}
           color="#ffffff"
+        />
+      )}
+
+      {/* Limited AR mode indicator */}
+      {isTracking && isLimitedMode && (
+        <ViroText
+          text="Limited AR"
+          position={[0, -0.4, -2.5]}
+          color="#FFD600"
         />
       )}
     </ViroARScene>

@@ -303,7 +303,7 @@ export const HARDCODED_ROUTES = {
     { lat: 13.9617,    lng: 121.6128   }, // canteen_two
   ],
 
-  // 11. engineering — gate -> R01..R15 -> R37 -> R38 -> J4 -> J5 -> R70..R77 -> engineering (28)
+  // 11. engineering — gate -> R01..R15 -> R37 -> R38 -> R47..R51 -> engineering (23)
   engineering: [
     { lat: 13.9609,    lng: 121.6114   }, // gate
     { lat: 13.960943,  lng: 121.611350 }, // R01
@@ -322,17 +322,12 @@ export const HARDCODED_ROUTES = {
     { lat: 13.961185,  lng: 121.612079 }, // R15
     { lat: 13.961224,  lng: 121.612080 }, // R37
     { lat: 13.961301,  lng: 121.612075 }, // R38
-    { lat: 13.9616,    lng: 121.6121   }, // J4
-    { lat: 13.9616,    lng: 121.6126   }, // J5
-    { lat: 13.961588,  lng: 121.612393 }, // R70
-    { lat: 13.961592,  lng: 121.612469 }, // R71
-    { lat: 13.961607,  lng: 121.612537 }, // R72
-    { lat: 13.961635,  lng: 121.612631 }, // R73
-    { lat: 13.961686,  lng: 121.612672 }, // R74
-    { lat: 13.961732,  lng: 121.612685 }, // R75
-    { lat: 13.961780,  lng: 121.612697 }, // R76
-    { lat: 13.961870,  lng: 121.612718 }, // R77
-    { lat: 13.961637,  lng: 121.612220 }, // engineering
+    { lat: 13.961350,  lng: 121.612069 }, // R47
+    { lat: 13.961439,  lng: 121.612069 }, // R48
+    { lat: 13.961496,  lng: 121.612067 }, // R49
+    { lat: 13.961555,  lng: 121.612068 }, // R50
+    { lat: 13.961596,  lng: 121.612076 }, // R51
+    { lat: 13.961637,  lng: 121.612220 }, // engineering (New IBED Bldg)
   ],
 
   // 12. new_building — gate -> R01..R15 -> new_building (16)

@@ -65,6 +65,23 @@ function buildLeafletHTML(buildings) {
   html, body, #map { width: 100%; height: 100%; background: #0d1a10; }
   .leaflet-control-zoom { display: none; }
   .leaflet-control-attribution { font-size: 8px; opacity: 0.5; }
+  .leaflet-tooltip.building-label {
+    background: rgba(7,18,9,0.8);
+    color: #00C853;
+    font-size: 9px;
+    font-weight: 800;
+    border: 1px solid rgba(0,200,83,0.3);
+    border-radius: 3px;
+    padding: 2px 5px;
+    box-shadow: none;
+    white-space: nowrap;
+  }
+  .leaflet-tooltip.building-label::before {
+    display: none;
+  }
+  @keyframes dash {
+    to { stroke-dashoffset: -18; }
+  }
 </style>
 </head>
 <body>
@@ -103,10 +120,10 @@ function buildLeafletHTML(buildings) {
     }).addTo(map);
 
     poly.bindTooltip(b.name, {
-      permanent:  false,
+      permanent:  true,
       direction:  'center',
       className:  'building-label',
-      opacity:    0.9,
+      opacity:    1,
     });
 
     poly.on('click', function() {
@@ -152,6 +169,15 @@ function buildLeafletHTML(buildings) {
       dashArray: '10, 8',
       lineCap:   'round',
     }).addTo(map);
+    if (routeLine) {
+      setTimeout(function() {
+        var el = routeLine.getElement();
+        if (el) {
+          el.style.animation = 'dash 0.5s linear infinite';
+          el.style.strokeDasharray = '10 8';
+        }
+      }, 100);
+    }
   }
 
   // Listen for messages from React Native

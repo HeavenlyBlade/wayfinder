@@ -71,6 +71,7 @@ export default function useLocation() {
           distanceInterval: 3, // 3m minimum — 0.5m caused GPS noise jitter
         },
         pos => {
+          if (pos.coords.accuracy > 25) return; // skip readings worse than 25m accuracy
           if (active) {
             setLocation({
               lat:      pos.coords.latitude,
@@ -82,8 +83,8 @@ export default function useLocation() {
       );
 
       // Set sensor update intervals
-      Gyroscope.setUpdateInterval(16);
-      Accelerometer.setUpdateInterval(16);
+      Gyroscope.setUpdateInterval(33);
+      Accelerometer.setUpdateInterval(33);
       Magnetometer.setUpdateInterval(50);
 
       magRef.current = Magnetometer.addListener(({ x, y, z }) => {
