@@ -288,9 +288,9 @@ export default function ARScreen({ route, navigation }) {
       <ViroARNavScene
         style={StyleSheet.absoluteFill}
         angleDiff={nextAngle}
+        heading={heading}
         waypoints={orbTrailRef.current.slice(0, 5)}
         userLocation={location}
-        heading={heading}
       />
 
       {/* ── HUD overlay ── */}
