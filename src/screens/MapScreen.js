@@ -15,6 +15,7 @@ import { NODES }        from "../constants/campusGraph";
 import { distanceTo }   from "../utils/arMath";
 import { aStar, getWaypoints, nearestNode } from "../utils/pathfinding";
 import { fetchRoute }   from "../services/api";
+import { getHardcodedRoute } from "../constants/hardcodedRoutes";
 import StatusChips      from "../components/StatusChips";
 import BottomPanel      from "../components/BottomPanel";
 import SearchModal      from "../components/SearchModal";
@@ -85,8 +86,6 @@ const BUILDING_OVERLAYS = [
       { latitude: 13.961672, longitude: 121.612145 },
     ] },
 ];
-
-import { getHardcodedRoute } from '../constants/hardcodedRoutes';
 
 // ── Resolve route waypoints — hardcoded first, then server, then local A* ──
 async function resolveRoute(userLat, userLng, destinationId) {
