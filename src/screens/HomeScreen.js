@@ -165,13 +165,13 @@ export default function HomeScreen({ navigation }) {
   const lang = settings?.language ?? "en";
 
   useEffect(() => {
-    AsyncStorage.getItem("wayfinder_home_tutorial_v2").then((val) => {
+    AsyncStorage.getItem("wayfinder_home_tutorial_v3").then((val) => {
       setShowTutorial(val !== "true");
     });
   }, []);
 
   async function handleTutorialFinish() {
-    await AsyncStorage.setItem("wayfinder_home_tutorial_v2", "true");
+    await AsyncStorage.setItem("wayfinder_home_tutorial_v3", "true");
     setShowTutorial(false);
   }
 
