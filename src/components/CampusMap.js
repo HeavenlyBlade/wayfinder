@@ -92,15 +92,8 @@ function buildLeafletHTML(buildings) {
     zoom: 18,
     zoomControl: false,
     attributionControl: true,
-    dragging: false,
-    touchZoom: false,
-    doubleClickZoom: false,
-    scrollWheelZoom: false,
-    boxZoom: false,
-    keyboard: false,
-    zoomSnap: 0,
-    minZoom: 18,
-    maxZoom: 18,
+    minZoom: 17,
+    maxZoom: 19,
   });
 
   L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {

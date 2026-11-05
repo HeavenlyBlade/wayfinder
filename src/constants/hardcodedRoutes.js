@@ -103,14 +103,11 @@ export const HARDCODED_ROUTES = {
     [{ lat: 13.9614, lng: 121.6119 }] // canteen entrance
   ),
 
-  // 4. ibed — perimeter → R37 → R38 → R47 → R48 → ibed
+  // 4. ibed — perimeter → R37 → R38 → ibed (IBED is north of R38, no eastward detour)
+  // IBED entrance is at lng 121.6121 — same as R38 area, just go north directly
   ibed: route(
     PERIMETER, RFID_ENTRY,
-    [
-      { lat: 13.961350, lng: 121.612069 }, // R47
-      { lat: 13.961439, lng: 121.612069 }, // R48
-      { lat: 13.9614,   lng: 121.6121   }, // ibed entrance
-    ]
+    [{ lat: 13.9614, lng: 121.6121 }] // ibed entrance (directly north of R38)
   ),
 
   // 5. sr_building — perimeter → interior → bench path → spine → R70 → sr_building
@@ -159,10 +156,16 @@ export const HARDCODED_ROUTES = {
     [{ lat: 13.9624, lng: 121.6129 }] // kitchen_hall entrance
   ),
 
-  // 10. canteen_two (Canteen 2) — perimeter → interior → bench path → spine → R74 → canteen_two
+  // 10. canteen_two (Canteen 2) — spine → R73 → canteen_two
+  // Canteen 2 is east of the spine, peels off at R73 level
   canteen_two: route(
-    PERIMETER, RFID_ENTRY, INTERIOR_PATH, BENCH_PATH, SPINE_START, SPINE_MID,
-    [{ lat: 13.9617, lng: 121.6128 }] // canteen_two entrance (east of R74)
+    PERIMETER, RFID_ENTRY, INTERIOR_PATH, BENCH_PATH, SPINE_START,
+    [
+      { lat: 13.961592, lng: 121.612469 }, // R71
+      { lat: 13.961607, lng: 121.612537 }, // R72
+      { lat: 13.961635, lng: 121.612631 }, // R73
+      { lat: 13.961708, lng: 121.612800 }, // canteen_two entrance
+    ]
   ),
 
   // 11. engineering (New IBED Bldg) — perimeter → interior path → engineering
@@ -220,10 +223,11 @@ export const HARDCODED_ROUTES = {
     [{ lat: 13.962093, lng: 121.612822 }] // ea_tower_2 entrance
   ),
 
-  // 17. ibed_2 (IBED 2nd entrance) — interior path → ibed_2
+  // 17. ibed_2 (IBED 2nd entrance) — spine to R70 area then west to ibed_2
+  // ibed_2 is at lng 121.612393 — same longitude as R70 on the spine
   ibed_2: route(
-    PERIMETER, RFID_ENTRY, INTERIOR_PATH,
-    [{ lat: 13.961546, lng: 121.612393 }] // ibed_2 entrance
+    PERIMETER, RFID_ENTRY, INTERIOR_PATH, BENCH_PATH, SPINE_START,
+    [{ lat: 13.961546, lng: 121.612393 }] // ibed_2 entrance (off R70 level)
   ),
 
   // 18. sr_building_2 — perimeter east branch → sr_building_2
