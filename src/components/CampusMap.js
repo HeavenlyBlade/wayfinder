@@ -92,12 +92,12 @@ function buildLeafletHTML(buildings) {
     zoom: 18,
     zoomControl: false,
     attributionControl: true,
-    minZoom: 17,
+    minZoom: 16,
     maxZoom: 19,
   });
 
   L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
-    maxZoom: 21,
+    maxZoom: 19,
     maxNativeZoom: 19,
     attribution: 'Tiles &copy; Esri &mdash; Source: Esri, Maxar, GeoEye, Earthstar Geographics'
   }).addTo(map);
