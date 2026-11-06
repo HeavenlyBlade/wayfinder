@@ -95,6 +95,8 @@ function buildLeafletHTML(buildings) {
     minZoom: 16,
     maxZoom: 19,
   });
+  map.setMinZoom(16);
+  map.setMaxZoom(19);
 
   L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
     maxZoom: 19,

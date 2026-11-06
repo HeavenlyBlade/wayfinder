@@ -43,11 +43,17 @@ const INTERIOR_PATH = [
 ];
 
 // Bench path turning west toward canteen: R51 → R60 → R63
+// ONLY used for the canteen route — other routes use SPINE_DIRECT instead
 const BENCH_PATH = [
   { lat: 13.961598,  lng: 121.612011 }, // R60
   { lat: 13.961591,  lng: 121.611942 }, // R61
   { lat: 13.961573,  lng: 121.611896 }, // R62
   { lat: 13.961559,  lng: 121.611866 }, // R63
+];
+
+// Direct R38 → R66 shortcut for spine-bound routes (avoids bench path/canteen area)
+const SPINE_DIRECT = [
+  { lat: 13.961592,  lng: 121.612153 }, // R66 — directly north of R38
 ];
 
 // North spine from R63/R66 northward
@@ -84,95 +90,85 @@ function route(...segments) {
 
 export const HARDCODED_ROUTES = {
 
-  // 1. main_building — perimeter → interior → bench path → spine → R70 → main_building
+  // 1. main_building — perimeter → RFID → direct to spine → main_building
   main_building: route(
-    PERIMETER, RFID_ENTRY, INTERIOR_PATH, BENCH_PATH, SPINE_START,
-    [{ lat: 13.961650, lng: 121.612393 }] // main_building entrance
+    PERIMETER, RFID_ENTRY, SPINE_DIRECT, SPINE_START,
+    [{ lat: 13.961650, lng: 121.612393 }]
   ),
 
-  // 2. ea_tower — perimeter → interior → bench path → spine → R76 → ea_tower
-  // ea_tower is SOUTH of R76 — direct connection, no overshoot
+  // 2. ea_tower — perimeter → RFID → spine → R76 → ea_tower
   ea_tower: route(
-    PERIMETER, RFID_ENTRY, INTERIOR_PATH, BENCH_PATH, SPINE_START, SPINE_MID,
-    [{ lat: 13.961744, lng: 121.612746 }] // ea_tower entrance (slightly east of R76)
+    PERIMETER, RFID_ENTRY, SPINE_DIRECT, SPINE_START, SPINE_MID,
+    [{ lat: 13.961744, lng: 121.612746 }]
   ),
 
-  // 3. canteen (Big Canteen) — perimeter → interior → bench path → canteen
+  // 3. canteen (Big Canteen) — ONLY route using bench path (goes west to canteen)
   canteen: route(
     PERIMETER, RFID_ENTRY, INTERIOR_PATH, BENCH_PATH,
-    [{ lat: 13.9614, lng: 121.6119 }] // canteen entrance
+    [{ lat: 13.9614, lng: 121.6119 }]
   ),
 
-  // 4. ibed — perimeter → R37 → R38 → ibed (IBED is north of R38, no eastward detour)
-  // IBED entrance is at lng 121.6121 — same as R38 area, just go north directly
+  // 4. ibed — perimeter → RFID → ibed (straight north, no detour)
   ibed: route(
     PERIMETER, RFID_ENTRY,
-    [{ lat: 13.9614, lng: 121.6121 }] // ibed entrance (directly north of R38)
+    [{ lat: 13.9614, lng: 121.6121 }]
   ),
 
-  // 5. sr_building — perimeter → interior → bench path → spine → R70 → sr_building
-  // SR Building is east of the spine at R71-R72 level
+  // 5. sr_building — perimeter → RFID → spine → R71 → sr_building
   sr_building: route(
-    PERIMETER, RFID_ENTRY, INTERIOR_PATH, BENCH_PATH, SPINE_START,
+    PERIMETER, RFID_ENTRY, SPINE_DIRECT, SPINE_START,
     [
       { lat: 13.961592, lng: 121.612469 }, // R71
-      { lat: 13.961530, lng: 121.612643 }, // sr_building entrance
+      { lat: 13.961530, lng: 121.612643 },
     ]
   ),
 
-  // 6. chapel — perimeter → interior → bench path → spine → R66 → chapel
-  // Chapel is west of R66, just off the spine start
+  // 6. chapel — perimeter → RFID → R66 → chapel
   chapel: route(
-    PERIMETER, RFID_ENTRY, INTERIOR_PATH, BENCH_PATH,
-    [
-      { lat: 13.961592, lng: 121.612153 }, // R66
-      { lat: 13.961650, lng: 121.612098 }, // chapel entrance
-    ]
+    PERIMETER, RFID_ENTRY, SPINE_DIRECT,
+    [{ lat: 13.961650, lng: 121.612098 }]
   ),
 
-  // 7. kindergarten — perimeter → interior → bench path → spine → R66/R67 → kindergarten
+  // 7. kindergarten — perimeter → RFID → R66 → R67 → kindergarten
   kindergarten: route(
-    PERIMETER, RFID_ENTRY, INTERIOR_PATH, BENCH_PATH,
+    PERIMETER, RFID_ENTRY, SPINE_DIRECT,
     [
-      { lat: 13.961592, lng: 121.612153 }, // R66
       { lat: 13.961589, lng: 121.612210 }, // R67
-      { lat: 13.961689, lng: 121.612115 }, // kindergarten entrance
+      { lat: 13.961689, lng: 121.612115 },
     ]
   ),
 
-  // 8. gymnasium — perimeter → interior → bench path → full spine → R84 → gymnasium
+  // 8. gymnasium — perimeter → RFID → spine → R84 → gymnasium
   gymnasium: route(
-    PERIMETER, RFID_ENTRY, INTERIOR_PATH, BENCH_PATH, SPINE_START, SPINE_MID, SPINE_NORTH,
+    PERIMETER, RFID_ENTRY, SPINE_DIRECT, SPINE_START, SPINE_MID, SPINE_NORTH,
     [
-      { lat: 13.962317, lng: 121.612814 }, // R83
-      { lat: 13.962384, lng: 121.612815 }, // R84
-      { lat: 13.9624,   lng: 121.6128   }, // gymnasium entrance
+      { lat: 13.962317, lng: 121.612814 },
+      { lat: 13.962384, lng: 121.612815 },
+      { lat: 13.9624,   lng: 121.6128   },
     ]
   ),
 
-  // 9. kitchen_hall — perimeter → interior → bench path → full spine → R82 → kitchen_hall
+  // 9. kitchen_hall — perimeter → RFID → spine → R82 → kitchen_hall
   kitchen_hall: route(
-    PERIMETER, RFID_ENTRY, INTERIOR_PATH, BENCH_PATH, SPINE_START, SPINE_MID, SPINE_NORTH,
-    [{ lat: 13.9624, lng: 121.6129 }] // kitchen_hall entrance
+    PERIMETER, RFID_ENTRY, SPINE_DIRECT, SPINE_START, SPINE_MID, SPINE_NORTH,
+    [{ lat: 13.9624, lng: 121.6129 }]
   ),
 
-  // 10. canteen_two (Canteen 2) — spine → R73 → canteen_two
-  // Canteen 2 is east of the spine, peels off at R73 level
+  // 10. canteen_two — perimeter → RFID → spine → R73 → canteen_two
   canteen_two: route(
-    PERIMETER, RFID_ENTRY, INTERIOR_PATH, BENCH_PATH, SPINE_START,
+    PERIMETER, RFID_ENTRY, SPINE_DIRECT, SPINE_START,
     [
-      { lat: 13.961592, lng: 121.612469 }, // R71
-      { lat: 13.961607, lng: 121.612537 }, // R72
-      { lat: 13.961635, lng: 121.612631 }, // R73
-      { lat: 13.961708, lng: 121.612800 }, // canteen_two entrance
+      { lat: 13.961592, lng: 121.612469 },
+      { lat: 13.961607, lng: 121.612537 },
+      { lat: 13.961635, lng: 121.612631 },
+      { lat: 13.961708, lng: 121.612800 },
     ]
   ),
 
-  // 11. engineering (New IBED Bldg) — perimeter → interior path → engineering
-  // Engineering is just off R51, west of the interior path end
+  // 11. engineering (New IBED Bldg) — perimeter → RFID → interior → engineering
   engineering: route(
     PERIMETER, RFID_ENTRY, INTERIOR_PATH,
-    [{ lat: 13.961637, lng: 121.612220 }] // New IBED Building entrance
+    [{ lat: 13.961637, lng: 121.612220 }]
   ),
 
   // 12. new_building (RFID) — perimeter → new_building
@@ -219,15 +215,14 @@ export const HARDCODED_ROUTES = {
 
   // 16. ea_tower_2 (EA Tower 2nd entrance) — spine → R79 → ea_tower_2
   ea_tower_2: route(
-    PERIMETER, RFID_ENTRY, INTERIOR_PATH, BENCH_PATH, SPINE_START, SPINE_MID, SPINE_NORTH,
-    [{ lat: 13.962093, lng: 121.612822 }] // ea_tower_2 entrance
+    PERIMETER, RFID_ENTRY, SPINE_DIRECT, SPINE_START, SPINE_MID, SPINE_NORTH,
+    [{ lat: 13.962093, lng: 121.612822 }]
   ),
 
-  // 17. ibed_2 (IBED 2nd entrance) — spine to R70 area then west to ibed_2
-  // ibed_2 is at lng 121.612393 — same longitude as R70 on the spine
+  // 17. ibed_2 (IBED 2nd entrance) — spine to R70 area then to ibed_2
   ibed_2: route(
-    PERIMETER, RFID_ENTRY, INTERIOR_PATH, BENCH_PATH, SPINE_START,
-    [{ lat: 13.961546, lng: 121.612393 }] // ibed_2 entrance (off R70 level)
+    PERIMETER, RFID_ENTRY, SPINE_DIRECT, SPINE_START,
+    [{ lat: 13.961546, lng: 121.612393 }]
   ),
 
   // 18. sr_building_2 — perimeter east branch → sr_building_2
@@ -247,8 +242,8 @@ export const HARDCODED_ROUTES = {
 
   // 19. main_building_2 (Main Bldg 2nd entrance) — spine → R80 → main_building_2
   main_building_2: route(
-    PERIMETER, RFID_ENTRY, INTERIOR_PATH, BENCH_PATH, SPINE_START, SPINE_MID, SPINE_NORTH,
-    [{ lat: 13.962135, lng: 121.612759 }] // main_building_2 entrance
+    PERIMETER, RFID_ENTRY, SPINE_DIRECT, SPINE_START, SPINE_MID, SPINE_NORTH,
+    [{ lat: 13.962135, lng: 121.612759 }]
   ),
 };
 
