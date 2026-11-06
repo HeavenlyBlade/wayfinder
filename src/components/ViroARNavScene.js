@@ -1,20 +1,20 @@
 // ─────────────────────────────────────────────────────────────────────────────
 // WAYFINDER — ViroARNavScene
 //
-// ViroReact AR navigation scene.
+// AR navigation arrow — flat chevron on the ground + stretching line to
+// next waypoint + pulsing orb at the tip. Similar to Google Maps Live View.
 //
-// KEY INSIGHT from research:
-//   ARCore (Android) does NOT support worldAlignment="GravityAndHeading".
-//   The AR world's -Z axis is wherever the camera was pointing at session start
-//   — completely arbitrary. To make the arrow point the correct compass direction
-//   we use onCameraTransformUpdate to get the camera's current yaw from ARCore,
-//   then compute: arrowRotation = compassBearing - cameraYaw
-//   where compassBearing = (heading + angleDiff) is the absolute compass bearing
-//   to the next waypoint, and cameraYaw is the camera's current Y rotation in
-//   the AR world frame. This gives the correct rotation relative to the camera.
+// Shape design:
+//   - A flat ground-level chevron (ViroPolygon) pointing forward
+//   - A thin line (ViroPolyline) stretching 4m ahead toward the waypoint
+//   - A glowing pulsing orb (ViroSphere) at the end of the line
+//   - Everything rotates in Y to face the correct compass direction
 //
-// Arrow: upright ViroBox navigation pin — shaft + diamond head, stands vertical,
-//        rotates in Y to face direction of travel, scale-pulse animation.
+// Arrow rotation:
+//   ARCore world -Z axis is wherever camera was at session start (arbitrary).
+//   We use onCameraTransformUpdate to get camera yaw, then:
+//     arrowRotation = absoluteCompassBearing - cameraYaw
+//   where absoluteCompassBearing = (heading + angleDiff) mod 360
 // ─────────────────────────────────────────────────────────────────────────────
 
 import React, { useState, useRef, useEffect } from "react";
@@ -22,9 +22,12 @@ import { Platform } from "react-native";
 import {
   ViroARSceneNavigator,
   ViroARScene,
-  ViroText,
   ViroNode,
+  ViroPolygon,
+  ViroPolyline,
+  ViroSphere,
   ViroBox,
+  ViroText,
   ViroMaterials,
   ViroAnimations,
   ViroTrackingStateConstants,
@@ -32,85 +35,107 @@ import {
 
 // ── Materials ─────────────────────────────────────────────────────────────────
 ViroMaterials.createMaterials({
-  arrowGreen: { lightingModel: "Constant", diffuseColor: "#00FF88" },
-  ringGreen:  { lightingModel: "Constant", diffuseColor: "#00FF88", transparency: 0.5 },
+  // Bright green — Constant so it's always full brightness outdoors
+  chevronGreen: { lightingModel: "Constant", diffuseColor: "#00FF88" },
+  // Orb at waypoint — slightly cyan for contrast vs chevron
+  orbCyan:      { lightingModel: "Constant", diffuseColor: "#00FFDD", transparency: 0.1 },
+  // Semi-transparent ground ring
+  ringGreen:    { lightingModel: "Constant", diffuseColor: "#00FF88", transparency: 0.55 },
 });
 
 // ── Animations ────────────────────────────────────────────────────────────────
 ViroAnimations.registerAnimations({
-  arrowPulse: {
+  // Orb pulses in size — gives a "alive" feel and draws the eye forward
+  orbPulse: {
     properties: {
-      scaleX: "1.0 => 1.1 => 1.0",
-      scaleY: "1.0 => 1.1 => 1.0",
-      scaleZ: "1.0 => 1.1 => 1.0",
+      scaleX: "1.0 => 1.35 => 1.0",
+      scaleY: "1.0 => 1.35 => 1.0",
+      scaleZ: "1.0 => 1.35 => 1.0",
     },
     easing: "EaseInOut",
-    duration: 1000,
+    duration: 900,
+    loop: true,
+  },
+  // Chevron bobs slightly — subtle up/down movement to attract attention
+  chevronBob: {
+    properties: { positionY: "0.05 => 0.12 => 0.05" },
+    easing: "EaseInOut",
+    duration: 1400,
     loop: true,
   },
 });
 
+// ── Chevron vertices (flat, pointing in -Z direction = forward in AR world) ──
+// Lies flat on the ground (Y ≈ 0). A wide chevron like a ">" rotated 90°.
+//   Width: 0.7m total span
+//   Depth: 0.5m from tail to tip
+const CHEVRON_VERTS = [
+  // Tip (front, pointing -Z)
+  [0,    0.06,  -0.25],
+  // Left wing
+  [-0.35, 0.06,  0.25],
+  // Left inner notch
+  [-0.15, 0.06,  0.08],
+  // Right inner notch
+  [ 0.15, 0.06,  0.08],
+  // Right wing
+  [ 0.35, 0.06,  0.25],
+];
+// Triangle indices for the chevron polygon faces (two triangles each side)
+const CHEVRON_IDX = [
+  [0, 1, 2], // left face
+  [0, 2, 3], // center
+  [0, 3, 4], // right face
+];
+
 // ── Inner AR scene ────────────────────────────────────────────────────────────
 function NavScene(props) {
-  // angleDiff: bearing - heading (degrees), already computed in ARScreen
-  // heading:   device compass heading (0=north), from useLocation
   const { angleDiff, heading } = props;
 
-  const [isTracking,   setIsTracking]   = useState(false);
-  const [arrowRotation, setArrowRotation] = useState(angleDiff ?? 0);
-  const cameraYawRef = useRef(0); // camera's current Y rotation in AR world
-  const lastArrowYRef = useRef(0);
+  const [isTracking,    setIsTracking]    = useState(false);
+  const [arrowRotation, setArrowRotation] = useState(0);
   const [isLimitedMode, setIsLimitedMode] = useState(false);
-  const trackingTimeoutRef = useRef(null);
 
+  const cameraYawRef    = useRef(0);
+  const lastArrowYRef   = useRef(0);
+  const trackingTimeout = useRef(null);
+
+  // ── Tracking state ──────────────────────────────────────────────────────────
   function handleTrackingUpdated(state) {
-    const tracking = state === ViroTrackingStateConstants.TRACKING_NORMAL ||
-                     state === ViroTrackingStateConstants.TRACKING_LIMITED;
-    if (tracking && trackingTimeoutRef.current) {
-      clearTimeout(trackingTimeoutRef.current);
-      trackingTimeoutRef.current = null;
+    const ok = state === ViroTrackingStateConstants.TRACKING_NORMAL ||
+               state === ViroTrackingStateConstants.TRACKING_LIMITED;
+    if (ok && trackingTimeout.current) {
+      clearTimeout(trackingTimeout.current);
+      trackingTimeout.current = null;
     }
-    setIsTracking(tracking);
+    setIsTracking(ok);
   }
 
+  // 10-second fallback — Samsung/Android 16 ARCore bug: tracking never settles
   useEffect(() => {
-    trackingTimeoutRef.current = setTimeout(() => {
+    trackingTimeout.current = setTimeout(() => {
       setIsTracking(prev => {
-        if (!prev) {
-          setIsLimitedMode(true);
-          return true;
-        }
+        if (!prev) { setIsLimitedMode(true); return true; }
         return prev;
       });
     }, 10000);
-    return () => { if (trackingTimeoutRef.current) clearTimeout(trackingTimeoutRef.current); };
+    return () => { if (trackingTimeout.current) clearTimeout(trackingTimeout.current); };
   }, []);
 
-  // onCameraTransformUpdate fires every frame with the camera's world-space transform.
-  // rotation[1] is the camera's Y (yaw) in the AR world frame.
-  // On Android/ARCore the AR world -Z axis is wherever the camera was at session start.
-  // We use the camera yaw to compute the arrow rotation relative to the AR world:
-  //   absoluteCompassBearing = (heading + angleDiff) mod 360
-  //   arrowRotation = absoluteCompassBearing - cameraYaw
-  // This makes the arrow point the correct compass direction regardless of
-  // where the camera was pointing when the AR session started.
-  function handleCameraTransform(cameraTransform) {
-    const rawYaw = cameraTransform?.rotation?.[1] ?? 0;
-    // Normalize to 0-360 range — ViroReact may return -180 to +180 or 0 to 360
+  // ── Camera yaw → arrow rotation ─────────────────────────────────────────────
+  function handleCameraTransform(ct) {
+    const rawYaw = ct?.rotation?.[1] ?? 0;
     const camYaw = ((rawYaw % 360) + 360) % 360;
     cameraYawRef.current = camYaw;
 
     if (heading != null && angleDiff != null) {
-      // absoluteCompassBearing: the absolute world compass bearing to next waypoint
-      const absoluteBearing = ((heading + angleDiff) % 360 + 360) % 360;
-      // arrowYRotation: rotate arrow in AR world to face that compass bearing
-      let arrowY = absoluteBearing - camYaw;
-      // Normalize to shortest rotation path
-      if (arrowY > 180) arrowY -= 360;
-      if (arrowY < -180) arrowY += 360;
-      if (Math.abs(arrowY - lastArrowYRef.current) < 1.0) return;
-      lastArrowYRef.current = arrowY;
-      setArrowRotation(arrowY);
+      const bearing = ((heading + angleDiff) % 360 + 360) % 360;
+      let rot = bearing - camYaw;
+      if (rot >  180) rot -= 360;
+      if (rot < -180) rot += 360;
+      if (Math.abs(rot - lastArrowYRef.current) < 1.0) return;
+      lastArrowYRef.current = rot;
+      setArrowRotation(rot);
     } else {
       setArrowRotation(angleDiff ?? 0);
     }
@@ -121,45 +146,60 @@ function NavScene(props) {
       onTrackingUpdated={handleTrackingUpdated}
       onCameraTransformUpdate={handleCameraTransform}
     >
-      {/* Upright navigation pin — at eye level, 2.5m ahead */}
+
+      {/* ── Main navigation arrow group ── */}
       {isTracking && (
         <ViroNode
-          position={[0, 0.0, -2.5]}
+          position={[0, 0, 0]}
           rotation={[0, arrowRotation, 0]}
-          animation={{ name: "arrowPulse", run: true, loop: true }}
         >
-          {/* Shaft — thin vertical stem */}
-          <ViroBox
-            width={0.08}
-            height={0.5}
-            length={0.08}
-            position={[0, 0, 0]}
-            materials={["arrowGreen"]}
+          {/* Flat chevron on the ground, 1.5m ahead */}
+          <ViroNode
+            position={[0, 0, -1.5]}
+            animation={{ name: "chevronBob", run: true, loop: true }}
+          >
+            <ViroPolygon
+              vertices={CHEVRON_VERTS}
+              triangleIndices={CHEVRON_IDX}
+              materials={["chevronGreen"]}
+            />
+          </ViroNode>
+
+          {/* Stretching line from user to waypoint (1m to 4m ahead) */}
+          <ViroPolyline
+            points={[
+              [0,  0.05, -0.8],  // start — near user's feet
+              [0,  0.05, -4.0],  // end   — 4m ahead
+            ]}
+            thickness={0.025}
+            materials={["chevronGreen"]}
           />
-          {/* Head — diamond arrowhead at top */}
+
+          {/* Pulsing orb at end of line — the "target" indicator */}
+          <ViroNode
+            position={[0, 0.12, -4.0]}
+            animation={{ name: "orbPulse", run: true, loop: true }}
+          >
+            <ViroSphere
+              radius={0.18}
+              widthSegmentCount={12}
+              heightSegmentCount={12}
+              materials={["orbCyan"]}
+            />
+          </ViroNode>
+
+          {/* Subtle ground ring at user's feet to anchor the direction */}
           <ViroBox
-            width={0.26}
-            height={0.08}
-            length={0.26}
-            position={[0, 0.30, 0]}
-            rotation={[0, 0, 45]}
-            materials={["arrowGreen"]}
+            width={0.55}
+            height={0.012}
+            length={0.55}
+            position={[0, 0.006, -1.0]}
+            materials={["ringGreen"]}
           />
         </ViroNode>
       )}
 
-      {/* Ground ring below the arrow */}
-      {isTracking && (
-        <ViroBox
-          width={0.5}
-          height={0.01}
-          length={0.5}
-          position={[0, -0.26, -2.5]}
-          materials={["ringGreen"]}
-        />
-      )}
-
-      {/* Scanning text */}
+      {/* Initializing text */}
       {!isTracking && (
         <ViroText
           text="Initializing AR..."
@@ -169,14 +209,16 @@ function NavScene(props) {
         />
       )}
 
-      {/* Limited AR mode indicator */}
+      {/* Limited mode badge */}
       {isTracking && isLimitedMode && (
         <ViroText
           text="Limited AR"
-          position={[0, -0.4, -2.5]}
+          position={[0, -0.5, -2.5]}
+          scale={[0.4, 0.4, 0.4]}
           color="#FFD600"
         />
       )}
+
     </ViroARScene>
   );
 }
@@ -186,7 +228,7 @@ export default function ViroARNavScene({ angleDiff, heading, style }) {
   return (
     <ViroARSceneNavigator
       style={style}
-      autofocus={Platform.OS === "ios"} // ARCore tracking optimized with autofocus=false on Android
+      autofocus={Platform.OS === "ios"}
       initialScene={{ scene: NavScene }}
       viroAppProps={{ angleDiff, heading }}
     />
