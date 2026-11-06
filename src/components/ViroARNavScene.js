@@ -1,20 +1,18 @@
 // ─────────────────────────────────────────────────────────────────────────────
 // WAYFINDER — ViroARNavScene
 //
-// AR navigation arrow — flat chevron on the ground + stretching line to
-// next waypoint + pulsing orb at the tip. Similar to Google Maps Live View.
+// Continuous arrow trail — multiple chevrons placed along the direction of
+// travel, getting smaller with distance (perspective effect). Like the indoor
+// navigation style in the reference screenshots.
 //
-// Shape design:
-//   - A flat ground-level chevron (ViroPolygon) pointing forward
-//   - A thin line (ViroPolyline) stretching 4m ahead toward the waypoint
-//   - A glowing pulsing orb (ViroSphere) at the end of the line
-//   - Everything rotates in Y to face the correct compass direction
+// Each chevron is a ViroPolygon. They are spaced 0.8m apart, starting at 0.6m
+// ahead and going to 5m. Each one scales down with distance to simulate depth.
+// The whole group rotates in Y to face the correct compass direction.
 //
 // Arrow rotation:
-//   ARCore world -Z axis is wherever camera was at session start (arbitrary).
+//   ARCore world -Z axis is arbitrary (where camera pointed at session start).
 //   We use onCameraTransformUpdate to get camera yaw, then:
 //     arrowRotation = absoluteCompassBearing - cameraYaw
-//   where absoluteCompassBearing = (heading + angleDiff) mod 360
 // ─────────────────────────────────────────────────────────────────────────────
 
 import React, { useState, useRef, useEffect } from "react";
@@ -24,9 +22,6 @@ import {
   ViroARScene,
   ViroNode,
   ViroPolygon,
-  ViroPolyline,
-  ViroSphere,
-  ViroBox,
   ViroText,
   ViroMaterials,
   ViroAnimations,
@@ -35,58 +30,59 @@ import {
 
 // ── Materials ─────────────────────────────────────────────────────────────────
 ViroMaterials.createMaterials({
-  // Bright green — Constant so it's always full brightness outdoors
-  chevronGreen: { lightingModel: "Constant", diffuseColor: "#00FF88" },
-  // Orb at waypoint — slightly cyan for contrast vs chevron
-  orbCyan:      { lightingModel: "Constant", diffuseColor: "#00FFDD", transparency: 0.1 },
-  // Semi-transparent ground ring
-  ringGreen:    { lightingModel: "Constant", diffuseColor: "#00FF88", transparency: 0.55 },
+  arrowClose:  { lightingModel: "Constant", diffuseColor: "#00FF88" },
+  arrowMid:    { lightingModel: "Constant", diffuseColor: "#00DD77" },
+  arrowFar:    { lightingModel: "Constant", diffuseColor: "#009955" },
+  arrowFarest: { lightingModel: "Constant", diffuseColor: "#006633" },
 });
 
-// ── Animations ────────────────────────────────────────────────────────────────
+// ── Animations — chevrons flow forward like they're moving ────────────────────
 ViroAnimations.registerAnimations({
-  // Orb pulses in size — gives a "alive" feel and draws the eye forward
-  orbPulse: {
-    properties: {
-      scaleX: "1.0 => 1.35 => 1.0",
-      scaleY: "1.0 => 1.35 => 1.0",
-      scaleZ: "1.0 => 1.35 => 1.0",
-    },
-    easing: "EaseInOut",
-    duration: 900,
-    loop: true,
-  },
-  // Chevron bobs slightly — subtle up/down movement to attract attention
-  chevronBob: {
-    properties: { positionY: "0.05 => 0.12 => 0.05" },
-    easing: "EaseInOut",
-    duration: 1400,
-    loop: true,
-  },
+  // Each chevron pulses opacity to create a flowing/moving trail effect
+  flowPulse0: { properties: { opacity: "0.4 => 1.0 => 0.4" }, easing: "Linear", duration: 800,  loop: true },
+  flowPulse1: { properties: { opacity: "0.4 => 1.0 => 0.4" }, easing: "Linear", duration: 800,  loop: true },
+  flowPulse2: { properties: { opacity: "0.4 => 1.0 => 0.4" }, easing: "Linear", duration: 800,  loop: true },
+  flowPulse3: { properties: { opacity: "0.4 => 1.0 => 0.4" }, easing: "Linear", duration: 800,  loop: true },
+  flowPulse4: { properties: { opacity: "0.4 => 1.0 => 0.4" }, easing: "Linear", duration: 800,  loop: true },
+  flowPulse5: { properties: { opacity: "0.4 => 1.0 => 0.4" }, easing: "Linear", duration: 800,  loop: true },
+  flowPulse6: { properties: { opacity: "0.4 => 1.0 => 0.4" }, easing: "Linear", duration: 800,  loop: true },
 });
 
-// ── Chevron vertices (flat, pointing in -Z direction = forward in AR world) ──
-// Lies flat on the ground (Y ≈ 0). A wide chevron like a ">" rotated 90°.
-//   Width: 0.7m total span
-//   Depth: 0.5m from tail to tip
-const CHEVRON_VERTS = [
-  // Tip (front, pointing -Z)
-  [0,    0.06,  -0.25],
-  // Left wing
-  [-0.35, 0.06,  0.25],
-  // Left inner notch
-  [-0.15, 0.06,  0.08],
-  // Right inner notch
-  [ 0.15, 0.06,  0.08],
-  // Right wing
-  [ 0.35, 0.06,  0.25],
+// ── Single chevron vertices — pointing in -Z direction (forward) ──────────────
+// Flat on Y plane (ground level). Width 0.5m, depth 0.35m.
+// Shape: like ">>" — a pointed chevron
+function makeChevronVerts(w, d) {
+  // w = half-width, d = depth
+  return [
+    [ 0,   0.04, -d    ],  // tip (front)
+    [-w,   0.04,  d*0.3],  // left outer
+    [-w*0.4, 0.04, 0   ],  // left inner notch
+    [ w*0.4, 0.04, 0   ],  // right inner notch
+    [ w,   0.04,  d*0.3],  // right outer
+  ];
+}
+const CHEVRON_IDX = [[0,1,2],[0,2,3],[0,3,4]];
+
+// Trail config: [z_distance, scale, materialKey, animName, delayRatio]
+// Chevrons start close (bright, big) and get smaller/darker further away
+const TRAIL = [
+  { z: -0.7,  s: 0.55, mat: "arrowClose",  anim: "flowPulse0", delay: 0.00 },
+  { z: -1.3,  s: 0.70, mat: "arrowClose",  anim: "flowPulse1", delay: 0.12 },
+  { z: -1.9,  s: 0.85, mat: "arrowMid",    anim: "flowPulse2", delay: 0.24 },
+  { z: -2.6,  s: 1.00, mat: "arrowMid",    anim: "flowPulse3", delay: 0.36 },
+  { z: -3.4,  s: 0.85, mat: "arrowFar",    anim: "flowPulse4", delay: 0.48 },
+  { z: -4.3,  s: 0.70, mat: "arrowFar",    anim: "flowPulse5", delay: 0.60 },
+  { z: -5.3,  s: 0.55, mat: "arrowFarest", anim: "flowPulse6", delay: 0.72 },
 ];
-// Triangle indices for the chevron polygon faces (two triangles each side)
-const CHEVRON_IDX = [
-  [0, 1, 2], // left face
-  [0, 2, 3], // center
-  [0, 3, 4], // right face
-];
+
+// Pre-build chevron vertices for each scale
+const CHEVRON_VERTS_BY_SCALE = {};
+TRAIL.forEach(({ s }) => {
+  const key = s.toFixed(2);
+  if (!CHEVRON_VERTS_BY_SCALE[key]) {
+    CHEVRON_VERTS_BY_SCALE[key] = makeChevronVerts(0.28 * s, 0.22 * s);
+  }
+});
 
 // ── Inner AR scene ────────────────────────────────────────────────────────────
 function NavScene(props) {
@@ -96,33 +92,30 @@ function NavScene(props) {
   const [arrowRotation, setArrowRotation] = useState(0);
   const [isLimitedMode, setIsLimitedMode] = useState(false);
 
-  const cameraYawRef    = useRef(0);
-  const lastArrowYRef   = useRef(0);
-  const trackingTimeout = useRef(null);
+  const cameraYawRef  = useRef(0);
+  const lastArrowYRef = useRef(0);
+  const timeoutRef    = useRef(null);
 
-  // ── Tracking state ──────────────────────────────────────────────────────────
   function handleTrackingUpdated(state) {
     const ok = state === ViroTrackingStateConstants.TRACKING_NORMAL ||
                state === ViroTrackingStateConstants.TRACKING_LIMITED;
-    if (ok && trackingTimeout.current) {
-      clearTimeout(trackingTimeout.current);
-      trackingTimeout.current = null;
+    if (ok && timeoutRef.current) {
+      clearTimeout(timeoutRef.current);
+      timeoutRef.current = null;
     }
     setIsTracking(ok);
   }
 
-  // 10-second fallback — Samsung/Android 16 ARCore bug: tracking never settles
   useEffect(() => {
-    trackingTimeout.current = setTimeout(() => {
+    timeoutRef.current = setTimeout(() => {
       setIsTracking(prev => {
         if (!prev) { setIsLimitedMode(true); return true; }
         return prev;
       });
     }, 10000);
-    return () => { if (trackingTimeout.current) clearTimeout(trackingTimeout.current); };
+    return () => { if (timeoutRef.current) clearTimeout(timeoutRef.current); };
   }, []);
 
-  // ── Camera yaw → arrow rotation ─────────────────────────────────────────────
   function handleCameraTransform(ct) {
     const rawYaw = ct?.rotation?.[1] ?? 0;
     const camYaw = ((rawYaw % 360) + 360) % 360;
@@ -147,59 +140,38 @@ function NavScene(props) {
       onCameraTransformUpdate={handleCameraTransform}
     >
 
-      {/* ── Main navigation arrow group ── */}
+      {/* Continuous arrow trail — all chevrons rotate together */}
       {isTracking && (
         <ViroNode
-          position={[0, 0, 0]}
+          position={[0, -0.3, 0]}
           rotation={[0, arrowRotation, 0]}
         >
-          {/* Flat chevron on the ground, 1.5m ahead */}
-          <ViroNode
-            position={[0, 0, -1.5]}
-            animation={{ name: "chevronBob", run: true, loop: true }}
-          >
-            <ViroPolygon
-              vertices={CHEVRON_VERTS}
-              triangleIndices={CHEVRON_IDX}
-              materials={["chevronGreen"]}
-            />
-          </ViroNode>
-
-          {/* Stretching line from user to waypoint (1m to 4m ahead) */}
-          <ViroPolyline
-            points={[
-              [0,  0.05, -0.8],  // start — near user's feet
-              [0,  0.05, -4.0],  // end   — 4m ahead
-            ]}
-            thickness={0.025}
-            materials={["chevronGreen"]}
-          />
-
-          {/* Pulsing orb at end of line — the "target" indicator */}
-          <ViroNode
-            position={[0, 0.12, -4.0]}
-            animation={{ name: "orbPulse", run: true, loop: true }}
-          >
-            <ViroSphere
-              radius={0.18}
-              widthSegmentCount={12}
-              heightSegmentCount={12}
-              materials={["orbCyan"]}
-            />
-          </ViroNode>
-
-          {/* Subtle ground ring at user's feet to anchor the direction */}
-          <ViroBox
-            width={0.55}
-            height={0.012}
-            length={0.55}
-            position={[0, 0.006, -1.0]}
-            materials={["ringGreen"]}
-          />
+          {TRAIL.map((cfg, i) => {
+            const key = cfg.s.toFixed(2);
+            const verts = CHEVRON_VERTS_BY_SCALE[key];
+            return (
+              <ViroNode
+                key={i}
+                position={[0, 0, cfg.z]}
+                animation={{
+                  name: cfg.anim,
+                  run: true,
+                  loop: true,
+                  delay: Math.floor(cfg.delay * 800),
+                }}
+              >
+                <ViroPolygon
+                  vertices={verts}
+                  triangleIndices={CHEVRON_IDX}
+                  materials={[cfg.mat]}
+                />
+              </ViroNode>
+            );
+          })}
         </ViroNode>
       )}
 
-      {/* Initializing text */}
+      {/* Scanning text */}
       {!isTracking && (
         <ViroText
           text="Initializing AR..."
@@ -209,11 +181,10 @@ function NavScene(props) {
         />
       )}
 
-      {/* Limited mode badge */}
       {isTracking && isLimitedMode && (
         <ViroText
           text="Limited AR"
-          position={[0, -0.5, -2.5]}
+          position={[0, -0.8, -2.5]}
           scale={[0.4, 0.4, 0.4]}
           color="#FFD600"
         />
