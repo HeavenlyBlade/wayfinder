@@ -38,6 +38,7 @@ const ARRIVAL_DIST        = 20;  // 20m — accounts for GPS inaccuracy near bui
 const ARRIVAL_CONFIRMATIONS = 3;  // 3 consecutive readings — reduces false positives from GPS jumps
 const GPS_ACCURACY_FILTER  = 25;  // ignore readings worse than 25m accuracy
 const APPROACHING_DIST      = 40;  // 40m — show "Almost there" approaching chip
+const PREBEND_WARN_DIST     = 15;  // 15m — warn before sharp direction change
 
 // ── Waypoint interpolation ────────────────────────────────────────────────────
 function interpolateSegment(a, b, spacingM) {
@@ -91,6 +92,7 @@ export default function ARScreen({ route, navigation }) {
   const [selectedStaircase,      setSelectedStaircase]      = useState(null);
   const [arrivalPromptVisible,   setArrivalPromptVisible]   = useState(false);
   const [isApproaching,          setIsApproaching]          = useState(false);
+  const [isPreBend,              setIsPreBend]              = useState(false);
 
   const orbTrailRef     = useRef([]);
   const waypointsRef    = useRef([]);
@@ -251,6 +253,20 @@ export default function ARScreen({ route, navigation }) {
     setNextAngle(angle);
     setDistToNext(Math.round(distanceTo(location.lat, location.lng, next.lat, next.lng)));
 
+    // Pre-bend warning: if next waypoint is close and the one after it is a sharp turn
+    if (orbTrailRef.current.length >= 2) {
+      const dNext = distanceTo(location.lat, location.lng, next.lat, next.lng);
+      if (dNext < PREBEND_WARN_DIST) {
+        const after = orbTrailRef.current[1];
+        const bearingNext  = bearingTo(next.lat, next.lng, after.lat, after.lng);
+        let turnAngle = Math.abs(bearingNext - bearing);
+        if (turnAngle > 180) turnAngle = 360 - turnAngle;
+        setIsPreBend(turnAngle > 60); // warn if next turn > 60°
+      } else {
+        setIsPreBend(false);
+      }
+    }
+
   }, [location, heading, destinationId, indoorStatus]);
 
   // ── Destination info ──────────────────────────────────────────────────────
@@ -339,6 +355,13 @@ export default function ARScreen({ route, navigation }) {
         {isApproaching && !arrived && !isLoading && (
           <View style={s.approachingChip}>
             <Text style={s.approachingText}>Almost there! {destName} is ahead</Text>
+          </View>
+        )}
+
+        {/* Pre-bend warning — sharp turn coming up */}
+        {isPreBend && !arrived && !isLoading && !isApproaching && (
+          <View style={s.preBendChip}>
+            <Text style={s.preBendText}>⚠ Turn ahead</Text>
           </View>
         )}
 
@@ -522,7 +545,22 @@ const s = StyleSheet.create({
     color: '#071209',
   },
 
-  // Bearing HUD container
+  // Pre-bend turn warning
+  preBendChip: {
+    position: 'absolute',
+    bottom: 80,
+    alignSelf: 'center',
+    backgroundColor: 'rgba(255,100,0,0.88)',
+    borderRadius: 10,
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    zIndex: 20,
+  },
+  preBendText: {
+    fontSize: 13,
+    fontWeight: '800',
+    color: '#fff',
+  },
   hudTop: {
     position: "absolute",
     top: 0, left: 0, right: 0,

@@ -9,9 +9,10 @@
 // EA Tower: exits the spine at R76, goes directly to ea_tower entrance (no overshoot).
 
 // Shared perimeter road segment: gate → R15
+// NOTE: R01 moved slightly north to avoid 311.5° gate-exit snap
 const PERIMETER = [
   { lat: 13.9609,    lng: 121.6114   }, // gate
-  { lat: 13.960943,  lng: 121.611350 }, // R01
+  { lat: 13.960920,  lng: 121.611430 }, // R01-smooth — directly north of gate (was NW, caused 125° snap)
   { lat: 13.961004,  lng: 121.611368 }, // R02
   { lat: 13.961056,  lng: 121.611389 }, // R03
   { lat: 13.961089,  lng: 121.611411 }, // R04
