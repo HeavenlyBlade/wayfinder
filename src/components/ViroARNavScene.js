@@ -1,11 +1,19 @@
 // ─────────────────────────────────────────────────────────────────────────────
 // WAYFINDER — ViroARNavScene
 //
-// Continuous chevron trail using ViroBox ONLY (ViroPolygon crashes on Android).
-// 7 chevrons spaced along the direction of travel, each built from 3 ViroBox
-// shapes (left wing, right wing, no center gap = solid chevron >).
-// They scale smaller near user and far away — middle ones are largest.
-// Flowing pulse animation creates a "moving forward" wave effect.
+// AR navigation indicator using ViroBox ONLY (confirmed safe in v2.53.1).
+//
+// Design: a single large navigation arrow composed of:
+//   - A wide flat arrowhead (pointing -Z = forward)
+//   - A rectangular shaft below the arrowhead
+// Placed at eye level 2.5m ahead. Rotates in Y to face direction of travel.
+// Below it: 3 smaller pulse-rings on the ground to draw the eye forward.
+//
+// This is modeled after Google Maps' AR Live View directional indicator —
+// a bold single arrow that fills the camera view and is impossible to miss.
+//
+// Color: bright #00FF88 (Constant lighting = full brightness outdoors/indoors)
+// Animation: gentle hover (up/down) + ground rings pulse outward
 // ─────────────────────────────────────────────────────────────────────────────
 
 import React, { useState, useRef, useEffect } from "react";
@@ -15,6 +23,7 @@ import {
   ViroARScene,
   ViroNode,
   ViroBox,
+  ViroSphere,
   ViroText,
   ViroMaterials,
   ViroAnimations,
@@ -23,72 +32,53 @@ import {
 
 // ── Materials ─────────────────────────────────────────────────────────────────
 ViroMaterials.createMaterials({
-  chevron0: { lightingModel: "Constant", diffuseColor: "#00FF88" }, // brightest — mid distance
-  chevron1: { lightingModel: "Constant", diffuseColor: "#00EE77" },
-  chevron2: { lightingModel: "Constant", diffuseColor: "#00CC66" },
-  chevron3: { lightingModel: "Constant", diffuseColor: "#00AA55" }, // darkest — far
+  arrowSolid: {
+    lightingModel: "Constant",
+    diffuseColor: "#00FF88",
+  },
+  arrowGlow: {
+    lightingModel: "Constant",
+    diffuseColor: "#00FF88",
+    transparency: 0.35,
+  },
+  ringFade: {
+    lightingModel: "Constant",
+    diffuseColor: "#00FF88",
+    transparency: 0.55,
+  },
 });
 
-// ── Animations — staggered delays create flowing wave ────────────────────────
+// ── Animations ────────────────────────────────────────────────────────────────
 ViroAnimations.registerAnimations({
-  pulse0: { properties: { opacity: "0.35 => 1.0 => 0.35" }, easing: "EaseInOut", duration: 750, loop: true },
-  pulse1: { properties: { opacity: "0.35 => 1.0 => 0.35" }, easing: "EaseInOut", duration: 750, loop: true },
-  pulse2: { properties: { opacity: "0.35 => 1.0 => 0.35" }, easing: "EaseInOut", duration: 750, loop: true },
-  pulse3: { properties: { opacity: "0.35 => 1.0 => 0.35" }, easing: "EaseInOut", duration: 750, loop: true },
-  pulse4: { properties: { opacity: "0.35 => 1.0 => 0.35" }, easing: "EaseInOut", duration: 750, loop: true },
-  pulse5: { properties: { opacity: "0.35 => 1.0 => 0.35" }, easing: "EaseInOut", duration: 750, loop: true },
-  pulse6: { properties: { opacity: "0.35 => 1.0 => 0.35" }, easing: "EaseInOut", duration: 750, loop: true },
+  // Arrow hovers up and down — feels alive, draws attention
+  arrowHover: {
+    properties: { positionY: "0.0 => 0.18 => 0.0" },
+    easing: "EaseInOut",
+    duration: 1600,
+    loop: true,
+  },
+  // Ground rings pulse outward (scale) and fade
+  ringPulse1: {
+    properties: { scaleX: "0.5 => 1.4 => 0.5", scaleZ: "0.5 => 1.4 => 0.5" },
+    easing: "EaseOut",
+    duration: 1200,
+    loop: true,
+  },
+  ringPulse2: {
+    properties: { scaleX: "0.5 => 1.4 => 0.5", scaleZ: "0.5 => 1.4 => 0.5" },
+    easing: "EaseOut",
+    duration: 1200,
+    loop: true,
+    delay: 400,
+  },
+  ringPulse3: {
+    properties: { scaleX: "0.5 => 1.4 => 0.5", scaleZ: "0.5 => 1.4 => 0.5" },
+    easing: "EaseOut",
+    duration: 1200,
+    loop: true,
+    delay: 800,
+  },
 });
-
-// ── Trail config ──────────────────────────────────────────────────────────────
-// z: distance ahead (negative = forward in -Z)
-// s: scale multiplier — creates perspective (mid ones biggest)
-// mat: material key
-// anim: animation name
-// delay: ms delay for staggered wave effect
-const TRAIL = [
-  { z: -0.8, s: 0.50, mat: "chevron2", anim: "pulse0", delay: 0   },
-  { z: -1.4, s: 0.65, mat: "chevron1", anim: "pulse1", delay: 107 },
-  { z: -2.1, s: 0.80, mat: "chevron0", anim: "pulse2", delay: 214 },
-  { z: -2.9, s: 1.00, mat: "chevron0", anim: "pulse3", delay: 321 },
-  { z: -3.8, s: 0.80, mat: "chevron1", anim: "pulse4", delay: 428 },
-  { z: -4.8, s: 0.65, mat: "chevron2", anim: "pulse5", delay: 535 },
-  { z: -5.9, s: 0.50, mat: "chevron3", anim: "pulse6", delay: 642 },
-];
-
-// ── Single chevron from 3 ViroBox shapes ─────────────────────────────────────
-// Built as a ">" shape:
-//   - Left wing: tilted left pointing forward
-//   - Right wing: tilted right pointing forward
-//   - Both are flat (thin height) lying on the ground
-function Chevron({ scale, material }) {
-  const w = 0.30 * scale;  // wing half-width
-  const h = 0.04 * scale;  // flat height (lying on ground)
-  const l = 0.28 * scale;  // wing length
-
-  return (
-    <>
-      {/* Left wing */}
-      <ViroBox
-        width={h}
-        height={h}
-        length={l}
-        position={[-w * 0.5, 0, w * 0.3]}
-        rotation={[0, 35, 0]}
-        materials={[material]}
-      />
-      {/* Right wing */}
-      <ViroBox
-        width={h}
-        height={h}
-        length={l}
-        position={[w * 0.5, 0, w * 0.3]}
-        rotation={[0, -35, 0]}
-        materials={[material]}
-      />
-    </>
-  );
-}
 
 // ── Inner AR scene ────────────────────────────────────────────────────────────
 function NavScene(props) {
@@ -111,7 +101,7 @@ function NavScene(props) {
     setIsTracking(ok);
   }
 
-  // 10s fallback for Samsung/Android 16 ARCore tracking bug
+  // 10s Samsung/Android 16 ARCore bug fallback
   useEffect(() => {
     timeoutRef.current = setTimeout(() => {
       setIsTracking(prev => {
@@ -146,23 +136,139 @@ function NavScene(props) {
     >
 
       {isTracking && (
-        // All chevrons rotate together as one group
+        // Master rotation node — everything turns together
         <ViroNode
-          position={[0, -0.2, 0]}
+          position={[0, 0, -2.5]}
           rotation={[0, arrowRotation, 0]}
         >
-          {TRAIL.map((cfg, i) => (
-            <ViroNode
-              key={i}
-              position={[0, 0, cfg.z]}
-              animation={{ name: cfg.anim, run: true, loop: true, delay: cfg.delay }}
-            >
-              <Chevron scale={cfg.s} material={cfg.mat} />
-            </ViroNode>
-          ))}
+
+          {/* ── MAIN ARROW — hovering at eye level ── */}
+          <ViroNode
+            position={[0, 0.15, 0]}
+            animation={{ name: "arrowHover", run: true, loop: true }}
+          >
+            {/* Arrowhead — wide flat triangle shape made from 3 boxes */}
+            {/* Center tip */}
+            <ViroBox
+              width={0.18}
+              height={0.12}
+              length={0.32}
+              position={[0, 0, -0.18]}
+              materials={["arrowSolid"]}
+            />
+            {/* Left wing */}
+            <ViroBox
+              width={0.32}
+              height={0.12}
+              length={0.18}
+              position={[-0.22, 0, -0.02]}
+              rotation={[0, 38, 0]}
+              materials={["arrowSolid"]}
+            />
+            {/* Right wing */}
+            <ViroBox
+              width={0.32}
+              height={0.12}
+              length={0.18}
+              position={[0.22, 0, -0.02]}
+              rotation={[0, -38, 0]}
+              materials={["arrowSolid"]}
+            />
+            {/* Shaft — below arrowhead */}
+            <ViroBox
+              width={0.14}
+              height={0.12}
+              length={0.28}
+              position={[0, 0, 0.22]}
+              materials={["arrowSolid"]}
+            />
+
+            {/* Outer glow — slightly larger, semi-transparent */}
+            <ViroBox
+              width={0.22}
+              height={0.04}
+              length={0.38}
+              position={[0, 0, -0.18]}
+              materials={["arrowGlow"]}
+            />
+            <ViroBox
+              width={0.38}
+              height={0.04}
+              length={0.22}
+              position={[-0.24, 0, -0.02]}
+              rotation={[0, 38, 0]}
+              materials={["arrowGlow"]}
+            />
+            <ViroBox
+              width={0.38}
+              height={0.04}
+              length={0.22}
+              position={[0.24, 0, -0.02]}
+              rotation={[0, -38, 0]}
+              materials={["arrowGlow"]}
+            />
+          </ViroNode>
+
+          {/* ── GROUND INDICATOR — pulsing rings at user's feet ── */}
+          {/* These rings pulse outward to show "walk this way" */}
+          <ViroNode position={[0, -0.85, 0.4]}>
+            <ViroBox
+              width={0.7}
+              height={0.015}
+              length={0.7}
+              position={[0, 0, 0]}
+              animation={{ name: "ringPulse1", run: true, loop: true }}
+              materials={["ringFade"]}
+            />
+          </ViroNode>
+          <ViroNode position={[0, -0.85, 0.4]}>
+            <ViroBox
+              width={0.7}
+              height={0.015}
+              length={0.7}
+              position={[0, 0, 0]}
+              animation={{ name: "ringPulse2", run: true, loop: true }}
+              materials={["ringFade"]}
+            />
+          </ViroNode>
+          <ViroNode position={[0, -0.85, 0.4]}>
+            <ViroBox
+              width={0.7}
+              height={0.015}
+              length={0.7}
+              position={[0, 0, 0]}
+              animation={{ name: "ringPulse3", run: true, loop: true }}
+              materials={["ringFade"]}
+            />
+          </ViroNode>
+
+          {/* ── DESTINATION ORBS — 3 spheres fading into the distance ── */}
+          <ViroSphere
+            radius={0.07}
+            widthSegmentCount={8}
+            heightSegmentCount={8}
+            position={[0, -0.5, -0.8]}
+            materials={["arrowSolid"]}
+          />
+          <ViroSphere
+            radius={0.055}
+            widthSegmentCount={8}
+            heightSegmentCount={8}
+            position={[0, -0.6, -2.0]}
+            materials={["arrowGlow"]}
+          />
+          <ViroSphere
+            radius={0.04}
+            widthSegmentCount={8}
+            heightSegmentCount={8}
+            position={[0, -0.65, -3.5]}
+            materials={["arrowGlow"]}
+          />
+
         </ViroNode>
       )}
 
+      {/* Scanning text */}
       {!isTracking && (
         <ViroText
           text="Initializing AR..."
@@ -172,6 +278,7 @@ function NavScene(props) {
         />
       )}
 
+      {/* Limited mode badge */}
       {isTracking && isLimitedMode && (
         <ViroText
           text="Limited AR"
