@@ -148,18 +148,19 @@ export default function ARScreen({ route, navigation }) {
     }
 
     // ── Trim route to start from nearest waypoint to user ──────────────────
-    // If the user is already inside the campus or past some waypoints,
-    // skip everything behind them so the arrow points forward, not back.
+    // Finds the closest waypoint and starts from there — handles users already
+    // inside campus, in a building, or anywhere along the route.
     if (waypoints.length > 1) {
       let nearestIdx = 0;
       let nearestDist = Infinity;
-      for (let i = 0; i < waypoints.length - 1; i++) { // exclude final destination
+      for (let i = 0; i < waypoints.length - 1; i++) {
         const d = distanceTo(loc.lat, loc.lng, waypoints[i].lat, waypoints[i].lng);
         if (d < nearestDist) { nearestDist = d; nearestIdx = i; }
       }
-      // Only trim if user is meaningfully close to an interior waypoint (not just near the gate)
-      // and the nearest waypoint isn't already the first one
-      if (nearestIdx > 0 && nearestDist < 80) {
+      // Trim to nearest waypoint — no distance threshold.
+      // If nearest is the gate (index 0) that's fine — user starts from gate.
+      // If nearest is an interior node that's fine too — user starts from there.
+      if (nearestIdx > 0) {
         waypoints = waypoints.slice(nearestIdx);
       }
     }

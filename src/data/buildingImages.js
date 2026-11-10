@@ -26,14 +26,14 @@ export const BUILDING_IMAGES = {
   engineering:        require('../../assets/buildings/engineering.jpg'),
   canteen_two:        require('../../assets/buildings/canteen_two.jpg'),
   sr_building:        require('../../assets/buildings/sr_building.jpg'),
+  canteen:            require('../../assets/buildings/canteen.jpg'),
+  ibed:               require('../../assets/buildings/ibed.jpg'),
 
   // ── Photos still needed ───────────────────────────────────────────────────
   gate:               null,   // Main Gate
   motorcycle_parking: null,   // Moto Parking
   parking_lot:        null,   // Parking Lot
-  canteen:            null,   // Big Canteen (Canteen 1)
   new_building:       null,   // New Building (RFID entrance)
-  ibed:               null,   // IBED Building
   ccss:               null,   // CCSS Building
 };
 

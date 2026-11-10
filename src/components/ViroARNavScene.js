@@ -142,69 +142,62 @@ function NavScene(props) {
           rotation={[0, arrowRotation, 0]}
         >
 
-          {/* ── MAIN ARROW — hovering at eye level ── */}
+          {/* ── MAIN ARROW — hovering at eye level, tilted to face camera ── */}
           <ViroNode
             position={[0, 0.15, 0]}
+            rotation={[-20, 0, 0]}
             animation={{ name: "arrowHover", run: true, loop: true }}
           >
-            {/* Arrowhead — wide flat triangle shape made from 3 boxes */}
-            {/* Center tip */}
+            {/* Arrowhead — wide upright arrow pointing FORWARD (-Z) */}
+            {/* Center body */}
             <ViroBox
-              width={0.18}
-              height={0.12}
-              length={0.32}
-              position={[0, 0, -0.18]}
+              width={0.20}
+              height={0.45}
+              length={0.12}
+              position={[0, 0, 0]}
               materials={["arrowSolid"]}
             />
-            {/* Left wing */}
+            {/* Tip — triangular point at bottom pointing forward */}
             <ViroBox
-              width={0.32}
-              height={0.12}
-              length={0.18}
-              position={[-0.22, 0, -0.02]}
-              rotation={[0, 38, 0]}
+              width={0.42}
+              height={0.22}
+              length={0.12}
+              position={[0, -0.20, 0]}
+              rotation={[0, 0, 0]}
               materials={["arrowSolid"]}
             />
-            {/* Right wing */}
+            {/* Left diagonal cut of tip */}
             <ViroBox
-              width={0.32}
-              height={0.12}
-              length={0.18}
-              position={[0.22, 0, -0.02]}
-              rotation={[0, -38, 0]}
+              width={0.22}
+              height={0.22}
+              length={0.12}
+              position={[-0.17, -0.28, 0]}
+              rotation={[0, 0, 32]}
               materials={["arrowSolid"]}
             />
-            {/* Shaft — below arrowhead */}
+            {/* Right diagonal cut of tip */}
             <ViroBox
-              width={0.14}
-              height={0.12}
-              length={0.28}
-              position={[0, 0, 0.22]}
+              width={0.22}
+              height={0.22}
+              length={0.12}
+              position={[0.17, -0.28, 0]}
+              rotation={[0, 0, -32]}
               materials={["arrowSolid"]}
             />
 
-            {/* Outer glow — slightly larger, semi-transparent */}
+            {/* Glow halo */}
             <ViroBox
-              width={0.22}
-              height={0.04}
-              length={0.38}
-              position={[0, 0, -0.18]}
+              width={0.26}
+              height={0.52}
+              length={0.06}
+              position={[0, 0, 0]}
               materials={["arrowGlow"]}
             />
             <ViroBox
-              width={0.38}
-              height={0.04}
-              length={0.22}
-              position={[-0.24, 0, -0.02]}
-              rotation={[0, 38, 0]}
-              materials={["arrowGlow"]}
-            />
-            <ViroBox
-              width={0.38}
-              height={0.04}
-              length={0.22}
-              position={[0.24, 0, -0.02]}
-              rotation={[0, -38, 0]}
+              width={0.50}
+              height={0.26}
+              length={0.06}
+              position={[0, -0.20, 0]}
               materials={["arrowGlow"]}
             />
           </ViroNode>

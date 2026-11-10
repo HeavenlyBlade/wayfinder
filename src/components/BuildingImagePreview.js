@@ -47,14 +47,15 @@ export default function BuildingImagePreview({ buildingId, buildingName, style }
 
 const s = StyleSheet.create({
   container: {
-    height: 180,
+    height: 200,
     width: '100%',
     alignSelf: 'stretch',
     overflow: 'hidden',
   },
   image: {
+    flex: 1,
     width: '100%',
-    height: '100%',
+    height: undefined,
   },
   placeholder: {
     flex: 1,
