@@ -103,7 +103,7 @@ export default function BuildingCard({ building, userLocation, onClose, onNaviga
       {/* Building image preview */}
       <BuildingImagePreview buildingId={building.id} buildingName={building.name} style={s.imagePreview} />
 
-      {/* Close button */}
+      {/* Close button — rendered AFTER image so it stacks on top */}
       <TouchableOpacity style={s.close} onPress={onClose} activeOpacity={0.7}>
         <Text style={s.closeText}>✕</Text>
       </TouchableOpacity>
@@ -206,15 +206,16 @@ const s = StyleSheet.create({
     position: "absolute",
     top: 14,
     right: 14,
-    width: 28,
-    height: 28,
-    borderRadius: 14,
-    backgroundColor: "rgba(255,255,255,0.08)",
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: "rgba(0,0,0,0.55)",
     alignItems: "center",
     justifyContent: "center",
-    zIndex: 10,
+    zIndex: 20,
+    elevation: 20,  // Android: elevation lifts it above the image layer
   },
-  closeText: { color: colors.textSecondary, fontSize: 14 },
+  closeText: { color: "#ffffff", fontSize: 14, fontWeight: "700" },
 
   header: {
     flexDirection: "row",
