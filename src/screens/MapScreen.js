@@ -87,15 +87,29 @@ const BUILDING_OVERLAYS = [
     ] },
 ];
 
+// ── Trim route to nearest waypoint based on user position ──────────────────
+function trimRouteToUser(waypoints, userLat, userLng) {
+  if (!waypoints || waypoints.length <= 1) return waypoints;
+  let nearestIdx = 0;
+  let nearestDist = Infinity;
+  for (let i = 0; i < waypoints.length - 1; i++) {
+    const dlat = waypoints[i].lat - userLat;
+    const dlng = waypoints[i].lng - userLng;
+    const d = Math.sqrt(dlat * dlat + dlng * dlng);
+    if (d < nearestDist) { nearestDist = d; nearestIdx = i; }
+  }
+  return nearestIdx > 0 ? waypoints.slice(nearestIdx) : waypoints;
+}
+
 // ── Resolve route waypoints — hardcoded first, then server, then local A* ──
 async function resolveRoute(userLat, userLng, destinationId) {
   // Hardcoded routes are always correct — use them first, no backend needed
   const hardcoded = getHardcodedRoute(destinationId);
-  if (hardcoded) return hardcoded;
+  if (hardcoded) return trimRouteToUser(hardcoded, userLat, userLng);
 
   try {
     const wps = await fetchRoute(userLat, userLng, destinationId);
-    if (wps && wps.length > 0) return wps;
+    if (wps && wps.length > 0) return trimRouteToUser(wps, userLat, userLng);
   } catch (_) {}
 
   const startNode = nearestNode(userLat, userLng);

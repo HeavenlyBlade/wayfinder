@@ -1,19 +1,17 @@
 // ─────────────────────────────────────────────────────────────────────────────
 // WAYFINDER — ViroARNavScene
 //
-// AR navigation indicator using ViroBox ONLY (confirmed safe in v2.53.1).
+// AR navigation arrow using ViroBox only (confirmed safe in v2.53.1).
 //
-// Design: a single large navigation arrow composed of:
-//   - A wide flat arrowhead (pointing -Z = forward)
-//   - A rectangular shaft below the arrowhead
-// Placed at eye level 2.5m ahead. Rotates in Y to face direction of travel.
-// Below it: 3 smaller pulse-rings on the ground to draw the eye forward.
+// Design: a clear downward-pointing navigation arrow (like a map pin arrow)
+// that sits in front of the user at eye level. Smaller and less intrusive
+// than previous versions — readable but not overwhelming.
 //
-// This is modeled after Google Maps' AR Live View directional indicator —
-// a bold single arrow that fills the camera view and is impossible to miss.
-//
-// Color: bright #00FF88 (Constant lighting = full brightness outdoors/indoors)
-// Animation: gentle hover (up/down) + ground rings pulse outward
+// Key fixes vs previous:
+// - 5° dead zone on rotation updates (was 1°) — prevents jitter/flying
+// - Arrow is smaller and anchored closer to camera (1.8m not 2.5m)
+// - No complex hover animations that fight with ARCore transforms
+// - Single scale pulse only — minimal state changes = stable rendering
 // ─────────────────────────────────────────────────────────────────────────────
 
 import React, { useState, useRef, useEffect } from "react";
@@ -30,55 +28,45 @@ import {
   ViroTrackingStateConstants,
 } from "@reactvision/react-viro";
 
-// ── Materials ─────────────────────────────────────────────────────────────────
 ViroMaterials.createMaterials({
-  arrowSolid: {
-    lightingModel: "Constant",
-    diffuseColor: "#00FF88",
-  },
-  arrowGlow: {
-    lightingModel: "Constant",
-    diffuseColor: "#00FF88",
-    transparency: 0.35,
-  },
-  ringFade: {
-    lightingModel: "Constant",
-    diffuseColor: "#00FF88",
-    transparency: 0.55,
+  arrowGreen: { lightingModel: "Constant", diffuseColor: "#00FF88" },
+  arrowGlow:  { lightingModel: "Constant", diffuseColor: "#00FF88", transparency: 0.4 },
+  orbGreen:   { lightingModel: "Constant", diffuseColor: "#00FFCC", transparency: 0.15 },
+});
+
+ViroAnimations.registerAnimations({
+  pulse: {
+    properties: { scaleX: "1.0 => 1.12 => 1.0", scaleY: "1.0 => 1.12 => 1.0", scaleZ: "1.0 => 1.12 => 1.0" },
+    easing: "EaseInOut",
+    duration: 1400,
+    loop: true,
   },
 });
 
-// ── Animations ────────────────────────────────────────────────────────────────
-ViroAnimations.registerAnimations({
-  // Arrow hovers up and down — feels alive, draws attention
-  arrowHover: {
-    properties: { positionY: "0.0 => 0.18 => 0.0" },
-    easing: "EaseInOut",
-    duration: 1600,
-    loop: true,
-  },
-  // Ground rings pulse outward (scale) and fade
-  ringPulse1: {
-    properties: { scaleX: "0.5 => 1.4 => 0.5", scaleZ: "0.5 => 1.4 => 0.5" },
-    easing: "EaseOut",
-    duration: 1200,
-    loop: true,
-  },
-  ringPulse2: {
-    properties: { scaleX: "0.5 => 1.4 => 0.5", scaleZ: "0.5 => 1.4 => 0.5" },
-    easing: "EaseOut",
-    duration: 1200,
-    loop: true,
-    delay: 400,
-  },
-  ringPulse3: {
-    properties: { scaleX: "0.5 => 1.4 => 0.5", scaleZ: "0.5 => 1.4 => 0.5" },
-    easing: "EaseOut",
-    duration: 1200,
-    loop: true,
-    delay: 800,
-  },
-});
+// ── Arrow shape: classic downward-pointing navigation pin ─────────────────────
+//
+//      ████   ← wide top bar  (body top)
+//      ████   ← body
+//      ████   ← body bottom
+//       ██    ← narrow tip pointing down
+//
+// Built from 3 ViroBox pieces rotated to face the camera
+function Arrow({ materials }) {
+  return (
+    <>
+      {/* Body — tall rectangle */}
+      <ViroBox width={0.16} height={0.30} length={0.08} position={[0, 0.05, 0]} materials={materials} />
+      {/* Wide shoulders at top */}
+      <ViroBox width={0.28} height={0.10} length={0.08} position={[0, 0.17, 0]} materials={materials} />
+      {/* Pointed tip at bottom */}
+      <ViroBox width={0.10} height={0.16} length={0.08} position={[0, -0.14, 0]} rotation={[0, 0, 0]} materials={materials} />
+      {/* Diagonal cuts for the tip — left */}
+      <ViroBox width={0.10} height={0.14} length={0.08} position={[-0.07, -0.17, 0]} rotation={[0, 0, 28]} materials={materials} />
+      {/* Diagonal cuts for the tip — right */}
+      <ViroBox width={0.10} height={0.14} length={0.08} position={[0.07, -0.17, 0]} rotation={[0, 0, -28]} materials={materials} />
+    </>
+  );
+}
 
 // ── Inner AR scene ────────────────────────────────────────────────────────────
 function NavScene(props) {
@@ -88,8 +76,10 @@ function NavScene(props) {
   const [arrowRotation, setArrowRotation] = useState(0);
   const [isLimitedMode, setIsLimitedMode] = useState(false);
 
-  const lastArrowYRef = useRef(0);
-  const timeoutRef    = useRef(null);
+  // Use refs to debounce rotation updates — prevents jitter/flying
+  const lastRotationRef = useRef(0);
+  const smoothRotRef    = useRef(0);
+  const timeoutRef      = useRef(null);
 
   function handleTrackingUpdated(state) {
     const ok = state === ViroTrackingStateConstants.TRACKING_NORMAL ||
@@ -101,7 +91,6 @@ function NavScene(props) {
     setIsTracking(ok);
   }
 
-  // 10s Samsung/Android 16 ARCore bug fallback
   useEffect(() => {
     timeoutRef.current = setTimeout(() => {
       setIsTracking(prev => {
@@ -116,17 +105,29 @@ function NavScene(props) {
     const rawYaw = ct?.rotation?.[1] ?? 0;
     const camYaw = ((rawYaw % 360) + 360) % 360;
 
+    let targetRot;
     if (heading != null && angleDiff != null) {
       const bearing = ((heading + angleDiff) % 360 + 360) % 360;
       let rot = bearing - camYaw;
       if (rot >  180) rot -= 360;
       if (rot < -180) rot += 360;
-      if (Math.abs(rot - lastArrowYRef.current) < 1.0) return;
-      lastArrowYRef.current = rot;
-      setArrowRotation(rot);
+      targetRot = rot;
     } else {
-      setArrowRotation(angleDiff ?? 0);
+      targetRot = angleDiff ?? 0;
     }
+
+    // 5° dead zone — ignore tiny changes that cause jitter
+    const diff = Math.abs(targetRot - lastRotationRef.current);
+    const normalDiff = diff > 180 ? 360 - diff : diff;
+    if (normalDiff < 5) return;
+
+    // Simple lerp smoothing — 30% toward target each frame
+    // This prevents the "flying away" snap when ARCore updates
+    const lerped = lastRotationRef.current + (targetRot - lastRotationRef.current) * 0.3;
+    lastRotationRef.current = lerped;
+
+    // Only trigger React state update when change is meaningful (>5°)
+    setArrowRotation(Math.round(lerped));
   }
 
   return (
@@ -136,132 +137,29 @@ function NavScene(props) {
     >
 
       {isTracking && (
-        // Master rotation node — everything turns together
         <ViroNode
-          position={[0, 0, -2.5]}
+          position={[0, 0, -1.8]}
           rotation={[0, arrowRotation, 0]}
+          animation={{ name: "pulse", run: true, loop: true }}
         >
+          {/* Main arrow */}
+          <Arrow materials={["arrowGreen"]} />
 
-          {/* ── MAIN ARROW — hovering at eye level, tilted to face camera ── */}
-          <ViroNode
-            position={[0, 0.15, 0]}
-            rotation={[-20, 0, 0]}
-            animation={{ name: "arrowHover", run: true, loop: true }}
-          >
-            {/* Arrowhead — wide upright arrow pointing FORWARD (-Z) */}
-            {/* Center body */}
-            <ViroBox
-              width={0.20}
-              height={0.45}
-              length={0.12}
-              position={[0, 0, 0]}
-              materials={["arrowSolid"]}
-            />
-            {/* Tip — triangular point at bottom pointing forward */}
-            <ViroBox
-              width={0.42}
-              height={0.22}
-              length={0.12}
-              position={[0, -0.20, 0]}
-              rotation={[0, 0, 0]}
-              materials={["arrowSolid"]}
-            />
-            {/* Left diagonal cut of tip */}
-            <ViroBox
-              width={0.22}
-              height={0.22}
-              length={0.12}
-              position={[-0.17, -0.28, 0]}
-              rotation={[0, 0, 32]}
-              materials={["arrowSolid"]}
-            />
-            {/* Right diagonal cut of tip */}
-            <ViroBox
-              width={0.22}
-              height={0.22}
-              length={0.12}
-              position={[0.17, -0.28, 0]}
-              rotation={[0, 0, -32]}
-              materials={["arrowSolid"]}
-            />
+          {/* Glow halo — slightly larger, transparent */}
+          <ViroBox width={0.34} height={0.12} length={0.04} position={[0, 0.17, 0]} materials={["arrowGlow"]} />
+          <ViroBox width={0.20} height={0.34} length={0.04} position={[0, 0.05, 0]} materials={["arrowGlow"]} />
 
-            {/* Glow halo */}
-            <ViroBox
-              width={0.26}
-              height={0.52}
-              length={0.06}
-              position={[0, 0, 0]}
-              materials={["arrowGlow"]}
-            />
-            <ViroBox
-              width={0.50}
-              height={0.26}
-              length={0.06}
-              position={[0, -0.20, 0]}
-              materials={["arrowGlow"]}
-            />
-          </ViroNode>
-
-          {/* ── GROUND INDICATOR — pulsing rings at user's feet ── */}
-          {/* These rings pulse outward to show "walk this way" */}
-          <ViroNode position={[0, -0.85, 0.4]}>
-            <ViroBox
-              width={0.7}
-              height={0.015}
-              length={0.7}
-              position={[0, 0, 0]}
-              animation={{ name: "ringPulse1", run: true, loop: true }}
-              materials={["ringFade"]}
-            />
-          </ViroNode>
-          <ViroNode position={[0, -0.85, 0.4]}>
-            <ViroBox
-              width={0.7}
-              height={0.015}
-              length={0.7}
-              position={[0, 0, 0]}
-              animation={{ name: "ringPulse2", run: true, loop: true }}
-              materials={["ringFade"]}
-            />
-          </ViroNode>
-          <ViroNode position={[0, -0.85, 0.4]}>
-            <ViroBox
-              width={0.7}
-              height={0.015}
-              length={0.7}
-              position={[0, 0, 0]}
-              animation={{ name: "ringPulse3", run: true, loop: true }}
-              materials={["ringFade"]}
-            />
-          </ViroNode>
-
-          {/* ── DESTINATION ORBS — 3 spheres fading into the distance ── */}
+          {/* Ground dot — anchors the arrow to a spot */}
           <ViroSphere
-            radius={0.07}
+            radius={0.05}
             widthSegmentCount={8}
             heightSegmentCount={8}
-            position={[0, -0.5, -0.8]}
-            materials={["arrowSolid"]}
+            position={[0, -0.32, 0]}
+            materials={["orbGreen"]}
           />
-          <ViroSphere
-            radius={0.055}
-            widthSegmentCount={8}
-            heightSegmentCount={8}
-            position={[0, -0.6, -2.0]}
-            materials={["arrowGlow"]}
-          />
-          <ViroSphere
-            radius={0.04}
-            widthSegmentCount={8}
-            heightSegmentCount={8}
-            position={[0, -0.65, -3.5]}
-            materials={["arrowGlow"]}
-          />
-
         </ViroNode>
       )}
 
-      {/* Scanning text */}
       {!isTracking && (
         <ViroText
           text="Initializing AR..."
@@ -271,11 +169,10 @@ function NavScene(props) {
         />
       )}
 
-      {/* Limited mode badge */}
       {isTracking && isLimitedMode && (
         <ViroText
           text="Limited AR"
-          position={[0, -0.8, -2.5]}
+          position={[0, -0.6, -2]}
           scale={[0.4, 0.4, 0.4]}
           color="#FFD600"
         />
@@ -285,7 +182,6 @@ function NavScene(props) {
   );
 }
 
-// ── Wrapper ───────────────────────────────────────────────────────────────────
 export default function ViroARNavScene({ angleDiff, heading, style }) {
   return (
     <ViroARSceneNavigator
