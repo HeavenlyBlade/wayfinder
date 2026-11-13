@@ -93,6 +93,8 @@ export default function ARScreen({ route, navigation }) {
   const [arrivalPromptVisible,   setArrivalPromptVisible]   = useState(false);
   const [isApproaching,          setIsApproaching]          = useState(false);
   const [isPreBend,              setIsPreBend]              = useState(false);
+  // Track whether user was already at destination when navigation started
+  const startedAtDestRef = useRef(false);
 
   const orbTrailRef     = useRef([]);
   const waypointsRef    = useRef([]);
@@ -114,6 +116,7 @@ export default function ARScreen({ route, navigation }) {
     arrivedRef.current      = false;
     arrivalCountRef.current = 0;
     isReroutingRef.current  = false;
+    startedAtDestRef.current = false;
     setRouteReady(false);
     setArrived(false);
     setDistToNext(null);
@@ -168,6 +171,13 @@ export default function ARScreen({ route, navigation }) {
     orbTrailRef.current  = buildOrbTrail(waypoints);
     waypointsRef.current = waypoints;
 
+    // Check if user started navigation already at/near the destination
+    const dest = NODES[destinationId];
+    if (dest) {
+      const dToDest = distanceTo(loc.lat, loc.lng, dest.lat, dest.lng);
+      startedAtDestRef.current = dToDest < ARRIVAL_DIST * 2; // within 40m = already there
+    }
+
     let total = 0;
     for (let i = 0; i < waypoints.length - 1; i++) {
       total += distanceTo(
@@ -217,7 +227,9 @@ export default function ARScreen({ route, navigation }) {
       arrivedRef.current = true;
       setArrived(true);
       if (NO_INDOOR_PROMPT.has(destinationId)) return;
-      if (BUILDINGS[destinationId] && TWO_STAIRCASE_BUILDINGS.has(destinationId)) {
+      // If user was already at the destination when navigation started,
+      // skip the staircase picker and go straight to arrival prompt
+      if (!startedAtDestRef.current && BUILDINGS[destinationId] && TWO_STAIRCASE_BUILDINGS.has(destinationId)) {
         setStaircasePickerVisible(true);
       } else {
         setArrivalPromptVisible(true);

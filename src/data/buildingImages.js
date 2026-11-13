@@ -16,7 +16,7 @@
 // ─────────────────────────────────────────────────────────────────────────────
 
 export const BUILDING_IMAGES = {
-  // ── Photos available ──────────────────────────────────────────────────────
+  // ── All photos now available ───────────────────────────────────────────────
   chapel:             require('../../assets/buildings/chapel.jpg'),
   ea_tower:           require('../../assets/buildings/ea_tower.jpg'),
   gymnasium:          require('../../assets/buildings/gymnasium.jpg'),
@@ -28,13 +28,11 @@ export const BUILDING_IMAGES = {
   sr_building:        require('../../assets/buildings/sr_building.jpg'),
   canteen:            require('../../assets/buildings/canteen.jpg'),
   ibed:               require('../../assets/buildings/ibed.jpg'),
-
-  // ── Photos still needed ───────────────────────────────────────────────────
-  gate:               null,   // Main Gate
-  motorcycle_parking: null,   // Moto Parking
-  parking_lot:        null,   // Parking Lot
-  new_building:       null,   // New Building (RFID entrance)
-  ccss:               null,   // CCSS Building
+  gate:               require('../../assets/buildings/gate.jpg'),
+  motorcycle_parking: require('../../assets/buildings/motorcycle_parking.jpg'),
+  parking_lot:        require('../../assets/buildings/parking_lot.jpg'),
+  new_building:       require('../../assets/buildings/new_building.jpg'),
+  ccss:               require('../../assets/buildings/ccss.jpg'),
 };
 
 /**
