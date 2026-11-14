@@ -18,7 +18,6 @@ import { aStar, getWaypoints, nearestNode } from "../utils/pathfinding";
 import { getIndoorStatus, TWO_STAIRCASE_BUILDINGS } from "../utils/indoorDetection";
 import { NODES } from "../constants/campusGraph";
 import { BUILDINGS } from "../constants/buildings";
-import { fetchRoute } from "../services/api";
 import { IconArrowLeft } from "../components/icons/index";
 import { useSettings } from "../context/SettingsContext";
 import { t } from "../constants/i18n";
@@ -83,6 +82,7 @@ export default function ARScreen({ route, navigation }) {
 
   const [distToNext,             setDistToNext]             = useState(null);
   const [totalDist,              setTotalDist]              = useState(null);
+  const [orbVersion,             setOrbVersion]             = useState(0);
   const [arrived,                setArrived]                = useState(false);
   const [routeReady,             setRouteReady]             = useState(false);
   const [nextAngle,              setNextAngle]              = useState(0);
@@ -133,15 +133,10 @@ export default function ARScreen({ route, navigation }) {
     if (routeLoadedRef.current) return;
     routeLoadedRef.current = true;
     let waypoints = [];
-    try {
-      waypoints = await fetchRoute(loc.lat, loc.lng, destinationId);
-    } catch (_) {}
 
-    if (!waypoints || waypoints.length === 0) {
-      const startNode = nearestNode(loc.lat, loc.lng);
-      const pathIds   = aStar(startNode, destinationId);
-      waypoints       = pathIds.length > 0 ? getWaypoints(pathIds) : [];
-    }
+    const startNode = nearestNode(loc.lat, loc.lng);
+    const pathIds   = aStar(startNode, destinationId);
+    waypoints       = pathIds.length > 0 ? getWaypoints(pathIds) : [];
 
     if (!waypoints || waypoints.length === 0) {
       const dest = NODES[destinationId];
@@ -216,12 +211,14 @@ export default function ARScreen({ route, navigation }) {
   useEffect(() => {
     if (!location || orbTrailRef.current.length === 0 || arrivedRef.current) return;
 
+    let advanced = false;
     while (orbTrailRef.current.length > 0) {
       const next = orbTrailRef.current[0];
       const d    = distanceTo(location.lat, location.lng, next.lat, next.lng);
-      if (d < ORB_ADVANCE_DIST) orbTrailRef.current = orbTrailRef.current.slice(1);
+      if (d < ORB_ADVANCE_DIST) { orbTrailRef.current.shift(); advanced = true; }
       else break;
     }
+    if (advanced) setOrbVersion(v => v + 1);
 
     function handleArrival() {
       arrivedRef.current = true;
