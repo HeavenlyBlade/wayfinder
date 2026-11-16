@@ -1,0 +1,7 @@
+{
+  "verdict": "CHANGES_REQUESTED",
+  "findings": [
+    "Inner radius mismatch on image strip — BuildingImagePreview's container sets borderRadius: radius.md (14 px) with overflow: hidden, but BuildingCard's imagePreview style applies borderTopLeftRadius/borderTopRightRadius: radius.lg (20 px) externally. React Native clips to the inner view's own borderRadius, so the top corners are clipped at 14 px instead of 20 px. Fix: remove borderRadius from BuildingImagePreview's container style and let the caller's style prop control corner rounding."
+  ],
+  "reviewDoc": "c:\\Users\\Asus\\WAYFINDER-FULLPACKAGE\\wayfinder\\.agents\\tasks\\image-preview-review.md"
+}

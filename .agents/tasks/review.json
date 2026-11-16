@@ -1,0 +1,8 @@
+{
+  "verdict": "APPROVED",
+  "findings": [
+    "Stale CAM_H in ARTutorial — CAM_H = H * 0.58 sizes the tutorial cameraRegion View. ARScreen no longer has a 58%/42% split; the camera is full-screen. The step-2 arrow highlight ring and step-3 calibrator ring are anchored to a region covering only 58% of screen height and will appear at the wrong vertical position. Remove CAM_H and reposition the highlight anchors for a full-screen AR layout.",
+    "Caret-pinned MapLibre dependency — @maplibre/maplibre-react-native at ^11.5.0 allows any 11.x release. Because this package ships native Android code, a minor bump that renames a JNI symbol or changes a Gradle artifact would silently break the build on the next clean npm install. Pin to an exact version or ~11.5.0."
+  ],
+  "reviewDoc": "c:\\Users\\Asus\\WAYFINDER-FULLPACKAGE\\wayfinder\\.agents\\tasks\\review.md"
+}
