@@ -18,6 +18,7 @@
         "backgroundColor": "#071209"
       },
       "package": "com.sacli.wayfinder",
+      "versionCode": 2,
       "permissions": [
         "android.permission.CAMERA",
         "android.permission.ACCESS_FINE_LOCATION",
@@ -65,9 +66,9 @@
         "visibility": "hidden"
       },
       "eas": {
-        "projectId": "d85b41ee-9fd8-4d42-a31d-b5662ad22bb6"
+        "projectId": "30e57c87-7d6c-42bc-a7d3-6d6b630a5e38"
       }
     },
-    "owner": "keiji_nash"
+    "owner": "hayven"
   }
 }
