@@ -115,6 +115,12 @@ const TRANSLATIONS = {
     // ── Status chips ──────────────────────────────────────────────────────────
     'status.gpsActive':   'GPS Active',
 
+    // ── GPS quality / warm-up ────────────────────────────────────────────────
+    'gps.weakSignal':      'GPS signal is weak — navigation may be less accurate',
+    'gps.quality.good':   'GPS Good',
+    'gps.quality.fair':   'GPS Fair',
+    'gps.quality.poor':   'GPS Poor',
+
     // ── Tutorial ──────────────────────────────────────────────────────────────
     'tutorial.skip':      'Skip',
     'tutorial.next':      'Next →',
@@ -229,6 +235,12 @@ const TRANSLATIONS = {
 
     // ── Status chips ──────────────────────────────────────────────────────────
     'status.gpsActive':   'GPS Aktibo',
+
+    // ── GPS quality / warm-up ────────────────────────────────────────────────
+    'gps.weakSignal':      'Mahina ang GPS signal — maaaring hindi tumpak ang navigasyon',
+    'gps.quality.good':   'GPS Mahusay',
+    'gps.quality.fair':   'GPS Katamtaman',
+    'gps.quality.poor':   'GPS Mahina',
 
     // ── Tutorial ──────────────────────────────────────────────────────────────
     'tutorial.skip':      'Laktawan',

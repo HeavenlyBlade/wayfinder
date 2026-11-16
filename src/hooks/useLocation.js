@@ -27,13 +27,41 @@ export function getCompassOffset() {
   return _compassOffset;
 }
 
+// GPS smoothing — rolling weighted-average buffer (last 5 accepted fixes)
+const GPS_BUFFER_SIZE = 5;
+
+// Compute smoothed lat/lng from buffer using 1/accuracy weighting
+function smoothedPosition(buffer) {
+  if (buffer.length === 0) return null;
+  let wSum = 0;
+  let latSum = 0;
+  let lngSum = 0;
+  for (const fix of buffer) {
+    const w = 1 / fix.accuracy;
+    wSum   += w;
+    latSum += fix.lat * w;
+    lngSum += fix.lng * w;
+  }
+  return { lat: latSum / wSum, lng: lngSum / wSum };
+}
+
 export default function useLocation() {
-  const [location, setLocation] = useState(null);
-  const [heading,  setHeading]  = useState(0);
-  const [error,    setError]    = useState(null);
+  const [location,   setLocation]   = useState(null);
+  const [heading,    setHeading]    = useState(0);
+  const [error,      setError]      = useState(null);
+  const [gpsReady,   setGpsReady]   = useState(false);
+  const [gpsWarning, setGpsWarning] = useState(false);
+  const [gpsQuality, setGpsQuality] = useState(null);
+
   const subRef      = useRef(null);
   const magRef      = useRef(null);
   const headingBuf  = useRef([]);
+
+  // GPS smoothing buffer — stores { lat, lng, altitude, accuracy }
+  const gpsBufRef        = useRef([]);
+  // Warm-up gate
+  const gpsReadyRef      = useRef(false);
+  const warmupTimerRef   = useRef(null);
 
   // Gyroscope / Accelerometer fusion refs
   const gyroRef          = useRef(null);
@@ -42,6 +70,20 @@ export default function useLocation() {
   const lastTimestampRef = useRef(null);
   const accelDataRef     = useRef({ x: 0, y: 0, z: -1 }); // default: phone upright
   const magHeadingRef    = useRef(null);
+
+  // Warm-up gate — 12-second fallback timer
+  useEffect(() => {
+    warmupTimerRef.current = setTimeout(() => {
+      if (!gpsReadyRef.current) {
+        gpsReadyRef.current = true;
+        setGpsReady(true);
+        setGpsWarning(true);
+      }
+    }, 12000);
+    return () => {
+      if (warmupTimerRef.current) clearTimeout(warmupTimerRef.current);
+    };
+  }, []);
 
   useEffect(() => {
     let active = true;
@@ -57,11 +99,22 @@ export default function useLocation() {
         accuracy: Location.Accuracy.High,
       });
       if (active) {
-        setLocation({
-          lat:      pos.coords.latitude,
-          lng:      pos.coords.longitude,
-          altitude: pos.coords.altitude ?? 0,
-        });
+        const acc = pos.coords.accuracy ?? 999;
+        const buf = gpsBufRef.current;
+        buf.push({ lat: pos.coords.latitude, lng: pos.coords.longitude, altitude: pos.coords.altitude ?? 0, accuracy: acc });
+        if (buf.length > GPS_BUFFER_SIZE) buf.shift();
+        const smoothed = smoothedPosition(buf);
+        if (smoothed) {
+          setLocation({ lat: smoothed.lat, lng: smoothed.lng, altitude: pos.coords.altitude ?? 0 });
+        }
+        // Warm-up gate: first fix with accuracy <= 15m clears the timer
+        if (acc <= 15 && !gpsReadyRef.current) {
+          gpsReadyRef.current = true;
+          setGpsReady(true);
+          if (warmupTimerRef.current) { clearTimeout(warmupTimerRef.current); warmupTimerRef.current = null; }
+        }
+        // Quality
+        setGpsQuality(acc <= 10 ? 'good' : acc <= 20 ? 'fair' : 'poor');
       }
 
       subRef.current = await Location.watchPositionAsync(
@@ -73,11 +126,23 @@ export default function useLocation() {
         pos => {
           if (pos.coords.accuracy > 25) return; // skip readings worse than 25m accuracy
           if (active) {
-            setLocation({
-              lat:      pos.coords.latitude,
-              lng:      pos.coords.longitude,
-              altitude: pos.coords.altitude ?? 0,
-            });
+            const acc = pos.coords.accuracy;
+            // Add to rolling buffer and compute weighted average
+            const buf = gpsBufRef.current;
+            buf.push({ lat: pos.coords.latitude, lng: pos.coords.longitude, altitude: pos.coords.altitude ?? 0, accuracy: acc });
+            if (buf.length > GPS_BUFFER_SIZE) buf.shift();
+            const smoothed = smoothedPosition(buf);
+            if (smoothed) {
+              setLocation({ lat: smoothed.lat, lng: smoothed.lng, altitude: pos.coords.altitude ?? 0 });
+            }
+            // Warm-up gate: first fix with accuracy <= 15m clears the timer
+            if (acc <= 15 && !gpsReadyRef.current) {
+              gpsReadyRef.current = true;
+              setGpsReady(true);
+              if (warmupTimerRef.current) { clearTimeout(warmupTimerRef.current); warmupTimerRef.current = null; }
+            }
+            // Quality based on latest raw accuracy
+            setGpsQuality(acc <= 10 ? 'good' : acc <= 20 ? 'fair' : 'poor');
           }
         }
       );
@@ -172,5 +237,5 @@ export default function useLocation() {
     };
   }, []);
 
-  return { location, heading, error };
+  return { location, heading, error, gpsReady, gpsWarning, gpsQuality };
 }

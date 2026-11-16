@@ -27,6 +27,7 @@ import BearingHUD from "../components/BearingHUD";
 import CompassCalibrator from "../components/CompassCalibrator";
 import ARTutorial from "../components/ARTutorial";
 import ViroARNavScene from "../components/ViroARNavScene";
+import StatusChips from "../components/StatusChips";
 
 const { width: W, height: H } = Dimensions.get("window");
 const GREEN      = "#00C853";
@@ -78,7 +79,7 @@ export default function ARScreen({ route, navigation }) {
   const lang = settings?.language ?? "en";
 
   const [permission, requestPermission] = useCameraPermissions();
-  const { location, heading, error: locError } = useLocation();
+  const { location, heading, error: locError, gpsReady, gpsWarning, gpsQuality } = useLocation();
 
   const [distToNext,             setDistToNext]             = useState(null);
   const [totalDist,              setTotalDist]              = useState(null);
@@ -93,6 +94,7 @@ export default function ARScreen({ route, navigation }) {
   const [arrivalPromptVisible,   setArrivalPromptVisible]   = useState(false);
   const [isApproaching,          setIsApproaching]          = useState(false);
   const [isPreBend,              setIsPreBend]              = useState(false);
+  const [gpsWarnDismissed,       setGpsWarnDismissed]       = useState(false);
   // Track whether user was already at destination when navigation started
   const startedAtDestRef = useRef(false);
 
@@ -318,7 +320,7 @@ export default function ARScreen({ route, navigation }) {
     );
   }
 
-  const isLoading = !location || !routeReady;
+  const isLoading = !gpsReady || !location || !routeReady;
 
   return (
     <View style={s.fill}>
@@ -358,6 +360,23 @@ export default function ARScreen({ route, navigation }) {
             <TouchableOpacity onPress={() => setIndoorStatus(null)}>
               <Text style={s.indoorBannerDismiss}>{t("ar.indoor.dismiss", lang)}</Text>
             </TouchableOpacity>
+          </View>
+        )}
+
+        {/* GPS weak-signal banner */}
+        {gpsWarning && !gpsWarnDismissed && !isLoading && !arrived && (
+          <View style={s.gpsWarnBanner}>
+            <Text style={s.gpsWarnText}>{t('gps.weakSignal', lang)}</Text>
+            <TouchableOpacity onPress={() => setGpsWarnDismissed(true)}>
+              <Text style={s.gpsWarnDismiss}>✕</Text>
+            </TouchableOpacity>
+          </View>
+        )}
+
+        {/* GPS quality chip */}
+        {!isLoading && !arrived && (
+          <View style={[s.gpsChipWrap, { top: Platform.OS === 'android' ? 36 : 8, right: 56 }]}>
+            <StatusChips quality={gpsQuality} lang={lang} />
           </View>
         )}
 
@@ -534,6 +553,26 @@ const s = StyleSheet.create({
   },
   indoorBannerText:    { fontSize: 13, fontWeight: "800", color: "#071209", flex: 1 },
   indoorBannerDismiss: { fontSize: 12, fontWeight: "700", color: "#071209", opacity: 0.6 },
+
+  // GPS weak-signal banner
+  gpsWarnBanner: {
+    position: "absolute",
+    top: Platform.OS === "android" ? 130 : 100,
+    left: 16,
+    right: 16,
+    backgroundColor: "rgba(255,152,0,0.9)",
+    borderRadius: 12,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+  },
+  gpsWarnText:    { fontSize: 13, fontWeight: "800", color: "#071209", flex: 1 },
+  gpsWarnDismiss: { fontSize: 14, fontWeight: "700", color: "#071209", opacity: 0.7, paddingLeft: 8 },
+
+  // GPS quality chip wrapper
+  gpsChipWrap: { position: "absolute" },
 
   // Approaching chip
   approachingChip: {

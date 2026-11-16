@@ -1,6 +1,7 @@
 import React, { useEffect, useRef } from "react";
 import { View, Text, Animated, StyleSheet } from "react-native";
 import { colors } from "../constants/theme";
+import { t } from "../constants/i18n";
 
 function Chip({ color, label }) {
   const pulse = useRef(new Animated.Value(1)).current;
@@ -26,12 +27,23 @@ function Chip({ color, label }) {
   );
 }
 
-// StatusChips — shows GPS Active chip only.
+// StatusChips — shows GPS status chip.
+// When quality prop is provided ('good'|'fair'|'poor'), adjusts color and label.
 // Voice/AI/offline/AR chips removed (features not implemented).
-export default function StatusChips() {
+export default function StatusChips({ quality, lang }) {
+  const color = quality === 'good'
+    ? '#00C853'
+    : quality === 'fair'
+    ? '#FFC107'
+    : quality === 'poor'
+    ? '#FF5252'
+    : colors.primary;
+  const label = quality
+    ? t(`gps.quality.${quality}`, lang)
+    : 'GPS Active';
   return (
     <View style={s.row}>
-      <Chip color={colors.primary} label="GPS Active" />
+      <Chip color={color} label={label} />
     </View>
   );
 }

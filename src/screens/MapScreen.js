@@ -136,7 +136,7 @@ export default function MapScreen({ navigation, route }) {
 
   const { settings }               = useSettings();
   const lang = settings?.language ?? "en";
-  const { location: userLocation } = useLocation();
+  const { location: userLocation, gpsQuality } = useLocation();
 
   // ── Building selection helpers ────────────────────────────────────────────
   const selectBuilding = useCallback((buildingId, building) => {
@@ -247,7 +247,7 @@ export default function MapScreen({ navigation, route }) {
         </View>
 
         {/* GPS chip only — voice/AI/offline chips removed */}
-        <StatusChips />
+        <StatusChips quality={gpsQuality} lang={lang} />
       </SafeAreaView>
 
       {/* ── FABs ── */}
