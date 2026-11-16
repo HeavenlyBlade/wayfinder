@@ -9,6 +9,7 @@ import {
   Dimensions,
 } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import * as Location from "expo-location";
 import {
   IconSearch,
   IconCompass,
@@ -168,6 +169,23 @@ export default function HomeScreen({ navigation }) {
     AsyncStorage.getItem("wayfinder_home_tutorial_v3").then((val) => {
       setShowTutorial(val !== "true");
     });
+  }, []);
+
+  useEffect(() => {
+    let subscription = null;
+    (async () => {
+      try {
+        subscription = await Location.watchPositionAsync(
+          { accuracy: Location.Accuracy.BestForNavigation },
+          () => {}
+        );
+      } catch (_) {}
+    })();
+    return () => {
+      try {
+        if (subscription) subscription.remove();
+      } catch (_) {}
+    };
   }, []);
 
   async function handleTutorialFinish() {
