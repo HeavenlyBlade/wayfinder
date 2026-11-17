@@ -12,7 +12,7 @@
 //   buildingId     {string}   e.g. "main_building"
 //   buildingName   {string}
 //   lang           {string}   "en" | "fil"
-//   staircase      {string}   "s1" | "s2" | "any" — from StaircasePicker
+//   staircase      {string}   "staircase_1" | "staircase_2" | "any" — from StaircasePicker
 //   onClose        {function}
 // ─────────────────────────────────────────────────────────────────────────────
 
@@ -192,7 +192,7 @@ export default function ArrivalPrompt({
   buildingId,
   buildingName,
   lang = "en",
-  staircase = "s1",
+  staircase = "staircase_1",
   onClose,
 }) {
   const [step,      setStep]      = useState(1); // 1 = search, 2 = floor, 3 = result

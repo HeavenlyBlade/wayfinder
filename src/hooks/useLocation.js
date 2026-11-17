@@ -30,6 +30,15 @@ export function getCompassOffset() {
 // GPS smoothing — rolling weighted-average buffer (last 5 accepted fixes)
 const GPS_BUFFER_SIZE = 5;
 
+// GPS course blending
+// When the device is moving, Location.watchPositionAsync provides pos.coords.heading
+// (0–360°, true north, -1 when stationary) and pos.coords.speed (m/s).
+// Below COURSE_MIN_SPEED we rely entirely on the magnetometer.
+// Above COURSE_FULL_SPEED GPS course dominates fully.
+// In between, the two sources are blended by speed-proportional weight.
+const COURSE_MIN_SPEED  = 0.5;  // m/s — below this: magnetometer only
+const COURSE_FULL_SPEED = 1.2;  // m/s — above this: GPS course fully trusted
+
 // Compute smoothed lat/lng from buffer using 1/accuracy weighting
 function smoothedPosition(buffer) {
   if (buffer.length === 0) return null;
@@ -59,6 +68,8 @@ export default function useLocation() {
 
   // GPS smoothing buffer — stores { lat, lng, altitude, accuracy }
   const gpsBufRef        = useRef([]);
+  // GPS course heading from watchPositionAsync (valid when moving)
+  const gpsCourseRef     = useRef(null); // null = not yet received / stationary
   // Warm-up gate
   const gpsReadyRef      = useRef(false);
   const warmupTimerRef   = useRef(null);
@@ -126,7 +137,19 @@ export default function useLocation() {
         pos => {
           if (pos.coords.accuracy > 25) return; // skip readings worse than 25m accuracy
           if (active) {
-            const acc = pos.coords.accuracy;
+            const acc   = pos.coords.accuracy;
+            const speed = pos.coords.speed ?? 0;
+            const course = pos.coords.heading; // 0–360 true north, or -1 when stationary
+
+            // Store GPS course when moving; clear when stationary
+            if (course != null && course >= 0 && speed >= COURSE_MIN_SPEED) {
+              gpsCourseRef.current = course;
+              gpsCourseRef._speed  = speed;
+            } else if (speed < COURSE_MIN_SPEED) {
+              gpsCourseRef.current = null;
+              gpsCourseRef._speed  = 0;
+            }
+
             // Add to rolling buffer and compute weighted average
             const buf = gpsBufRef.current;
             buf.push({ lat: pos.coords.latitude, lng: pos.coords.longitude, altitude: pos.coords.altitude ?? 0, accuracy: acc });
@@ -151,6 +174,34 @@ export default function useLocation() {
       Gyroscope.setUpdateInterval(33);
       Accelerometer.setUpdateInterval(33);
       Magnetometer.setUpdateInterval(50);
+
+      // Blend magnetometer-derived heading with GPS course heading.
+      // When stationary (gpsCourseRef is null) returns the mag heading unchanged.
+      // As speed rises from COURSE_MIN_SPEED to COURSE_FULL_SPEED, GPS course
+      // weight rises linearly from 0 to 1. Uses shortest-path circular interpolation
+      // so the blend never snaps across the 0°/360° boundary.
+      function blendWithGpsCourse(magHeading) {
+        const gpsCourse = gpsCourseRef.current;
+        if (gpsCourse === null) return magHeading; // stationary: magnetometer only
+
+        // Speed at the moment of the last GPS fix — used as a proxy for current speed.
+        // We read it from the most recent watchPositionAsync result via gpsCourseRef.
+        // Weight: 0 at COURSE_MIN_SPEED, 1 at COURSE_FULL_SPEED.
+        // (The ref stores the course; speed is implicit — if the ref is non-null, we
+        // know speed >= COURSE_MIN_SPEED at the last fix. We track speed separately.)
+        const speed = gpsCourseRef._speed ?? COURSE_MIN_SPEED;
+        const t = Math.min(1, Math.max(0,
+          (speed - COURSE_MIN_SPEED) / (COURSE_FULL_SPEED - COURSE_MIN_SPEED)
+        ));
+        if (t <= 0) return magHeading;
+        if (t >= 1) return gpsCourse;
+
+        // Shortest-path circular interpolation
+        let diff = gpsCourse - magHeading;
+        if (diff >  180) diff -= 360;
+        if (diff < -180) diff += 360;
+        return ((magHeading + t * diff) + 360) % 360;
+      }
 
       magRef.current = Magnetometer.addListener(({ x, y, z }) => {
         // ── Tilt-compensated heading ──────────────────────────────────────
@@ -188,7 +239,7 @@ export default function useLocation() {
         // Apply user compass offset correction
         const corrected = (smoothed + _compassOffset + 360) % 360;
 
-        if (active) setHeading(corrected);
+        if (active) setHeading(blendWithGpsCourse(corrected));
       });
 
       // Accelerometer subscriber — feeds tilt compensation
@@ -222,7 +273,7 @@ export default function useLocation() {
 
         // Apply user compass offset correction and update heading state
         const corrected = (fused + _compassOffset + 360) % 360;
-        if (active) setHeading(corrected);
+        if (active) setHeading(blendWithGpsCourse(corrected));
       });
     }
 

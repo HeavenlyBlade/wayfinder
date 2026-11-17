@@ -505,7 +505,7 @@ export default function ARScreen({ route, navigation }) {
         buildingId={destinationId}
         buildingName={destName}
         lang={lang}
-        staircase={selectedStaircase === "staircase_2" ? "s2" : "s1"}
+        staircase={selectedStaircase}
         onClose={() => setArrivalPromptVisible(false)}
       />
 

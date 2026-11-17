@@ -1825,7 +1825,7 @@ export const INDOOR_DIRECTIONS = {
         staircase_2: "You're almost there! From the stairs, turn right — through the hall you will find Room 201.",
       },
       "3f": {
-        staircase_1: "From the stairs, go down into the 2nd floor, then turn right — through the hall you will find Room 201.",
+        staircase_1: "From the stairs, go down into the 2nd floor, then turn left — through the hall you will find Room 201.",
         staircase_2: "From the stairs, go down into the 2nd floor, then turn right — through the hall you will find Room 201.",
       },
     },
@@ -1840,7 +1840,7 @@ export const INDOOR_DIRECTIONS = {
         staircase_2: "You're almost there! From the stairs, turn right — through the hall you will find Room 202.",
       },
       "3f": {
-        staircase_1: "From the stairs, go down into the 2nd floor, then turn right — through the hall you will find Room 202.",
+        staircase_1: "From the stairs, go down into the 2nd floor, then turn left — through the hall you will find Room 202.",
         staircase_2: "From the stairs, go down into the 2nd floor, then turn right — through the hall you will find Room 202.",
       },
     },
@@ -1855,23 +1855,30 @@ export const INDOOR_DIRECTIONS = {
         staircase_2: "You're almost there! From the stairs, turn right — through the hall you will find the Consultation Room.",
       },
       "3f": {
-        staircase_1: "From the stairs, go down into the 2nd floor, then turn right — through the hall you will find the Consultation Room.",
+        staircase_1: "From the stairs, go down into the 2nd floor, then turn left — through the hall you will find the Consultation Room.",
         staircase_2: "From the stairs, go down into the 2nd floor, then turn right — through the hall you will find the Consultation Room.",
       },
     },
 
-    // GF entry merged from old "Office of the Dean (Dentistry)" (audit fix 4.3)
-    "Office of the Dean": {
+    // Un-merged 2026-11-17: "Office of the Dean (Dentistry)" (GF room) and "Office of the Dean" (2F room) are different offices.
+    "Office of the Dean (Dentistry)": {
       gf: {
         staircase_1: "You're almost there! From the stairs, turn right — through the hall you will find the Office of the Dean.",
         staircase_2: "You're almost there! From the stairs, turn left — through the hall you will find the Office of the Dean.",
+      },
+    },
+
+    "Office of the Dean": {
+      gf: {
+        staircase_1: "From the stairs, go up into the 2nd floor, then turn left — through the hall you will find the Office of the Dean.",
+        staircase_2: "From the stairs, go up into the 2nd floor, then turn right — through the hall you will find the Office of the Dean.",
       },
       "2f": {
         staircase_1: "You're almost there! From the stairs, turn left — through the hall you will find the Office of the Dean.",
         staircase_2: "You're almost there! From the stairs, turn right — through the hall you will find the Office of the Dean.",
       },
       "3f": {
-        staircase_1: "From the stairs, go down into the 2nd floor, then turn right — through the hall you will find the Office of the Dean.",
+        staircase_1: "From the stairs, go down into the 2nd floor, then turn left — through the hall you will find the Office of the Dean.",
         staircase_2: "From the stairs, go down into the 2nd floor, then turn right — through the hall you will find the Office of the Dean.",
       },
     },
@@ -1886,7 +1893,7 @@ export const INDOOR_DIRECTIONS = {
         staircase_2: "You're almost there! From the stairs, turn right — through the hall you will find the Faculty Office.",
       },
       "3f": {
-        staircase_1: "From the stairs, go down into the 2nd floor, then turn right — through the hall you will find the Faculty Office.",
+        staircase_1: "From the stairs, go down into the 2nd floor, then turn left — through the hall you will find the Faculty Office.",
         staircase_2: "From the stairs, go down into the 2nd floor, then turn right — through the hall you will find the Faculty Office.",
       },
     },
@@ -1901,7 +1908,7 @@ export const INDOOR_DIRECTIONS = {
         staircase_2: "You're almost there! From the stairs, turn right — through the hall you will find Education Simulation.",
       },
       "3f": {
-        staircase_1: "From the stairs, go down into the 2nd floor, then turn right — through the hall you will find Education Simulation.",
+        staircase_1: "From the stairs, go down into the 2nd floor, then turn left — through the hall you will find Education Simulation.",
         staircase_2: "From the stairs, go down into the 2nd floor, then turn right — through the hall you will find Education Simulation.",
       },
     },
@@ -1911,7 +1918,7 @@ export const INDOOR_DIRECTIONS = {
     "Room 301": {
       gf: {
         staircase_1: "From the stairs, go up into the 2nd floor, then go up into the 3rd floor, turn left — through the hall you will find Room 301.",
-        staircase_2: "From the stairs, go up into the 2nd floor, then go up into the 3rd floor, turn left — through the hall you will find Room 301.",
+        staircase_2: "From the stairs, go up into the 2nd floor, then go up into the 3rd floor, turn right — through the hall you will find Room 301.",
       },
       "2f": {
         staircase_1: "From the stairs, go up into the 3rd floor, then turn left — through the hall you will find Room 301.",
@@ -1926,7 +1933,7 @@ export const INDOOR_DIRECTIONS = {
     "Room 302": {
       gf: {
         staircase_1: "From the stairs, go up into the 2nd floor, then go up into the 3rd floor, turn left — through the hall you will find Room 302.",
-        staircase_2: "From the stairs, go up into the 2nd floor, then go up into the 3rd floor, turn left — through the hall you will find Room 302.",
+        staircase_2: "From the stairs, go up into the 2nd floor, then go up into the 3rd floor, turn right — through the hall you will find Room 302.",
       },
       "2f": {
         staircase_1: "From the stairs, go up into the 3rd floor, then turn left — through the hall you will find Room 302.",
@@ -1941,7 +1948,7 @@ export const INDOOR_DIRECTIONS = {
     "Room 303": {
       gf: {
         staircase_1: "From the stairs, go up into the 2nd floor, then go up into the 3rd floor, turn left — through the hall you will find Room 303.",
-        staircase_2: "From the stairs, go up into the 2nd floor, then go up into the 3rd floor, turn left — through the hall you will find Room 303.",
+        staircase_2: "From the stairs, go up into the 2nd floor, then go up into the 3rd floor, turn right — through the hall you will find Room 303.",
       },
       "2f": {
         staircase_1: "From the stairs, go up into the 3rd floor, then turn left — through the hall you will find Room 303.",
@@ -1956,7 +1963,7 @@ export const INDOOR_DIRECTIONS = {
     "Room 304": {
       gf: {
         staircase_1: "From the stairs, go up into the 2nd floor, then go up into the 3rd floor, turn left — through the hall you will find Room 304.",
-        staircase_2: "From the stairs, go up into the 2nd floor, then go up into the 3rd floor, turn left — through the hall you will find Room 304.",
+        staircase_2: "From the stairs, go up into the 2nd floor, then go up into the 3rd floor, turn right — through the hall you will find Room 304.",
       },
       "2f": {
         staircase_1: "From the stairs, go up into the 3rd floor, then turn left — through the hall you will find Room 304.",
@@ -1971,7 +1978,7 @@ export const INDOOR_DIRECTIONS = {
     "Psych Lab": {
       gf: {
         staircase_1: "From the stairs, go up into the 2nd floor, then go up into the 3rd floor, turn left — through the hall you will find the Psych Lab.",
-        staircase_2: "From the stairs, go up into the 2nd floor, then go up into the 3rd floor, turn left — through the hall you will find the Psych Lab.",
+        staircase_2: "From the stairs, go up into the 2nd floor, then go up into the 3rd floor, turn right — through the hall you will find the Psych Lab.",
       },
       "2f": {
         staircase_1: "From the stairs, go up into the 3rd floor, then turn left — through the hall you will find the Psych Lab.",
@@ -2080,10 +2087,11 @@ export function getDirections(buildingId, roomName, fromFloor, staircase = "stai
   const floorEntry = room[fromFloor];
   if (!floorEntry) return null;
 
-  // Try exact staircase key, fall back to "any", then to staircase_1 as last resort
+  // Try the exact staircase key; fall back to "any" for single-entrance rooms.
+  // A missing/wrong staircase key returns null (UI shows "not found") rather than
+  // silently returning Staircase-1 directions.
   return floorEntry[staircase]
     ?? floorEntry["any"]
-    ?? floorEntry["staircase_1"]
     ?? null;
 }
 
