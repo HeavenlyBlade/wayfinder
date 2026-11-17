@@ -12,7 +12,6 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { StatusBar } from "expo-status-bar";
 
 import useLocation from "../hooks/useLocation";
-import { setCompassOffset, getCompassOffset } from "../hooks/useLocation";
 import { bearingTo, distanceTo } from "../utils/arMath";
 import { aStar, getWaypoints, nearestNode } from "../utils/pathfinding";
 import { getIndoorStatus, TWO_STAIRCASE_BUILDINGS } from "../utils/indoorDetection";
@@ -24,7 +23,6 @@ import { t } from "../constants/i18n";
 import StaircasePicker from "../components/StaircasePicker";
 import ArrivalPrompt from "../components/ArrivalPrompt";
 import BearingHUD from "../components/BearingHUD";
-import CompassCalibrator from "../components/CompassCalibrator";
 import ARTutorial from "../components/ARTutorial";
 import ViroARNavScene from "../components/ViroARNavScene";
 import StatusChips from "../components/StatusChips";
@@ -88,7 +86,6 @@ export default function ARScreen({ route, navigation }) {
   const [routeReady,             setRouteReady]             = useState(false);
   const [nextAngle,              setNextAngle]              = useState(0);
   const [indoorStatus,           setIndoorStatus]           = useState(null);
-  const [compassOffset,          setCompassOffsetState]     = useState(getCompassOffset());
   const [staircasePickerVisible, setStaircasePickerVisible] = useState(false);
   const [selectedStaircase,      setSelectedStaircase]      = useState(null);
   const [arrivalPromptVisible,   setArrivalPromptVisible]   = useState(false);
@@ -104,11 +101,6 @@ export default function ARScreen({ route, navigation }) {
   const arrivedRef      = useRef(false);
   const arrivalCountRef = useRef(0);
   const isReroutingRef  = useRef(false);
-
-  function handleOffsetChange(newOffset) {
-    setCompassOffset(newOffset);
-    setCompassOffsetState(newOffset);
-  }
 
   // ── Reset on new destination ──────────────────────────────────────────────
   useEffect(() => {
@@ -414,17 +406,7 @@ export default function ARScreen({ route, navigation }) {
           </View>
         )}
 
-        {/* Compass calibrator */}
-        {!isLoading && !arrived && (
-          <View style={s.calibratorWrap}>
-            <CompassCalibrator
-              offset={compassOffset}
-              onAdjust={handleOffsetChange}
-              heading={heading}
-              lang={lang}
-            />
-          </View>
-        )}
+        {/* Compass calibrator removed — GPS course blend handles heading automatically */}
 
         {/* Back button */}
         {!arrived && (

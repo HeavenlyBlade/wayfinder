@@ -71,7 +71,8 @@ function waypointToARPos(wp, userLoc) {
 }
 
 function NavScene(props) {
-  const { angleDiff, heading, waypoints, userLocation } = props;
+  const { angleDiff, heading, waypoints, userLocation } =
+    props?.sceneNavigator?.viroAppProps ?? {};
 
   const [isTracking,    setIsTracking]    = useState(false);
   const [isLimitedMode, setIsLimitedMode] = useState(false);
