@@ -230,7 +230,7 @@ export default function ArrivalPrompt({
     >
       <KeyboardAvoidingView
         style={s.backdrop}
-        behavior={Platform.OS === "ios" ? "padding" : "height"}
+        behavior={Platform.OS === "ios" ? "padding" : undefined}
       >
         <View style={s.sheet}>
 
@@ -331,7 +331,7 @@ const s = StyleSheet.create({
   stepContainer: {
     paddingHorizontal: 20,
     paddingTop: 18,
-    flex: 1,
+    minHeight: 300,
   },
   stepTitle: {
     fontSize: 17, fontWeight: "900",
