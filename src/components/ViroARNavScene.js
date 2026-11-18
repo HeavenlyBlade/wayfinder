@@ -146,7 +146,7 @@ function NavScene(props) {
       {/* Left/right turn indicator when destination is not ahead */}
       {isTracking && !isAhead && (
         <ViroText
-          text={angleDiff > 0 ? "► Turn Right" : "◄ Turn Left"}
+          text={angleDiff > 0 ? ">> Turn Right" : "<< Turn Left"}
           position={[angleDiff > 0 ? 0.4 : -0.4, 0, -1.5]}
           scale={[0.3, 0.3, 0.3]}
           color="#00FF88"
