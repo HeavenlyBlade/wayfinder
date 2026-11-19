@@ -17,6 +17,7 @@ import { aStar, getWaypoints, nearestNode } from "../utils/pathfinding";
 import { getIndoorStatus, TWO_STAIRCASE_BUILDINGS } from "../utils/indoorDetection";
 import { NODES } from "../constants/campusGraph";
 import { BUILDINGS } from "../constants/buildings";
+import { ENTRANCE_IMAGES } from "../data/buildingImages";
 import { IconArrowLeft } from "../components/icons/index";
 import { useSettings } from "../context/SettingsContext";
 import { t } from "../constants/i18n";
@@ -473,6 +474,8 @@ export default function ARScreen({ route, navigation }) {
         buildingId={destinationId}
         buildingName={destName}
         lang={lang}
+        stair1Image={ENTRANCE_IMAGES[destinationId]?.staircase_1 ?? null}
+        stair2Image={ENTRANCE_IMAGES[destinationId]?.staircase_2 ?? null}
         onSelect={(stairKey) => {
           setSelectedStaircase(stairKey);
           setStaircasePickerVisible(false);

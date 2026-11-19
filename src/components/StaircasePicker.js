@@ -96,7 +96,7 @@ export default function StaircasePicker({
             >
               <View style={s.imageSlot}>
                 {stair1Image
-                  ? <Image source={{ uri: stair1Image }} style={s.image} resizeMode="cover" />
+                  ? <Image source={typeof stair1Image === 'number' ? stair1Image : { uri: stair1Image }} style={s.image} resizeMode="cover" />
                   : <View style={s.imagePlaceholder}>
                       <Text style={s.placeholderText}>Photo{"\n"}Coming Soon</Text>
                     </View>
@@ -118,7 +118,7 @@ export default function StaircasePicker({
             >
               <View style={s.imageSlot}>
                 {stair2Image
-                  ? <Image source={{ uri: stair2Image }} style={s.image} resizeMode="cover" />
+                  ? <Image source={typeof stair2Image === 'number' ? stair2Image : { uri: stair2Image }} style={s.image} resizeMode="cover" />
                   : <View style={s.imagePlaceholder}>
                       <Text style={s.placeholderText}>Photo{"\n"}Coming Soon</Text>
                     </View>

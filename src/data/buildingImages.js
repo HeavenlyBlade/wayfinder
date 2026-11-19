@@ -35,6 +35,24 @@ export const BUILDING_IMAGES = {
   ccss:               require('../../assets/buildings/ccss.jpg'),
 };
 
+// ── Entrance / staircase photos for StaircasePicker ──────────────────────────
+// Place photos in assets/buildings/ using the naming pattern below.
+// staircase_1 = Front Entrance, staircase_2 = 2nd Entrance.
+export const ENTRANCE_IMAGES = {
+  main_building: {
+    staircase_1: require('../../assets/buildings/main_building_front.jpg'),
+    staircase_2: require('../../assets/buildings/main_building_back.jpg'),
+  },
+  ea_tower: {
+    staircase_1: require('../../assets/buildings/ea_tower_front.jpg'),
+    staircase_2: require('../../assets/buildings/ea_tower_back.jpg'),
+  },
+  sr_building: {
+    staircase_1: require('../../assets/buildings/sr_building_front.jpg'),
+    staircase_2: require('../../assets/buildings/sr_building_back.jpg'),
+  },
+};
+
 /**
  * Returns the image source for a building, or null if none is set.
  * Accepts both require() objects (number) and URL strings.
