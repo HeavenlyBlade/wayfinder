@@ -16,7 +16,7 @@
 //   onClose        {function}
 // ─────────────────────────────────────────────────────────────────────────────
 
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, useEffect, useRef } from "react";
 import {
   View,
   Text,
@@ -29,6 +29,7 @@ import {
   KeyboardAvoidingView,
   Platform,
 } from "react-native";
+import * as Speech from "expo-speech";
 import { t } from "../constants/i18n";
 import { INDOOR_DIRECTIONS, getDirections, getRoomNames } from "../constants/indoorDirections";
 import { BUILDINGS } from "../constants/buildings";
@@ -155,6 +156,30 @@ function StepFloor({ buildingId, roomName, lang, onSelect, onBack }) {
 // ── Step 3: Directions result ─────────────────────────────────────────────────
 function StepResult({ buildingId, roomName, floorKey, staircase, lang, onBack, onClose }) {
   const direction = getDirections(buildingId, roomName, floorKey, staircase);
+  const [isSpeaking, setIsSpeaking] = useState(false);
+
+  // Stop speech when this step unmounts (user goes back or closes)
+  useEffect(() => {
+    return () => { Speech.stop(); };
+  }, []);
+
+  async function handleReadAloud() {
+    if (!direction) return;
+    const speaking = await Speech.isSpeakingAsync();
+    if (speaking) {
+      Speech.stop();
+      setIsSpeaking(false);
+      return;
+    }
+    setIsSpeaking(true);
+    Speech.speak(direction, {
+      language: lang === "fil" ? "fil-PH" : "en-US",
+      rate: 0.92,
+      onDone:  () => setIsSpeaking(false),
+      onError: () => setIsSpeaking(false),
+      onStopped: () => setIsSpeaking(false),
+    });
+  }
 
   return (
     <View style={s.stepContainer}>
@@ -172,6 +197,21 @@ function StepResult({ buildingId, roomName, floorKey, staircase, lang, onBack, o
           {direction ?? t("arrival.notFound", lang)}
         </Text>
       </ScrollView>
+
+      {/* Read aloud button — hidden when no direction text */}
+      {!!direction && (
+        <TouchableOpacity
+          style={[s.readAloudBtn, isSpeaking && s.readAloudBtnActive]}
+          onPress={handleReadAloud}
+          activeOpacity={0.8}
+        >
+          <Text style={s.readAloudBtnText}>
+            {isSpeaking
+              ? `🔊 ${t("arrival.stopReading", lang)}`
+              : `🔊 ${t("arrival.readAloud", lang)}`}
+          </Text>
+        </TouchableOpacity>
+      )}
 
       {/* Actions */}
       <View style={s.resultActions}>
@@ -206,6 +246,7 @@ export default function ArrivalPrompt({
   }
 
   function handleClose() {
+    Speech.stop();
     reset();
     onClose();
   }
@@ -443,6 +484,23 @@ const s = StyleSheet.create({
   directionText: {
     fontSize: 15, color: "rgba(255,255,255,0.85)",
     lineHeight: 26, fontWeight: "500",
+  },
+  readAloudBtn: {
+    marginTop: 14,
+    paddingVertical: 11,
+    paddingHorizontal: 18,
+    borderRadius: 999,
+    borderWidth: 1.5,
+    borderColor: "rgba(0,200,83,0.4)",
+    backgroundColor: "rgba(0,200,83,0.08)",
+    alignItems: "center",
+  },
+  readAloudBtnActive: {
+    borderColor: "#00C853",
+    backgroundColor: "rgba(0,200,83,0.2)",
+  },
+  readAloudBtnText: {
+    fontSize: 13, fontWeight: "800", color: "#00C853",
   },
   resultActions: {
     flexDirection: "row",

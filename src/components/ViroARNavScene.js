@@ -1,9 +1,12 @@
 // ─────────────────────────────────────────────────────────────────────────────
 // WAYFINDER — ViroARNavScene
 //
-// GPS-driven waypoint orbs: each waypoint in the orb trail is projected
-// into AR space using bearingTo/distanceTo from arMath. No camera-yaw
-// rotation needed — the GPS bearing already points the right direction.
+// Arrow-based AR navigation (USE_ARROWS = true):
+//   - NavigationArrow: camera-relative directional arrow, always centered in
+//     view, rotates by angleDiff toward next waypoint. Immune to GPS drift.
+//   - DestinationPin: GPS-projected gold pin at destination, shown when ≤40m.
+//
+// Orb trail fallback (USE_ARROWS = false): restores original orb behavior.
 //
 // ViroBox and ViroSphere ONLY. No ViroCylinder, ViroCone, or ViroPolygon.
 // No specularColor or shininess in materials (Android crash).
@@ -16,45 +19,52 @@ import {
   ViroARSceneNavigator,
   ViroARScene,
   ViroNode,
+  ViroBox,
   ViroSphere,
   ViroText,
   ViroMaterials,
   ViroAnimations,
 } from "@reactvision/react-viro";
 
+// ── Feature killswitch — set false to restore orb trail ──────────────────────
+const USE_ARROWS = true;
+
 ViroMaterials.createMaterials({
-  orbSolid:  { lightingModel: "Constant", diffuseColor: "#00FF88" },
-  orbGlow:   { lightingModel: "Constant", diffuseColor: "#00FF88", transparency: 0.5 },
-  destSolid: { lightingModel: "Constant", diffuseColor: "#FFD600" },
-  destGlow:  { lightingModel: "Constant", diffuseColor: "#FFD600", transparency: 0.5 },
+  orbSolid:    { lightingModel: "Constant", diffuseColor: "#00FF88" },
+  orbGlow:     { lightingModel: "Constant", diffuseColor: "#00FF88", transparency: 0.5 },
+  destSolid:   { lightingModel: "Constant", diffuseColor: "#FFD600" },
+  destGlow:    { lightingModel: "Constant", diffuseColor: "#FFD600", transparency: 0.5 },
+  arrowGreen:  { lightingModel: "Constant", diffuseColor: "#00FF88" },
+  arrowGlow:   { lightingModel: "Constant", diffuseColor: "#00FF88", transparency: 0.35 },
+  pinGold:     { lightingModel: "Constant", diffuseColor: "#FFD600" },
+  pinGoldGlow: { lightingModel: "Constant", diffuseColor: "#FFD600", transparency: 0.35 },
 });
 
 ViroAnimations.registerAnimations({
   orbPulse: {
-    properties: {
-      scaleX: "1.0 => 1.3 => 1.0",
-      scaleY: "1.0 => 1.3 => 1.0",
-      scaleZ: "1.0 => 1.3 => 1.0",
-    },
-    easing: "EaseInOut",
-    duration: 1000,
-    loop: true,
+    properties: { scaleX: "1.0 => 1.3 => 1.0", scaleY: "1.0 => 1.3 => 1.0", scaleZ: "1.0 => 1.3 => 1.0" },
+    easing: "EaseInOut", duration: 1000, loop: true,
   },
   glowPulse: {
-    properties: {
-      scaleX: "1.0 => 1.8 => 1.0",
-      scaleY: "1.0 => 1.8 => 1.0",
-      scaleZ: "1.0 => 1.8 => 1.0",
-    },
-    easing: "EaseOut",
-    duration: 1000,
-    loop: true,
+    properties: { scaleX: "1.0 => 1.8 => 1.0", scaleY: "1.0 => 1.8 => 1.0", scaleZ: "1.0 => 1.8 => 1.0" },
+    easing: "EaseOut", duration: 1000, loop: true,
+  },
+  arrowPulse: {
+    properties: { scaleX: "1.0 => 1.1 => 1.0", scaleY: "1.0 => 1.1 => 1.0", scaleZ: "1.0 => 1.1 => 1.0" },
+    easing: "EaseInOut", duration: 800, loop: true,
+  },
+  pinBob: {
+    properties: { positionY: "0.5 => 0.65 => 0.5" },
+    easing: "EaseInOut", duration: 1200, loop: true,
   },
 });
 
 // TRACKING_NORMAL = 3, TRACKING_LIMITED = 2
 const TRACKING_NORMAL  = 3;
 const TRACKING_LIMITED = 2;
+
+// Distance at which the destination pin becomes visible (metres)
+const PIN_SHOW_DIST = 40;
 
 function waypointToARPos(wp, userLoc) {
   if (!userLoc) return null;
@@ -64,10 +74,84 @@ function waypointToARPos(wp, userLoc) {
   const clampedDist = Math.min(dist, 8);
   const bearingRad  = bearing * Math.PI / 180;
   return [
-    Math.sin(bearingRad) * clampedDist,   // x
-    -0.3,                                  // y (ground level)
-    -Math.cos(bearingRad) * clampedDist,  // z
+    Math.sin(bearingRad) * clampedDist,
+    -0.3,
+    -Math.cos(bearingRad) * clampedDist,
   ];
+}
+
+// ── Camera-relative directional arrow ────────────────────────────────────────
+// Always appears at [0, -0.3, -1.5] in front of the user.
+// Rotates around Y by angleDiff so it points toward the next waypoint.
+// Built from ViroBox only: shaft + two wing halves for the arrowhead.
+function NavigationArrow({ angleDiff }) {
+  const angle = angleDiff ?? 0;
+  return (
+    <ViroNode
+      position={[0, -0.3, -1.5]}
+      rotation={[0, angle, 0]}
+      animation={{ name: "arrowPulse", run: true, loop: true }}
+    >
+      {/* Shaft — long thin box pointing forward (along -Z) */}
+      <ViroBox
+        scale={[0.055, 0.055, 0.32]}
+        position={[0, 0, 0.1]}
+        materials={["arrowGreen"]}
+      />
+      {/* Arrowhead left wing */}
+      <ViroBox
+        scale={[0.15, 0.055, 0.15]}
+        position={[0, 0, -0.08]}
+        rotation={[0, 45, 0]}
+        materials={["arrowGreen"]}
+      />
+      {/* Arrowhead right wing */}
+      <ViroBox
+        scale={[0.15, 0.055, 0.15]}
+        position={[0, 0, -0.08]}
+        rotation={[0, -45, 0]}
+        materials={["arrowGreen"]}
+      />
+      {/* Glow layer — slightly larger, transparent */}
+      <ViroBox
+        scale={[0.09, 0.09, 0.38]}
+        position={[0, 0, 0.1]}
+        materials={["arrowGlow"]}
+      />
+    </ViroNode>
+  );
+}
+
+// ── GPS-projected destination pin ────────────────────────────────────────────
+// Gold pin placed at destination's AR position. Shown only when ≤40m away.
+// Built from ViroBox only: vertical shaft + diamond arrowhead pointing down.
+function DestinationPin({ pos }) {
+  return (
+    <ViroNode
+      position={pos}
+      animation={{ name: "pinBob", run: true, loop: true }}
+    >
+      {/* Vertical shaft */}
+      <ViroBox
+        scale={[0.07, 0.45, 0.07]}
+        position={[0, 0, 0]}
+        materials={["pinGold"]}
+      />
+      {/* Arrowhead — diamond shape: box rotated 45° on Z */}
+      <ViroBox
+        scale={[0.2, 0.2, 0.07]}
+        position={[0, -0.3, 0]}
+        rotation={[0, 0, 45]}
+        materials={["pinGold"]}
+      />
+      {/* Glow halo */}
+      <ViroBox
+        scale={[0.12, 0.52, 0.12]}
+        position={[0, 0, 0]}
+        materials={["pinGoldGlow"]}
+      />
+    </ViroNode>
+  );
 }
 
 function NavScene(props) {
@@ -98,56 +182,63 @@ function NavScene(props) {
     return () => { if (timeoutRef.current) clearTimeout(timeoutRef.current); };
   }, []);
 
-  // angleDiff-based ahead check for turn indicator
-  const isAhead = Math.abs(angleDiff ?? 0) < 70;
+  // Find destination waypoint and its AR position (for pin)
+  const allWaypoints   = waypoints || [];
+  const destWp         = allWaypoints.find(wp => wp.isDestination);
+  const destPos        = destWp ? waypointToARPos(destWp, userLocation) : null;
 
-  const visibleWaypoints = (waypoints || []).slice(0, 3);
+  // Only show pin when user is close enough (GPS distance ≤ PIN_SHOW_DIST)
+  const showPin = (() => {
+    if (!destWp || !userLocation) return false;
+    const { distanceTo } = require("../utils/arMath");
+    return distanceTo(userLocation.lat, userLocation.lng, destWp.lat, destWp.lng) <= PIN_SHOW_DIST;
+  })();
+
+  // Orb trail (fallback)
+  const visibleWaypoints = allWaypoints.slice(0, 3);
+
+  // angleDiff-based ahead check
+  const isAhead = Math.abs(angleDiff ?? 0) < 70;
 
   return (
     <ViroARScene onTrackingUpdated={handleTrackingUpdated}>
 
-      {/* GPS-driven waypoint orbs */}
-      {isTracking && visibleWaypoints.map((wp, i) => {
-        const pos = waypointToARPos(wp, userLocation);
-        if (!pos) return null;
-        const isDest    = !!wp.isDestination;
-        const solidMat  = isDest ? "destSolid" : "orbSolid";
-        const glowMat   = isDest ? "destGlow"  : "orbGlow";
-        const solidR    = isDest ? 0.16 : 0.12;
-        const glowR     = isDest ? 0.24 : 0.18;
-        return (
-          <ViroNode key={"orbnode-" + i} position={pos}>
-            <ViroNode
-              key={"orb-" + i}
-              animation={{ name: "orbPulse", run: true, loop: true }}
-            >
-              <ViroSphere
-                radius={solidR}
-                widthSegmentCount={10}
-                heightSegmentCount={10}
-                materials={[solidMat]}
-              />
-            </ViroNode>
-            <ViroNode
-              key={"glow-" + i}
-              animation={{ name: "glowPulse", run: true, loop: true }}
-            >
-              <ViroSphere
-                radius={glowR}
-                widthSegmentCount={8}
-                heightSegmentCount={8}
-                materials={[glowMat]}
-              />
-            </ViroNode>
-          </ViroNode>
-        );
-      })}
+      {isTracking && (USE_ARROWS ? (
+        <>
+          {/* Directional navigation arrow — always centered in view */}
+          <NavigationArrow angleDiff={angleDiff} />
 
-      {/* Left/right turn indicator when destination is not ahead */}
+          {/* Destination pin — GPS-projected, shown when ≤40m */}
+          {showPin && destPos && <DestinationPin pos={destPos} />}
+        </>
+      ) : (
+        /* ── Orb trail fallback (USE_ARROWS = false) ── */
+        visibleWaypoints.map((wp, i) => {
+          const pos = waypointToARPos(wp, userLocation);
+          if (!pos) return null;
+          const isDest   = !!wp.isDestination;
+          const solidMat = isDest ? "destSolid" : "orbSolid";
+          const glowMat  = isDest ? "destGlow"  : "orbGlow";
+          const solidR   = isDest ? 0.16 : 0.12;
+          const glowR    = isDest ? 0.24 : 0.18;
+          return (
+            <ViroNode key={"orbnode-" + i} position={pos}>
+              <ViroNode key={"orb-" + i} animation={{ name: "orbPulse", run: true, loop: true }}>
+                <ViroSphere radius={solidR} widthSegmentCount={10} heightSegmentCount={10} materials={[solidMat]} />
+              </ViroNode>
+              <ViroNode key={"glow-" + i} animation={{ name: "glowPulse", run: true, loop: true }}>
+                <ViroSphere radius={glowR} widthSegmentCount={8} heightSegmentCount={8} materials={[glowMat]} />
+              </ViroNode>
+            </ViroNode>
+          );
+        })
+      ))}
+
+      {/* Turn indicator text — shown when destination is not ahead */}
       {isTracking && !isAhead && (
         <ViroText
           text={angleDiff > 0 ? ">> Turn Right" : "<< Turn Left"}
-          position={[angleDiff > 0 ? 0.4 : -0.4, 0, -1.5]}
+          position={[angleDiff > 0 ? 0.4 : -0.4, 0.15, -1.5]}
           scale={[0.3, 0.3, 0.3]}
           color="#00FF88"
         />
