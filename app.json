@@ -18,7 +18,7 @@
         "backgroundColor": "#071209"
       },
       "package": "com.sacli.wayfinder",
-      "versionCode": 6,
+      "versionCode": 7,
       "permissions": [
         "android.permission.CAMERA",
         "android.permission.ACCESS_FINE_LOCATION",
