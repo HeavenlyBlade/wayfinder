@@ -1,4 +1,4 @@
-﻿// ─────────────────────────────────────────────────────────────────────────────
+// ─────────────────────────────────────────────────────────────────────────────
 // WAYFINDER — Indoor Room Directions
 //
 // Structure per room:
@@ -2069,10 +2069,12 @@ export const INDOOR_DIRECTIONS = {
 // ─────────────────────────────────────────────────────────────────────────────
 // Helper: look up directions for a specific room
 //
-// Returns the direction string or null if not found / not yet filled in.
+// Returns the direction string or null if not found.
+// Supports fuzzy matching (e.g. "Cashier" -> "Cashier — Window 6")
+// and graceful staircase fallback so directions always display.
 //
 // @param {string} buildingId   — e.g. "main_building"
-// @param {string} roomName     — exact room name string
+// @param {string} roomName     — room name or facility string
 // @param {string} fromFloor    — "gf" | "1f" | "2f" | "3f" | "4f"
 // @param {string} staircase    — "staircase_1" | "staircase_2" | "any"
 // @returns {string|null}
@@ -2081,17 +2083,45 @@ export function getDirections(buildingId, roomName, fromFloor, staircase = "stai
   const building = INDOOR_DIRECTIONS[buildingId];
   if (!building) return null;
 
-  const room = building[roomName];
+  // Exact match or fuzzy alias match (e.g. "Cashier" -> "Cashier — Window 6" or "NB105 — Cashier / Registrar / Assessment")
+  let room = building[roomName];
+  if (!room && roomName) {
+    const q = roomName.toLowerCase().trim();
+    const foundKey = Object.keys(building).find(k => {
+      const kl = k.toLowerCase();
+      return kl.includes(q) || q.includes(kl);
+    });
+    if (foundKey) {
+      room = building[foundKey];
+    }
+  }
   if (!room) return null;
 
-  const floorEntry = room[fromFloor];
-  if (!floorEntry) return null;
+  const floorKey = (fromFloor || "1f").toLowerCase().replace(" floor", "").replace(" ", "");
+  const floorEntry = room[floorKey] || room[fromFloor];
+  if (!floorEntry) {
+    // If exact floor key didn't match, fall back to first available floor for this room
+    const firstFloor = Object.values(room)[0];
+    if (firstFloor) {
+      const targetStair = staircase || "staircase_1";
+      return firstFloor[targetStair]
+        ?? firstFloor["any"]
+        ?? firstFloor["staircase_1"]
+        ?? firstFloor["staircase_2"]
+        ?? Object.values(firstFloor)[0]
+        ?? null;
+    }
+    return null;
+  }
 
-  // Try the exact staircase key; fall back to "any" for single-entrance rooms.
-  // A missing/wrong staircase key returns null (UI shows "not found") rather than
-  // silently returning Staircase-1 directions.
-  return floorEntry[staircase]
+  // Robust staircase fallback:
+  // If staircase is null or doesn't match this floor, fall back to available directions
+  const targetStair = staircase || "staircase_1";
+  return floorEntry[targetStair]
     ?? floorEntry["any"]
+    ?? floorEntry["staircase_1"]
+    ?? floorEntry["staircase_2"]
+    ?? Object.values(floorEntry)[0]
     ?? null;
 }
 
@@ -2101,5 +2131,22 @@ export function getDirections(buildingId, roomName, fromFloor, staircase = "stai
 export function getRoomNames(buildingId) {
   const building = INDOOR_DIRECTIONS[buildingId];
   if (!building) return [];
-  return Object.keys(building);
+  const rooms = new Set(Object.keys(building));
+
+  // Also include facilities (like "Cashier", "Registrar") from buildings.js if they match directions
+  try {
+    const { BUILDINGS } = require("./buildings");
+    const b = BUILDINGS[buildingId];
+    if (b?.facilities) {
+      for (const f of b.facilities) {
+        if (f && f !== "Coming Soon") {
+          const fl = f.toLowerCase();
+          const hasMatch = Array.from(rooms).some(r => r.toLowerCase().includes(fl));
+          if (hasMatch) rooms.add(f);
+        }
+      }
+    }
+  } catch (_) {}
+
+  return Array.from(rooms);
 }

@@ -338,7 +338,7 @@ export default function ArrivalPrompt({
               buildingId={buildingId}
               roomName={roomName}
               floorKey={floorKey}
-              staircase={staircase}
+              staircase={staircase || "staircase_1"}
               lang={lang}
               onBack={() => setStep(2)}
               onClose={handleClose}

@@ -82,12 +82,19 @@ export default function useVoiceCommand() {
     }
 
     const langParam = language ? `?language=${encodeURIComponent(language)}` : '';
+
+    // AbortController for 25-second timeout (Vercel cold starts can be slow)
+    const controller = new AbortController();
+    const timeoutId  = setTimeout(() => controller.abort(), 25000);
+
     const response  = await fetch(`${VOICE_ENDPOINT}${langParam}`, {
       method:  'POST',
       body:    form,
       headers: { Accept: 'application/json' },
+      signal:  controller.signal,
       // Note: do NOT set Content-Type — FormData sets it with the boundary automatically
     });
+    clearTimeout(timeoutId);
 
     if (!response.ok) {
       const text = await response.text().catch(() => '');
@@ -177,11 +184,15 @@ export default function useVoiceCommand() {
       } catch (backendErr) {
         console.warn('[useVoiceCommand] Backend failed, using offline resolver:', backendErr.message);
         // ── Offline fallback: we don't have a transcript here, so we can't
-        //    keyword-match. Set a friendly error reply.
+        //    keyword-match. Show the actual error for debugging.
+        const isAbort = backendErr.name === 'AbortError';
+        const errMsg  = isAbort
+          ? 'Request timed out. The server may be starting up — please try again.'
+          : `Voice AI error: ${backendErr.message}`;
         res = {
           destinationId: null,
           transcript:    '',
-          reply:         'Could not reach the AI server. Please check your connection and try again.',
+          reply:         errMsg,
           source:        'offline',
         };
       } finally {

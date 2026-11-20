@@ -26,15 +26,21 @@ export const TWO_STAIRCASE_BUILDINGS = new Set([
 ]);
 
 // Per-building indoor radius override (metres).
-// Use tighter values for adjacent buildings to avoid false positives.
+// Use tight values to avoid false positives when walking near buildings.
+// Buildings without polygon definitions rely solely on these radii.
 const INDOOR_RADIUS = {
-  chapel:       12,
-  kindergarten: 12,
-  ibed:         14,
-  new_building: 16,
-  sr_building:  14,
-  ccss:         14,
-  default:      18,
+  gate:         5,    // very small — gate is a point, not a building
+  chapel:       8,    // small structure, path runs close by
+  kindergarten: 8,
+  ibed:         10,
+  new_building: 12,
+  sr_building:  10,
+  ccss:         10,
+  canteen:      10,
+  canteen_two:  10,
+  motorcycle_parking: 5,
+  parking_lot:  6,
+  default:      10,
 };
 
 // ── Ray-casting: point-in-polygon (GPS coordinates) ──────────────────────────
@@ -68,7 +74,7 @@ export function getIndoorStatus(userLat, userLng) {
     // Skip non-navigable entries
     if (!building.name) continue;
 
-    // --- Strategy 1: polygon check ---
+    // --- Strategy 1: polygon check (authoritative boundary) ---
     if (building.polygon && building.polygon.length >= 3) {
       if (pointInPolygon(userLat, userLng, building.polygon)) {
         return {
@@ -77,13 +83,17 @@ export function getIndoorStatus(userLat, userLng) {
           hasTwoStaircases: TWO_STAIRCASE_BUILDINGS.has(id),
         };
       }
+      // If building has an explicit polygon, DO NOT fall through to radius check.
+      // The user is outside the building polygon.
+      continue;
     }
 
-    // --- Strategy 2: radius check using building entrance node ---
+    // --- Strategy 2: radius check ONLY for buildings without polygons ---
     const node = NODES[id];
     if (!node) continue;
 
-    const radius = INDOOR_RADIUS[id] ?? INDOOR_RADIUS.default;
+    // Tight 7m radius for buildings without polygons to avoid false triggers on outdoor walkways
+    const radius = INDOOR_RADIUS[id] ?? 7;
     const dist   = distanceTo(userLat, userLng, node.lat, node.lng);
 
     if (dist <= radius) {

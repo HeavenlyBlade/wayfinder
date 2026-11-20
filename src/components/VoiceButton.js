@@ -74,26 +74,6 @@ export default function VoiceButton({ onDestinationResolved, lang = 'en', style 
   return (
     <View style={[s.wrapper, style]} pointerEvents="box-none">
 
-      {/* ── Result / error card ── */}
-      {showResult && (
-        <View style={[s.resultCard, state === 'error' && s.errorCard]}>
-          {result?.transcript ? (
-            <Text style={s.transcript} numberOfLines={2}>
-              🎙 "{result.transcript}"
-            </Text>
-          ) : null}
-          <Text style={[s.replyText, state === 'error' && s.errorText]} numberOfLines={3}>
-            {error ?? result?.reply ?? 'Unknown error'}
-          </Text>
-          {result?.destinationId && (
-            <Text style={s.destChip}>→ {result.destinationId.replace(/_/g, ' ')}</Text>
-          )}
-          <TouchableOpacity style={s.dismissBtn} onPress={reset} hitSlop={8}>
-            <Text style={s.dismissText}>✕</Text>
-          </TouchableOpacity>
-        </View>
-      )}
-
       {/* ── Mic FAB ── */}
       <View style={s.fabRow}>
         <Animated.View style={[
@@ -116,14 +96,36 @@ export default function VoiceButton({ onDestinationResolved, lang = 'en', style 
         </TouchableOpacity>
       </View>
 
-      {/* ── Status label ── */}
-      <Text style={s.statusLabel}>
-        {isRecording   ? 'Listening… tap to stop'  :
-         isProcessing  ? 'Processing…'              :
-         state === 'done'  ? 'Done'                 :
-         state === 'error' ? 'Try again'            :
-         'Ask AI'}
-      </Text>
+      {/* ── Status label (fixed height so layout never jumps) ── */}
+      <View style={s.statusWrap}>
+        <Text style={s.statusLabel} numberOfLines={1}>
+          {isRecording   ? 'Listening…'  :
+           isProcessing  ? 'Thinking…'   :
+           state === 'done'  ? 'Done'    :
+           state === 'error' ? 'Retry'   :
+           'Ask AI'}
+        </Text>
+      </View>
+
+      {/* ── Result / error speech bubble (absolute positioned to left of FAB, never shifts buttons) ── */}
+      {showResult && (
+        <View style={[s.resultCard, state === 'error' && s.errorCard]}>
+          {result?.transcript ? (
+            <Text style={s.transcript} numberOfLines={2}>
+              🎙 "{result.transcript}"
+            </Text>
+          ) : null}
+          <Text style={[s.replyText, state === 'error' && s.errorText]} numberOfLines={3}>
+            {error ?? result?.reply ?? 'Unknown error'}
+          </Text>
+          {result?.destinationId && (
+            <Text style={s.destChip}>→ {result.destinationId.replace(/_/g, ' ')}</Text>
+          )}
+          <TouchableOpacity style={s.dismissBtn} onPress={reset} hitSlop={8}>
+            <Text style={s.dismissText}>✕</Text>
+          </TouchableOpacity>
+        </View>
+      )}
     </View>
   );
 }
@@ -131,23 +133,29 @@ export default function VoiceButton({ onDestinationResolved, lang = 'en', style 
 const s = StyleSheet.create({
   wrapper: {
     alignItems: 'center',
-    gap: 4,
+    position: 'relative',
+    width: 56,
   },
 
-  // Result card
+  // Result speech bubble card — anchored to left of FAB, zero layout shift
   resultCard: {
+    position: 'absolute',
+    right: 64,
+    bottom: 12,
+    width: 230,
     backgroundColor: 'rgba(10,20,12,0.97)',
     borderRadius: 14,
     borderWidth: 1,
-    borderColor: 'rgba(0,200,83,0.25)',
+    borderColor: 'rgba(0,200,83,0.3)',
     padding: 12,
-    marginBottom: 8,
-    maxWidth: 240,
     gap: 4,
-    position: 'relative',
+    shadowColor: '#000',
+    shadowOpacity: 0.4,
+    shadowRadius: 10,
+    elevation: 8,
   },
   errorCard: {
-    borderColor: 'rgba(255,59,48,0.4)',
+    borderColor: 'rgba(255,59,48,0.5)',
   },
   transcript: {
     fontSize: 11,
@@ -155,10 +163,10 @@ const s = StyleSheet.create({
     fontStyle: 'italic',
   },
   replyText: {
-    fontSize: 13,
+    fontSize: 12,
     fontWeight: '700',
     color: '#e0e8e0',
-    lineHeight: 18,
+    lineHeight: 17,
   },
   errorText: {
     color: '#FF9500',
@@ -172,16 +180,16 @@ const s = StyleSheet.create({
   },
   dismissBtn: {
     position: 'absolute',
-    top: 8,
-    right: 8,
-    width: 20,
-    height: 20,
+    top: 6,
+    right: 6,
+    width: 22,
+    height: 22,
     alignItems: 'center',
     justifyContent: 'center',
   },
   dismissText: {
     fontSize: 12,
-    color: 'rgba(255,255,255,0.3)',
+    color: 'rgba(255,255,255,0.4)',
     fontWeight: '700',
   },
 
@@ -206,9 +214,9 @@ const s = StyleSheet.create({
     backgroundColor: 'rgba(255,59,48,0.12)',
   },
   fab: {
-    width: 50,
-    height: 50,
-    borderRadius: 25,
+    width: 48,
+    height: 48,
+    borderRadius: 24,
     backgroundColor: 'rgba(255,255,255,0.95)',
     alignItems: 'center',
     justifyContent: 'center',
@@ -221,14 +229,20 @@ const s = StyleSheet.create({
     backgroundColor: RED,
   },
   micIcon: {
-    fontSize: 22,
+    fontSize: 20,
   },
 
   // Status label
+  statusWrap: {
+    height: 14,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginTop: 2,
+  },
   statusLabel: {
     fontSize: 9,
     fontWeight: '700',
-    color: 'rgba(255,255,255,0.35)',
+    color: 'rgba(255,255,255,0.45)',
     letterSpacing: 0.3,
     textTransform: 'uppercase',
   },

@@ -62,9 +62,10 @@ export default function useLocation() {
   const [gpsWarning, setGpsWarning] = useState(false);
   const [gpsQuality, setGpsQuality] = useState(null);
 
-  const subRef      = useRef(null);
-  const magRef      = useRef(null);
-  const headingBuf  = useRef([]);
+  const subRef        = useRef(null);
+  const headingSubRef = useRef(null);
+  const magRef        = useRef(null);
+  const headingBuf    = useRef([]);
 
   // GPS smoothing buffer — stores { lat, lng, altitude, accuracy }
   const gpsBufRef        = useRef([]);
@@ -172,7 +173,23 @@ export default function useLocation() {
         }
       );
 
-      // Check sensor availability
+      // ── 1. Native OS Sensor Fusion Heading (Android Rotation Vector / iOS CoreLocation) ──
+      let usingNativeHeading = false;
+      try {
+        headingSubRef.current = await Location.watchHeadingAsync((headingObj) => {
+          if (!active) return;
+          const h = (headingObj.trueHeading >= 0 ? headingObj.trueHeading : headingObj.magHeading);
+          if (h != null && !isNaN(h)) {
+            usingNativeHeading = true;
+            const corrected = (h + _compassOffset + 360) % 360;
+            commitHeading(blendWithGpsCourse(corrected));
+          }
+        });
+      } catch (err) {
+        console.warn("[useLocation] watchHeadingAsync fallback to sensors", err);
+      }
+
+      // ── 2. Fallback Sensor Pipeline (Magnetometer + 3D Tilt + Gyroscope) ──
       const gyroAvailable = await Gyroscope.isAvailableAsync();
 
       // Set sensor update intervals
@@ -211,11 +228,6 @@ export default function useLocation() {
         const gpsCourse = gpsCourseRef.current;
         if (gpsCourse === null) return magHeading; // stationary: magnetometer only
 
-        // Speed at the moment of the last GPS fix — used as a proxy for current speed.
-        // We read it from the most recent watchPositionAsync result via gpsCourseRef.
-        // Weight: 0 at COURSE_MIN_SPEED, 1 at COURSE_FULL_SPEED.
-        // (The ref stores the course; speed is implicit — if the ref is non-null, we
-        // know speed >= COURSE_MIN_SPEED at the last fix. We track speed separately.)
         const speed = gpsCourseRef._speed ?? COURSE_MIN_SPEED;
         const t = Math.min(1, Math.max(0,
           (speed - COURSE_MIN_SPEED) / (COURSE_FULL_SPEED - COURSE_MIN_SPEED)
@@ -231,11 +243,13 @@ export default function useLocation() {
       }
 
       magRef.current = Magnetometer.addListener(({ x, y, z }) => {
+        if (usingNativeHeading) return; // native heading takes precedence
+
         // ── Tilt-compensated heading ──────────────────────────────────────
         const { x: ax, y: ay, z: az } = accelDataRef.current;
         const mx = x;
         const my = y;
-        const mz = z != null ? z : 0; // z may not be provided — fall back to 0
+        const mz = z != null ? z : 0;
 
         const pitch = Math.atan2(-ax, Math.sqrt(ay * ay + az * az));
         const roll  = Math.atan2(ay, az);
@@ -255,15 +269,12 @@ export default function useLocation() {
         const cosSum = buf.reduce((s, a) => s + Math.cos(a * Math.PI / 180), 0);
         const smoothed = (Math.atan2(sinSum, cosSum) * 180 / Math.PI + 360) % 360;
 
-        // Store latest smoothed tilt-compensated heading for gyro fusion
         magHeadingRef.current = smoothed;
 
-        // Initialize fused heading on first reading
         if (fusedHeadingRef.current === null) {
           fusedHeadingRef.current = smoothed;
         }
 
-        // If gyroscope is not available on this device, magnetometer serves as the fallback driver
         if (!gyroAvailable) {
           const corrected = (smoothed + _compassOffset + 360) % 360;
           commitHeading(blendWithGpsCourse(corrected));
@@ -275,9 +286,11 @@ export default function useLocation() {
         accelDataRef.current = { x, y, z };
       });
 
-      // Gyroscope subscriber — complementary filter fusion (sole state updater when gyro is present)
+      // Gyroscope subscriber — 3D projection onto world vertical
       if (gyroAvailable) {
-        gyroRef.current = Gyroscope.addListener(({ z: gz }) => {
+        gyroRef.current = Gyroscope.addListener(({ x: gx, y: gy, z: gz }) => {
+          if (usingNativeHeading) return; // native heading takes precedence
+
           const now = Date.now();
           const dt = lastTimestampRef.current !== null
             ? (now - lastTimestampRef.current) / 1000
@@ -285,22 +298,25 @@ export default function useLocation() {
           lastTimestampRef.current = now;
 
           const magH = magHeadingRef.current;
-          if (magH === null) return; // not yet initialized
+          if (magH === null) return;
 
           const prev = fusedHeadingRef.current !== null ? fusedHeadingRef.current : magH;
-          const ALPHA = 0.98;
-          // Negate gz: expo-sensors positive gz = CCW, compass convention positive = CW
-          let gyroContrib = prev + (-gz) * (180 / Math.PI) * dt;
-          // Normalize gyro contribution to [0, 360)
+          const ALPHA = 0.95;
+
+          // Project 3D angular velocity onto gravity vector to get yaw rate in any phone orientation
+          const { x: ax, y: ay, z: az } = accelDataRef.current;
+          const gNorm = Math.hypot(ax, ay, az) || 1;
+          const yawRate = (gx * (ax / gNorm) + gy * (ay / gNorm) + gz * (az / gNorm));
+
+          let gyroContrib = prev + (-yawRate) * (180 / Math.PI) * dt;
           gyroContrib = ((gyroContrib % 360) + 360) % 360;
-          // Shortest-path correction to avoid 0°/360° wrap-around snap
+
           let diff = magH - gyroContrib;
           if (diff >  180) diff -= 360;
           if (diff < -180) diff += 360;
           let fused = ((gyroContrib + (1 - ALPHA) * diff) + 360) % 360;
           fusedHeadingRef.current = fused;
 
-          // Apply user compass offset correction and update heading state
           const corrected = (fused + _compassOffset + 360) % 360;
           commitHeading(blendWithGpsCourse(corrected));
         });
@@ -312,6 +328,7 @@ export default function useLocation() {
     return () => {
       active = false;
       subRef.current?.remove();
+      headingSubRef.current?.remove();
       magRef.current?.remove();
       if (gyroRef.current) { gyroRef.current.remove(); gyroRef.current = null; }
       if (accelRef.current) { accelRef.current.remove(); accelRef.current = null; }

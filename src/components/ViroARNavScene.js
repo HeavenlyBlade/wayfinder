@@ -30,13 +30,13 @@ import {
 const USE_ARROWS = true;
 
 ViroMaterials.createMaterials({
-  orbSolid:    { lightingModel: "Constant", diffuseColor: "#00FF88" },
-  orbGlow:     { lightingModel: "Constant", diffuseColor: "#00FF88", transparency: 0.5 },
-  destSolid:   { lightingModel: "Constant", diffuseColor: "#FFD600" },
-  destGlow:    { lightingModel: "Constant", diffuseColor: "#FFD600", transparency: 0.5 },
-  arrowGreen:  { lightingModel: "Constant", diffuseColor: "#00FF88" },
-  arrowGlow:   { lightingModel: "Constant", diffuseColor: "#00FF88", transparency: 0.35 },
-  pinGold:     { lightingModel: "Constant", diffuseColor: "#FFD600" },
+  orbSolid: { lightingModel: "Constant", diffuseColor: "#00FF88" },
+  orbGlow: { lightingModel: "Constant", diffuseColor: "#00FF88", transparency: 0.5 },
+  destSolid: { lightingModel: "Constant", diffuseColor: "#FFD600" },
+  destGlow: { lightingModel: "Constant", diffuseColor: "#FFD600", transparency: 0.5 },
+  arrowGreen: { lightingModel: "Constant", diffuseColor: "#00FF88" },
+  arrowGlow: { lightingModel: "Constant", diffuseColor: "#00FF88", transparency: 0.35 },
+  pinGold: { lightingModel: "Constant", diffuseColor: "#FFD600" },
   pinGoldGlow: { lightingModel: "Constant", diffuseColor: "#FFD600", transparency: 0.35 },
 });
 
@@ -60,7 +60,7 @@ ViroAnimations.registerAnimations({
 });
 
 // TRACKING_NORMAL = 3, TRACKING_LIMITED = 2
-const TRACKING_NORMAL  = 3;
+const TRACKING_NORMAL = 3;
 const TRACKING_LIMITED = 2;
 
 // Distance at which the destination pin becomes visible (metres)
@@ -69,10 +69,10 @@ const PIN_SHOW_DIST = 40;
 function waypointToARPos(wp, userLoc) {
   if (!userLoc) return null;
   const { bearingTo, distanceTo } = require("../utils/arMath");
-  const bearing     = bearingTo(userLoc.lat, userLoc.lng, wp.lat, wp.lng);
-  const dist        = distanceTo(userLoc.lat, userLoc.lng, wp.lat, wp.lng);
+  const bearing = bearingTo(userLoc.lat, userLoc.lng, wp.lat, wp.lng);
+  const dist = distanceTo(userLoc.lat, userLoc.lng, wp.lat, wp.lng);
   const clampedDist = Math.min(dist, 8);
-  const bearingRad  = bearing * Math.PI / 180;
+  const bearingRad = bearing * Math.PI / 180;
   return [
     Math.sin(bearingRad) * clampedDist,
     -0.3,
@@ -81,56 +81,60 @@ function waypointToARPos(wp, userLoc) {
 }
 
 // ── Camera-relative directional arrow ────────────────────────────────────────
-// Always appears at [0, -0.3, -1.5] in front of the user.
-// Rotates around Y by angleDiff so it points toward the next waypoint.
-// Built from ViroBox only (Android safe): sleek shaft + prominent wide arrowhead.
-function NavigationArrow({ angleDiff }) {
-  const angle = angleDiff ?? 0;
+// Dynamic position and rotation: follows camera at [position] (1.6m in front of user)
+// and rotates around Y by [rotation] to continuously point at the destination.
+//
+// Shape: a flat arrow on the ground plane made of ViroBox only.
+//   SHAFT  = thin long rectangle (the tail/body of the arrow)
+//   HEAD   = proper filled triangle built from 5 horizontal slices stacked in Z.
+//            Each slice is a ViroBox whose width narrows toward the tip, creating
+//            a solid, clearly triangular arrowhead — no diamond or notched shape.
+function NavigationArrow({ position, rotation }) {
+  // Build a filled-triangle arrowhead from horizontal slices (wide base → narrow tip).
+  // Each slice: { z, w } where z = position along arrow axis, w = width of that slice.
+  const triSlices = [
+    { z: -0.02, w: 0.26 },   // base of triangle (widest)
+    { z: -0.07, w: 0.21 },
+    { z: -0.12, w: 0.155 },
+    { z: -0.17, w: 0.10 },
+    { z: -0.22, w: 0.05 },   // tip of triangle (narrowest)
+  ];
+  const SLICE_H = 0.035;     // thickness (Y)
+  const SLICE_D = 0.055;     // depth of each slice (Z extent)
+
   return (
     <ViroNode
-      position={[0, -0.3, -1.5]}
-      rotation={[0, angle, 0]}
+      position={position}
+      rotation={[0, rotation, 0]}
       animation={{ name: "arrowPulse", run: true, loop: true }}
     >
-      {/* Shaft — sleek central stem pointing along -Z */}
+      {/* ── Shaft: straight central stem ── */}
       <ViroBox
-        scale={[0.045, 0.035, 0.28]}
-        position={[0, 0, 0.08]}
+        scale={[0.055, SLICE_H, 0.30]}
+        position={[0, 0, 0.14]}
         materials={["arrowGreen"]}
       />
       {/* Shaft glow */}
       <ViroBox
-        scale={[0.065, 0.05, 0.28]}
-        position={[0, 0, 0.08]}
+        scale={[0.075, 0.045, 0.30]}
+        position={[0, 0, 0.14]}
         materials={["arrowGlow"]}
       />
 
-      {/* Arrowhead — prominent wide diamond tip (31cm wide across wings) */}
+      {/* ── Filled-triangle arrowhead (5 slices, wide→narrow) ── */}
+      {triSlices.map((sl, i) => (
+        <ViroBox
+          key={"tri" + i}
+          scale={[sl.w, SLICE_H, SLICE_D]}
+          position={[0, 0, sl.z]}
+          materials={["arrowGreen"]}
+        />
+      ))}
+
+      {/* Arrowhead glow (single box covering the whole triangle area) */}
       <ViroBox
-        scale={[0.22, 0.04, 0.22]}
-        position={[0, 0, -0.11]}
-        rotation={[0, 45, 0]}
-        materials={["arrowGreen"]}
-      />
-      {/* Arrowhead left barb fin */}
-      <ViroBox
-        scale={[0.045, 0.038, 0.18]}
-        position={[-0.08, 0, -0.06]}
-        rotation={[0, 32, 0]}
-        materials={["arrowGreen"]}
-      />
-      {/* Arrowhead right barb fin */}
-      <ViroBox
-        scale={[0.045, 0.038, 0.18]}
-        position={[0.08, 0, -0.06]}
-        rotation={[0, -32, 0]}
-        materials={["arrowGreen"]}
-      />
-      {/* Arrowhead glow */}
-      <ViroBox
-        scale={[0.26, 0.055, 0.26]}
-        position={[0, 0, -0.11]}
-        rotation={[0, 45, 0]}
+        scale={[0.30, 0.048, 0.26]}
+        position={[0, 0, -0.12]}
         materials={["arrowGlow"]}
       />
     </ViroNode>
@@ -173,10 +177,14 @@ function NavScene(props) {
   const { angleDiff, heading, waypoints, userLocation } =
     props?.sceneNavigator?.viroAppProps ?? {};
 
-  const [isTracking,    setIsTracking]    = useState(false);
+  const [isTracking, setIsTracking] = useState(false);
   const [isLimitedMode, setIsLimitedMode] = useState(false);
+  const [arrowPos, setArrowPos] = useState([0, -0.35, -1.6]);
+  const [arrowRot, setArrowRot] = useState(angleDiff ?? 0);
 
   const timeoutRef = useRef(null);
+  const lastPosRef = useRef([0, -0.35, -1.6]);
+  const lastRotRef = useRef(0);
 
   function handleTrackingUpdated(state) {
     const ok = state === TRACKING_NORMAL || state === TRACKING_LIMITED;
@@ -185,6 +193,46 @@ function NavScene(props) {
       timeoutRef.current = null;
     }
     setIsTracking(ok);
+  }
+
+  // Follow camera position and rotate in ARCore world frame to point at waypoint
+  function handleCameraTransform(cameraTransform) {
+    const pos = cameraTransform?.position;
+    const fwd = cameraTransform?.forward;
+    const rot = cameraTransform?.rotation;
+
+    if (pos && fwd) {
+      const hDist = Math.hypot(fwd[0], fwd[2]) || 1;
+      const hfx = fwd[0] / hDist;
+      const hfz = fwd[2] / hDist;
+
+      const targetPos = [
+        pos[0] + hfx * 1.6,
+        pos[1] - 0.40,
+        pos[2] + hfz * 1.6,
+      ];
+
+      const dx = targetPos[0] - lastPosRef.current[0];
+      const dy = targetPos[1] - lastPosRef.current[1];
+      const dz = targetPos[2] - lastPosRef.current[2];
+      if (dx * dx + dy * dy + dz * dz > 0.001) {
+        lastPosRef.current = targetPos;
+        setArrowPos(targetPos);
+      }
+    }
+
+    if (rot) {
+      const camYaw = ((rot[1] % 360) + 360) % 360;
+      const targetRot = ((camYaw + (angleDiff ?? 0)) % 360 + 360) % 360;
+      let rotDiff = Math.abs(targetRot - lastRotRef.current);
+      if (rotDiff > 180) rotDiff = 360 - rotDiff;
+      if (rotDiff > 1.0) {
+        lastRotRef.current = targetRot;
+        setArrowRot(targetRot);
+      }
+    } else {
+      setArrowRot(angleDiff ?? 0);
+    }
   }
 
   useEffect(() => {
@@ -198,9 +246,9 @@ function NavScene(props) {
   }, []);
 
   // Find destination waypoint and its AR position (for pin)
-  const allWaypoints   = waypoints || [];
-  const destWp         = allWaypoints.find(wp => wp.isDestination);
-  const destPos        = destWp ? waypointToARPos(destWp, userLocation) : null;
+  const allWaypoints = waypoints || [];
+  const destWp = allWaypoints.find(wp => wp.isDestination);
+  const destPos = destWp ? waypointToARPos(destWp, userLocation) : null;
 
   // Only show pin when user is close enough (GPS distance ≤ PIN_SHOW_DIST)
   const showPin = (() => {
@@ -213,12 +261,15 @@ function NavScene(props) {
   const visibleWaypoints = allWaypoints.slice(0, 3);
 
   return (
-    <ViroARScene onTrackingUpdated={handleTrackingUpdated}>
+    <ViroARScene
+      onTrackingUpdated={handleTrackingUpdated}
+      onCameraTransformUpdate={handleCameraTransform}
+    >
 
       {isTracking && (USE_ARROWS ? (
         <>
-          {/* Directional navigation arrow — always centered in view */}
-          <NavigationArrow angleDiff={angleDiff} />
+          {/* Directional navigation arrow — dynamically follows user and points forward */}
+          <NavigationArrow position={arrowPos} rotation={arrowRot} />
 
           {/* Destination pin — GPS-projected, shown when ≤40m */}
           {showPin && destPos && <DestinationPin pos={destPos} />}
@@ -228,11 +279,11 @@ function NavScene(props) {
         visibleWaypoints.map((wp, i) => {
           const pos = waypointToARPos(wp, userLocation);
           if (!pos) return null;
-          const isDest   = !!wp.isDestination;
+          const isDest = !!wp.isDestination;
           const solidMat = isDest ? "destSolid" : "orbSolid";
-          const glowMat  = isDest ? "destGlow"  : "orbGlow";
-          const solidR   = isDest ? 0.16 : 0.12;
-          const glowR    = isDest ? 0.24 : 0.18;
+          const glowMat = isDest ? "destGlow" : "orbGlow";
+          const solidR = isDest ? 0.16 : 0.12;
+          const glowR = isDest ? 0.24 : 0.18;
           return (
             <ViroNode key={"orbnode-" + i} position={pos}>
               <ViroNode key={"orb-" + i} animation={{ name: "orbPulse", run: true, loop: true }}>

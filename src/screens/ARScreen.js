@@ -30,15 +30,15 @@ import ViroARNavScene from "../components/ViroARNavScene";
 import StatusChips from "../components/StatusChips";
 
 const { width: W, height: H } = Dimensions.get("window");
-const GREEN      = "#00C853";
+const GREEN = "#00C853";
 
-const ARRIVAL_DIST          = 20;   // metres — accounts for GPS inaccuracy near buildings
+const ARRIVAL_DIST = 20;   // metres — accounts for GPS inaccuracy near buildings
 const ARRIVAL_CONFIRMATIONS = 3;    // consecutive readings before triggering arrival
-const APPROACHING_DIST      = 40;   // metres — show "Almost there" chip
-const PREBEND_WARN_DIST     = 15;   // metres — warn before sharp direction change
-const LOOKAHEAD_M           = 8;    // metres ahead on the path the arrow points toward
-const CAPTURE_RADIUS_M      = 6;    // metres — snap-to-node capture radius (GPS wobble tolerance)
-const OFF_PATH_M            = 25;   // metres cross-track error threshold to trigger re-route
+const APPROACHING_DIST = 40;   // metres — show "Almost there" chip
+const PREBEND_WARN_DIST = 15;   // metres — warn before sharp direction change
+const LOOKAHEAD_M = 8;    // metres ahead on the path the arrow points toward
+const CAPTURE_RADIUS_M = 6;    // metres — snap-to-node capture radius (GPS wobble tolerance)
+const OFF_PATH_M = 25;   // metres cross-track error threshold to trigger re-route
 const OFF_PATH_CONFIRMATIONS = 3;   // consecutive off-path readings before re-route fires
 
 // ── Waypoint interpolation (used only for orb-trail ViroReact rendering) ─────
@@ -46,7 +46,7 @@ const OFF_PATH_CONFIRMATIONS = 3;   // consecutive off-path readings before re-r
 function interpolateSegment(a, b, spacingM) {
   const total = distanceTo(a.lat, a.lng, b.lat, b.lng);
   const steps = Math.max(1, Math.floor(total / spacingM));
-  const pts   = [];
+  const pts = [];
   for (let i = 1; i <= steps; i++) {
     const ratio = i / steps;
     pts.push({
@@ -83,43 +83,44 @@ export default function ARScreen({ route, navigation }) {
   const [permission, requestPermission] = useCameraPermissions();
   const { location, heading, error: locError, gpsReady, gpsWarning, gpsQuality } = useLocation();
 
-  const [distToNext,             setDistToNext]             = useState(null);
-  const [totalDist,              setTotalDist]              = useState(null);
-  const [orbVersion,             setOrbVersion]             = useState(0);
-  const [arrived,                setArrived]                = useState(false);
-  const [routeReady,             setRouteReady]             = useState(false);
-  const [nextAngle,              setNextAngle]              = useState(0);
-  const [indoorStatus,           setIndoorStatus]           = useState(null);
+  const [distToNext, setDistToNext] = useState(null);
+  const [totalDist, setTotalDist] = useState(null);
+  const [orbVersion, setOrbVersion] = useState(0);
+  const [arrived, setArrived] = useState(false);
+  const [routeReady, setRouteReady] = useState(false);
+  const [nextAngle, setNextAngle] = useState(0);
+  const [indoorStatus, setIndoorStatus] = useState(null);
   const [staircasePickerVisible, setStaircasePickerVisible] = useState(false);
-  const [selectedStaircase,      setSelectedStaircase]      = useState(null);
-  const [arrivalPromptVisible,   setArrivalPromptVisible]   = useState(false);
-  const [isApproaching,          setIsApproaching]          = useState(false);
-  const [isPreBend,              setIsPreBend]              = useState(false);
-  const [gpsWarnDismissed,       setGpsWarnDismissed]       = useState(false);
+  const [selectedStaircase, setSelectedStaircase] = useState(null);
+  const [arrivalPromptVisible, setArrivalPromptVisible] = useState(false);
+  const [isApproaching, setIsApproaching] = useState(false);
+  const [isPreBend, setIsPreBend] = useState(false);
+  const [gpsWarnDismissed, setGpsWarnDismissed] = useState(false);
   // Track whether user was already at destination when navigation started
   const startedAtDestRef = useRef(false);
 
-  const orbTrailRef         = useRef([]);
-  const waypointsRef        = useRef([]);
-  const routeLoadedRef      = useRef(false);
-  const arrivedRef          = useRef(false);
-  const arrivalCountRef     = useRef(0);
-  const isReroutingRef      = useRef(false);
+  const orbTrailRef = useRef([]);
+  const waypointsRef = useRef([]);
+  const routeLoadedRef = useRef(false);
+  const arrivedRef = useRef(false);
+  const arrivalCountRef = useRef(0);
+  const isReroutingRef = useRef(false);
   // Segment-index progression (replaces the old 4m shift loop)
-  const activeSegIdxRef     = useRef(0);   // index into waypointsRef (A of active A→B segment)
-  const offPathCountRef     = useRef(0);   // consecutive off-path GPS readings
+  const activeSegIdxRef = useRef(0);   // index into waypointsRef (A of active A→B segment)
+  const offPathCountRef = useRef(0);   // consecutive off-path GPS readings
+  const dismissedIndoorBuildingsRef = useRef(new Set());
 
   // ── Reset on new destination ──────────────────────────────────────────────
   useEffect(() => {
-    orbTrailRef.current     = [];
-    waypointsRef.current    = [];
-    routeLoadedRef.current  = false;
-    arrivedRef.current      = false;
+    orbTrailRef.current = [];
+    waypointsRef.current = [];
+    routeLoadedRef.current = false;
+    arrivedRef.current = false;
     arrivalCountRef.current = 0;
-    isReroutingRef.current  = false;
+    isReroutingRef.current = false;
     startedAtDestRef.current = false;
-    activeSegIdxRef.current  = 0;
-    offPathCountRef.current  = 0;
+    activeSegIdxRef.current = 0;
+    offPathCountRef.current = 0;
     setRouteReady(false);
     setArrived(false);
     setDistToNext(null);
@@ -144,7 +145,7 @@ export default function ARScreen({ route, navigation }) {
     } else {
       // ── 2. Fall back to A* on campusGraph ──────────────────────────────
       const startNode = nearestNode(loc.lat, loc.lng);
-      const pathIds   = aStar(startNode, destinationId);
+      const pathIds = aStar(startNode, destinationId);
       waypoints = pathIds.length > 0 ? getWaypoints(pathIds) : [];
     }
 
@@ -160,19 +161,19 @@ export default function ARScreen({ route, navigation }) {
     // We pick the segment whose closest point is nearest, then start from A.
     // This is better than snapping to the nearest node — it handles mid-segment starts.
     if (waypoints.length >= 2) {
-      let bestSegIdx  = 0;
+      let bestSegIdx = 0;
       let bestSegDist = Infinity;
 
       for (let i = 0; i < waypoints.length - 1; i++) {
-        const a  = waypoints[i];
-        const b  = waypoints[i + 1];
+        const a = waypoints[i];
+        const b = waypoints[i + 1];
         // Closest point on segment to user
         const bx = (b.lng - a.lng);
         const by = (b.lat - a.lat);
         const px = (loc.lng - a.lng);
         const py = (loc.lat - a.lat);
         const lenSq = bx * bx + by * by;
-        const rawT  = lenSq > 0 ? (px * bx + py * by) / lenSq : 0;
+        const rawT = lenSq > 0 ? (px * bx + py * by) / lenSq : 0;
         const tClamp = Math.max(0, Math.min(1, rawT));
         const closestLat = a.lat + tClamp * (b.lat - a.lat);
         const closestLng = a.lng + tClamp * (b.lng - a.lng);
@@ -187,10 +188,10 @@ export default function ARScreen({ route, navigation }) {
       }
     }
 
-    activeSegIdxRef.current  = 0;
-    offPathCountRef.current  = 0;
-    orbTrailRef.current      = buildOrbTrail(waypoints);
-    waypointsRef.current     = waypoints;
+    activeSegIdxRef.current = 0;
+    offPathCountRef.current = 0;
+    orbTrailRef.current = buildOrbTrail(waypoints);
+    waypointsRef.current = waypoints;
 
     // Check if user started navigation already at/near the destination
     const dest = NODES[destinationId];
@@ -217,7 +218,11 @@ export default function ARScreen({ route, navigation }) {
   // ── Indoor detection ──────────────────────────────────────────────────────
   useEffect(() => {
     if (!location) return;
-    setIndoorStatus(getIndoorStatus(location.lat, location.lng));
+    const status = getIndoorStatus(location.lat, location.lng);
+    if (status && dismissedIndoorBuildingsRef.current.has(status.buildingId)) {
+      return;
+    }
+    setIndoorStatus(status);
   }, [location]);
 
   // ── Re-route if off-path ──────────────────────────────────────────────────
@@ -236,9 +241,9 @@ export default function ARScreen({ route, navigation }) {
     if (crossTrackDist > OFF_PATH_M) {
       offPathCountRef.current += 1;
       if (offPathCountRef.current >= OFF_PATH_CONFIRMATIONS && !isReroutingRef.current) {
-        isReroutingRef.current  = true;
+        isReroutingRef.current = true;
         offPathCountRef.current = 0;
-        routeLoadedRef.current  = false;
+        routeLoadedRef.current = false;
         loadRoute(location).finally(() => { isReroutingRef.current = false; });
       }
     } else {
@@ -328,9 +333,9 @@ export default function ARScreen({ route, navigation }) {
     // path polyline — not directly at the next node. This keeps the arrow
     // pointing smoothly forward along the walkway, never pointing backward.
     const lookahead = getLookaheadPoint(wps, segIdx, LOOKAHEAD_M);
-    const bearing   = bearingTo(location.lat, location.lng, lookahead.lat, lookahead.lng);
+    const bearing = bearingTo(location.lat, location.lng, lookahead.lat, lookahead.lng);
     let angle = bearing - heading;
-    if (angle >  180) angle -= 360;
+    if (angle > 180) angle -= 360;
     if (angle < -180) angle += 360;
     setNextAngle(angle);
 
@@ -343,11 +348,11 @@ export default function ARScreen({ route, navigation }) {
 
     // ── E. Pre-bend warning ──────────────────────────────────────────────
     if (segIdx < wps.length - 2) {
-      const nextNode  = wps[segIdx + 1];
+      const nextNode = wps[segIdx + 1];
       const afterNode = wps[segIdx + 2];
       const dNext = distanceTo(location.lat, location.lng, nextNode.lat, nextNode.lng);
       if (dNext < PREBEND_WARN_DIST) {
-        const bearingCur  = bearingTo(wps[segIdx].lat, wps[segIdx].lng, nextNode.lat, nextNode.lng);
+        const bearingCur = bearingTo(wps[segIdx].lat, wps[segIdx].lng, nextNode.lat, nextNode.lng);
         const bearingNext = bearingTo(nextNode.lat, nextNode.lng, afterNode.lat, afterNode.lng);
         let turnAngle = Math.abs(bearingNext - bearingCur);
         if (turnAngle > 180) turnAngle = 360 - turnAngle;
@@ -363,10 +368,10 @@ export default function ARScreen({ route, navigation }) {
 
   // ── Destination info ──────────────────────────────────────────────────────
   const destBuilding = BUILDINGS[destinationId];
-  const destName     = destBuilding?.name
+  const destName = destBuilding?.name
     ?? (NODES[destinationId]
-        ? destinationId.charAt(0).toUpperCase() + destinationId.slice(1).replace(/_/g, " ")
-        : "Destination");
+      ? destinationId.charAt(0).toUpperCase() + destinationId.slice(1).replace(/_/g, " ")
+      : "Destination");
 
   // ── Permission gates ──────────────────────────────────────────────────────
   if (!permission) return <View style={s.fill} />;
@@ -437,7 +442,12 @@ export default function ARScreen({ route, navigation }) {
                 ? t('ar.indoor.title', lang)
                 : `You are inside ${indoorStatus.buildingName} — keep going to ${destName}!`}
             </Text>
-            <TouchableOpacity onPress={() => setIndoorStatus(null)}>
+            <TouchableOpacity onPress={() => {
+              if (indoorStatus?.buildingId) {
+                dismissedIndoorBuildingsRef.current.add(indoorStatus.buildingId);
+              }
+              setIndoorStatus(null);
+            }}>
               <Text style={s.indoorBannerDismiss}>{t("ar.indoor.dismiss", lang)}</Text>
             </TouchableOpacity>
           </View>
@@ -589,7 +599,7 @@ export default function ARScreen({ route, navigation }) {
 
 // ── Styles ────────────────────────────────────────────────────────────────────
 const s = StyleSheet.create({
-  fill:   { flex: 1, backgroundColor: "#000" },
+  fill: { flex: 1, backgroundColor: "#000" },
   center: { flex: 1, alignItems: "center", justifyContent: "center", gap: 12, padding: 24 },
 
   // HUD overlay (sits above ViroReact)
@@ -608,12 +618,12 @@ const s = StyleSheet.create({
   },
   loadingIcon: { fontSize: 48 },
   loadingText: { fontSize: 18, fontWeight: "800", color: GREEN },
-  loadingSub:  { fontSize: 13, color: "rgba(255,255,255,0.5)", textAlign: "center", paddingHorizontal: 32 },
+  loadingSub: { fontSize: 13, color: "rgba(255,255,255,0.5)", textAlign: "center", paddingHorizontal: 32 },
 
-  // Indoor banner
+  // Indoor banner — positioned below BearingHUD (arc ~56px + label ~30px + paddingTop 36 = ~122px)
   indoorBanner: {
     position: "absolute",
-    top: Platform.OS === "android" ? 90 : 60,
+    top: Platform.OS === "android" ? 136 : 106,
     left: 16, right: 16,
     backgroundColor: "rgba(255,193,7,0.9)",
     borderRadius: 12,
@@ -622,14 +632,15 @@ const s = StyleSheet.create({
     justifyContent: "space-between",
     paddingHorizontal: 14,
     paddingVertical: 10,
+    zIndex: 20,
   },
-  indoorBannerText:    { fontSize: 13, fontWeight: "800", color: "#071209", flex: 1 },
+  indoorBannerText: { fontSize: 13, fontWeight: "800", color: "#071209", flex: 1 },
   indoorBannerDismiss: { fontSize: 12, fontWeight: "700", color: "#071209", opacity: 0.6 },
 
-  // GPS weak-signal banner
+  // GPS weak-signal banner — below indoor banner
   gpsWarnBanner: {
     position: "absolute",
-    top: Platform.OS === "android" ? 130 : 100,
+    top: Platform.OS === "android" ? 185 : 155,
     left: 16,
     right: 16,
     backgroundColor: "rgba(255,152,0,0.9)",
@@ -640,7 +651,7 @@ const s = StyleSheet.create({
     paddingHorizontal: 14,
     paddingVertical: 10,
   },
-  gpsWarnText:    { fontSize: 13, fontWeight: "800", color: "#071209", flex: 1 },
+  gpsWarnText: { fontSize: 13, fontWeight: "800", color: "#071209", flex: 1 },
   gpsWarnDismiss: { fontSize: 14, fontWeight: "700", color: "#071209", opacity: 0.7, paddingLeft: 8 },
 
   // GPS quality chip wrapper
@@ -701,8 +712,8 @@ const s = StyleSheet.create({
     alignItems: "center",
     minWidth: 64,
   },
-  distVal:   { fontSize: 22, fontWeight: "900", color: "#071209" },
-  distLabel: { fontSize: 9,  fontWeight: "700", color: "rgba(7,18,9,0.6)" },
+  distVal: { fontSize: 22, fontWeight: "900", color: "#071209" },
+  distLabel: { fontSize: 9, fontWeight: "700", color: "rgba(7,18,9,0.6)" },
 
   // Calibrator
   calibratorWrap: {
@@ -760,10 +771,10 @@ const s = StyleSheet.create({
     gap: 8,
     zIndex: 10,
   },
-  arrivedIcon:  { fontSize: 48 },
+  arrivedIcon: { fontSize: 48 },
   arrivedTitle: { fontSize: 22, fontWeight: "900", color: GREEN },
-  arrivedSub:   { fontSize: 14, color: "rgba(255,255,255,0.5)" },
-  arrivedBtns:  { flexDirection: "column", gap: 8, marginTop: 12, width: W - 64 },
+  arrivedSub: { fontSize: 14, color: "rgba(255,255,255,0.5)" },
+  arrivedBtns: { flexDirection: "column", gap: 8, marginTop: 12, width: W - 64 },
   arrivedBtn: {
     backgroundColor: GREEN,
     borderRadius: 999,
@@ -783,7 +794,7 @@ const s = StyleSheet.create({
     backgroundColor: GREEN, borderRadius: 12,
     paddingHorizontal: 28, paddingVertical: 13, marginTop: 8,
   },
-  permBtnText:  { fontSize: 14, fontWeight: "800", color: "#071209" },
-  permBack:     { marginTop: 10 },
+  permBtnText: { fontSize: 14, fontWeight: "800", color: "#071209" },
+  permBack: { marginTop: 10 },
   permBackText: { fontSize: 13, color: "rgba(255,255,255,0.4)", fontWeight: "600" },
 });
