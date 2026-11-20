@@ -81,6 +81,8 @@ export default function useLocation() {
   const lastTimestampRef = useRef(null);
   const accelDataRef     = useRef({ x: 0, y: 0, z: -1 }); // default: phone upright
   const magHeadingRef    = useRef(null);
+  const lastHeadingStateRef = useRef(0);
+  const lastHeadingTimeRef  = useRef(0);
 
   // Warm-up gate — 12-second fallback timer
   useEffect(() => {
@@ -170,10 +172,35 @@ export default function useLocation() {
         }
       );
 
+      // Check sensor availability
+      const gyroAvailable = await Gyroscope.isAvailableAsync();
+
       // Set sensor update intervals
-      Gyroscope.setUpdateInterval(33);
+      if (gyroAvailable) Gyroscope.setUpdateInterval(33);
       Accelerometer.setUpdateInterval(33);
       Magnetometer.setUpdateInterval(50);
+
+      // Throttled & deadbanded heading state updater
+      // Caps UI updates to ~15 fps (66ms) and suppresses noise <0.75° to stop jitter
+      function commitHeading(newHeading) {
+        if (!active) return;
+        const now = Date.now();
+        const lastTime = lastHeadingTimeRef.current;
+        const lastHeading = lastHeadingStateRef.current;
+
+        // Throttle to at most ~15 updates/sec (66ms interval)
+        if (now - lastTime < 66) return;
+
+        let diff = Math.abs(newHeading - lastHeading);
+        if (diff > 180) diff = 360 - diff;
+
+        // Deadband: ignore fluctuations under 0.75° unless more than 250ms have elapsed
+        if (diff < 0.75 && (now - lastTime < 250)) return;
+
+        lastHeadingTimeRef.current = now;
+        lastHeadingStateRef.current = newHeading;
+        setHeading(newHeading);
+      }
 
       // Blend magnetometer-derived heading with GPS course heading.
       // When stationary (gpsCourseRef is null) returns the mag heading unchanged.
@@ -217,9 +244,6 @@ export default function useLocation() {
         let magHeading = Math.atan2(-Yh, Xh) * (180 / Math.PI);
         magHeading = (magHeading + 360) % 360;
 
-        // Store latest tilt-compensated heading for gyro fusion
-        magHeadingRef.current = magHeading;
-
         // Smooth via circular buffer
         headingBuf.current.push(magHeading);
         if (headingBuf.current.length > HEADING_SAMPLES) {
@@ -231,15 +255,19 @@ export default function useLocation() {
         const cosSum = buf.reduce((s, a) => s + Math.cos(a * Math.PI / 180), 0);
         const smoothed = (Math.atan2(sinSum, cosSum) * 180 / Math.PI + 360) % 360;
 
+        // Store latest smoothed tilt-compensated heading for gyro fusion
+        magHeadingRef.current = smoothed;
+
         // Initialize fused heading on first reading
         if (fusedHeadingRef.current === null) {
           fusedHeadingRef.current = smoothed;
         }
 
-        // Apply user compass offset correction
-        const corrected = (smoothed + _compassOffset + 360) % 360;
-
-        if (active) setHeading(blendWithGpsCourse(corrected));
+        // If gyroscope is not available on this device, magnetometer serves as the fallback driver
+        if (!gyroAvailable) {
+          const corrected = (smoothed + _compassOffset + 360) % 360;
+          commitHeading(blendWithGpsCourse(corrected));
+        }
       });
 
       // Accelerometer subscriber — feeds tilt compensation
@@ -247,34 +275,36 @@ export default function useLocation() {
         accelDataRef.current = { x, y, z };
       });
 
-      // Gyroscope subscriber — complementary filter fusion
-      gyroRef.current = Gyroscope.addListener(({ z: gz }) => {
-        const now = Date.now();
-        const dt = lastTimestampRef.current !== null
-          ? (now - lastTimestampRef.current) / 1000
-          : 0.016;
-        lastTimestampRef.current = now;
+      // Gyroscope subscriber — complementary filter fusion (sole state updater when gyro is present)
+      if (gyroAvailable) {
+        gyroRef.current = Gyroscope.addListener(({ z: gz }) => {
+          const now = Date.now();
+          const dt = lastTimestampRef.current !== null
+            ? (now - lastTimestampRef.current) / 1000
+            : 0.016;
+          lastTimestampRef.current = now;
 
-        const magH = magHeadingRef.current;
-        if (magH === null) return; // not yet initialized
+          const magH = magHeadingRef.current;
+          if (magH === null) return; // not yet initialized
 
-        const prev = fusedHeadingRef.current !== null ? fusedHeadingRef.current : magH;
-        const ALPHA = 0.98;
-        // Negate gz: expo-sensors positive gz = CCW, compass convention positive = CW
-        let gyroContrib = prev + (-gz) * (180 / Math.PI) * dt;
-        // Normalize gyro contribution to [0, 360)
-        gyroContrib = ((gyroContrib % 360) + 360) % 360;
-        // Shortest-path correction to avoid 0°/360° wrap-around snap
-        let diff = magH - gyroContrib;
-        if (diff >  180) diff -= 360;
-        if (diff < -180) diff += 360;
-        let fused = ((gyroContrib + (1 - ALPHA) * diff) + 360) % 360;
-        fusedHeadingRef.current = fused;
+          const prev = fusedHeadingRef.current !== null ? fusedHeadingRef.current : magH;
+          const ALPHA = 0.98;
+          // Negate gz: expo-sensors positive gz = CCW, compass convention positive = CW
+          let gyroContrib = prev + (-gz) * (180 / Math.PI) * dt;
+          // Normalize gyro contribution to [0, 360)
+          gyroContrib = ((gyroContrib % 360) + 360) % 360;
+          // Shortest-path correction to avoid 0°/360° wrap-around snap
+          let diff = magH - gyroContrib;
+          if (diff >  180) diff -= 360;
+          if (diff < -180) diff += 360;
+          let fused = ((gyroContrib + (1 - ALPHA) * diff) + 360) % 360;
+          fusedHeadingRef.current = fused;
 
-        // Apply user compass offset correction and update heading state
-        const corrected = (fused + _compassOffset + 360) % 360;
-        if (active) setHeading(blendWithGpsCourse(corrected));
-      });
+          // Apply user compass offset correction and update heading state
+          const corrected = (fused + _compassOffset + 360) % 360;
+          commitHeading(blendWithGpsCourse(corrected));
+        });
+      }
     }
 
     start().catch(e => setError(e.message));

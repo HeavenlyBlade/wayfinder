@@ -37,12 +37,14 @@ const ALIASES = {
   sr_building:    ['sr building', 'sr', 'dentistry', 'dental clinic',
                    'dental', 'simulation lab'],
   canteen:        ['canteen', 'canteen 1', 'big canteen', 'cafeteria', 'food'],
-  canteen_two:    ['canteen 2', 'canteen two', 'second canteen'],
+  canteen_two:    ['canteen 2', 'canteen two', 'second canteen', 'small canteen'],
   kitchen_hall:   ['kitchen', 'kitchen hall', 'culinary', 'hot kitchen',
                    'hrm kitchen', 'deans office hrm'],
   chapel:         ['chapel', 'church', 'prayer', 'mass'],
   kindergarten:   ['kindergarten', 'kinder', 'kinder building', 'nursery'],
   ccss:           ['ccss', 'criminology', 'criminal justice'],
+  gymnasium:      ['gymnasium', 'gym', 'sports hall', 'basketball court'],
+  engineering:    ['engineering', 'engineering building', 'new ibed'],
   gate:           ['gate', 'main gate', 'entrance', 'exit'],
   parking_lot:    ['parking', 'parking lot', 'car park', 'car parking'],
   motorcycle_parking: ['motorcycle parking', 'moto parking', 'motor parking', 'motorbike'],
@@ -111,8 +113,9 @@ export function resolveDestination(transcript) {
     }
   }
 
-  // Require a minimum confidence — a score of 3 means at least a 3-char word matched
-  return bestScore >= 3 ? bestId : null;
+  // Require a minimum confidence — score of 5 means a meaningful word matched
+  // (raised from 3 to avoid false positives like "can" matching "canteen")
+  return bestScore >= 5 ? bestId : null;
 }
 
 // ── Human-readable reply ─────────────────────────────────────────────────────

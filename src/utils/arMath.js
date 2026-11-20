@@ -1,6 +1,10 @@
 // Convert degrees to radians
 const toRad = deg => deg * Math.PI / 180;
 
+// ── Approximate metres-per-degree at SACLI campus latitude (~13.96°N) ─────────
+const LAT_M  = 111320;                              // metres per degree of latitude
+const LNG_M  = 111320 * Math.cos(toRad(13.962));   // metres per degree of longitude
+
 // Bearing from point A to point B in degrees (0 = north, 90 = east)
 export function bearingTo(userLat, userLng, targetLat, targetLng) {
   const dLng   = toRad(targetLng - userLng);
@@ -85,4 +89,72 @@ export function projectToScreen({
     orbSize,
     angleDiff,
   };
+}
+
+// ── Segment projection helpers ─────────────────────────────────────────────────
+//
+// projectOnSegment(p, a, b)
+//   Projects GPS point p onto segment a→b using a flat-Earth approximation
+//   (accurate to <0.5% within a 500m campus).
+//
+//   Returns:
+//     t            – scalar 0..1 along segment (0 = at a, 1 = at b)
+//     crossTrackDist – perpendicular distance from p to the infinite line in metres
+//     distToB      – Haversine distance from p to b in metres
+//     passed       – true when p has crossed the perpendicular plane at b
+//                    (t >= 0.95 OR distToB < captureRadius)
+//
+export function projectOnSegment(p, a, b, captureRadius = 6.0) {
+  // Convert to flat-Earth XY frame (metres) anchored at a
+  const bx = (b.lng - a.lng) * LNG_M;
+  const by = (b.lat - a.lat) * LAT_M;
+  const px = (p.lng - a.lng) * LNG_M;
+  const py = (p.lat - a.lat) * LAT_M;
+
+  const segLenSq = bx * bx + by * by;
+  let t = 0;
+  if (segLenSq > 0) {
+    t = (px * bx + py * by) / segLenSq;
+  }
+
+  // Closest point on the infinite line
+  const closestX = t * bx;
+  const closestY = t * by;
+  const crossTrackDist = Math.sqrt((px - closestX) ** 2 + (py - closestY) ** 2);
+
+  const distToB = distanceTo(p.lat, p.lng, b.lat, b.lng);
+  const passed  = t >= 0.95 || distToB < captureRadius;
+
+  return { t, crossTrackDist, distToB, passed };
+}
+
+// getLookaheadPoint(waypoints, segmentIndex, lookaheadDist)
+//
+//   Starting from waypoints[segmentIndex + 1] (the "B" node of the active
+//   segment), walks forward along the polyline until it has accumulated
+//   lookaheadDist metres, then returns the intermediate { lat, lng }.
+//   Falls back to the last waypoint if the path is shorter than lookaheadDist.
+//
+export function getLookaheadPoint(waypoints, segmentIndex, lookaheadDist = 8) {
+  const startIdx = segmentIndex + 1;
+  if (startIdx >= waypoints.length) return waypoints[waypoints.length - 1];
+
+  let remaining = lookaheadDist;
+
+  for (let i = startIdx; i < waypoints.length - 1; i++) {
+    const a    = waypoints[i];
+    const b    = waypoints[i + 1];
+    const segD = distanceTo(a.lat, a.lng, b.lat, b.lng);
+
+    if (remaining <= segD) {
+      const frac = remaining / segD;
+      return {
+        lat: a.lat + (b.lat - a.lat) * frac,
+        lng: a.lng + (b.lng - a.lng) * frac,
+      };
+    }
+    remaining -= segD;
+  }
+
+  return waypoints[waypoints.length - 1];
 }

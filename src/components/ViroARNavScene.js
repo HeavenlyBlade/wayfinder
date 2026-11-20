@@ -83,7 +83,7 @@ function waypointToARPos(wp, userLoc) {
 // ── Camera-relative directional arrow ────────────────────────────────────────
 // Always appears at [0, -0.3, -1.5] in front of the user.
 // Rotates around Y by angleDiff so it points toward the next waypoint.
-// Built from ViroBox only: shaft + two wing halves for the arrowhead.
+// Built from ViroBox only (Android safe): sleek shaft + prominent wide arrowhead.
 function NavigationArrow({ angleDiff }) {
   const angle = angleDiff ?? 0;
   return (
@@ -92,30 +92,45 @@ function NavigationArrow({ angleDiff }) {
       rotation={[0, angle, 0]}
       animation={{ name: "arrowPulse", run: true, loop: true }}
     >
-      {/* Shaft — long thin box pointing forward (along -Z) */}
+      {/* Shaft — sleek central stem pointing along -Z */}
       <ViroBox
-        scale={[0.055, 0.055, 0.32]}
-        position={[0, 0, 0.1]}
+        scale={[0.045, 0.035, 0.28]}
+        position={[0, 0, 0.08]}
         materials={["arrowGreen"]}
       />
-      {/* Arrowhead left wing */}
+      {/* Shaft glow */}
       <ViroBox
-        scale={[0.15, 0.055, 0.15]}
-        position={[0, 0, -0.08]}
+        scale={[0.065, 0.05, 0.28]}
+        position={[0, 0, 0.08]}
+        materials={["arrowGlow"]}
+      />
+
+      {/* Arrowhead — prominent wide diamond tip (31cm wide across wings) */}
+      <ViroBox
+        scale={[0.22, 0.04, 0.22]}
+        position={[0, 0, -0.11]}
         rotation={[0, 45, 0]}
         materials={["arrowGreen"]}
       />
-      {/* Arrowhead right wing */}
+      {/* Arrowhead left barb fin */}
       <ViroBox
-        scale={[0.15, 0.055, 0.15]}
-        position={[0, 0, -0.08]}
-        rotation={[0, -45, 0]}
+        scale={[0.045, 0.038, 0.18]}
+        position={[-0.08, 0, -0.06]}
+        rotation={[0, 32, 0]}
         materials={["arrowGreen"]}
       />
-      {/* Glow layer — slightly larger, transparent */}
+      {/* Arrowhead right barb fin */}
       <ViroBox
-        scale={[0.09, 0.09, 0.38]}
-        position={[0, 0, 0.1]}
+        scale={[0.045, 0.038, 0.18]}
+        position={[0.08, 0, -0.06]}
+        rotation={[0, -32, 0]}
+        materials={["arrowGreen"]}
+      />
+      {/* Arrowhead glow */}
+      <ViroBox
+        scale={[0.26, 0.055, 0.26]}
+        position={[0, 0, -0.11]}
+        rotation={[0, 45, 0]}
         materials={["arrowGlow"]}
       />
     </ViroNode>
@@ -197,9 +212,6 @@ function NavScene(props) {
   // Orb trail (fallback)
   const visibleWaypoints = allWaypoints.slice(0, 3);
 
-  // angleDiff-based ahead check
-  const isAhead = Math.abs(angleDiff ?? 0) < 70;
-
   return (
     <ViroARScene onTrackingUpdated={handleTrackingUpdated}>
 
@@ -233,16 +245,6 @@ function NavScene(props) {
           );
         })
       ))}
-
-      {/* Turn indicator text — shown when destination is not ahead */}
-      {isTracking && !isAhead && (
-        <ViroText
-          text={angleDiff > 0 ? ">> Turn Right" : "<< Turn Left"}
-          position={[angleDiff > 0 ? 0.4 : -0.4, 0.15, -1.5]}
-          scale={[0.3, 0.3, 0.3]}
-          color="#00FF88"
-        />
-      )}
 
       {!isTracking && (
         <ViroText

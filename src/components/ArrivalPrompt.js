@@ -158,10 +158,47 @@ function StepResult({ buildingId, roomName, floorKey, staircase, lang, onBack, o
   const direction = getDirections(buildingId, roomName, floorKey, staircase);
   const [isSpeaking, setIsSpeaking] = useState(false);
 
+  // Auto-speak the direction text when Step 3 mounts (if direction is available)
+  useEffect(() => {
+    if (!direction) return;
+    // Small delay so the sheet animation settles before speaking starts
+    const timer = setTimeout(() => speakDirection(), 400);
+    return () => { clearTimeout(timer); Speech.stop(); };
+  }, [direction]);
+
   // Stop speech when this step unmounts (user goes back or closes)
   useEffect(() => {
     return () => { Speech.stop(); };
   }, []);
+
+  function speakDirection() {
+    if (!direction) return;
+    setIsSpeaking(true);
+    // Try preferred language; silently fall back to en-US if the voice is unavailable.
+    // expo-speech does not throw on missing voices on Android — it just uses the default.
+    const preferredLang = lang === 'fil' ? 'fil-PH' : 'en-US';
+    Speech.speak(direction, {
+      language:  preferredLang,
+      rate:      0.9,
+      pitch:     1.0,
+      onDone:    () => setIsSpeaking(false),
+      onError:   () => {
+        // If preferred language fails, retry with en-US
+        if (preferredLang !== 'en-US') {
+          Speech.speak(direction, {
+            language: 'en-US',
+            rate:     0.9,
+            onDone:  () => setIsSpeaking(false),
+            onError: () => setIsSpeaking(false),
+            onStopped: () => setIsSpeaking(false),
+          });
+        } else {
+          setIsSpeaking(false);
+        }
+      },
+      onStopped: () => setIsSpeaking(false),
+    });
+  }
 
   async function handleReadAloud() {
     if (!direction) return;
@@ -171,14 +208,7 @@ function StepResult({ buildingId, roomName, floorKey, staircase, lang, onBack, o
       setIsSpeaking(false);
       return;
     }
-    setIsSpeaking(true);
-    Speech.speak(direction, {
-      language: lang === "fil" ? "fil-PH" : "en-US",
-      rate: 0.92,
-      onDone:  () => setIsSpeaking(false),
-      onError: () => setIsSpeaking(false),
-      onStopped: () => setIsSpeaking(false),
-    });
+    speakDirection();
   }
 
   return (

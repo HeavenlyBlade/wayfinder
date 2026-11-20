@@ -21,6 +21,7 @@ import BottomPanel      from "../components/BottomPanel";
 import SearchModal      from "../components/SearchModal";
 import BuildingCard     from "../components/BuildingCard";
 import CampusMap        from "../components/CampusMap";
+import VoiceButton      from "../components/VoiceButton";
 import useLocation      from "../hooks/useLocation";
 import { useSettings }  from "../context/SettingsContext";
 import { t } from "../constants/i18n";
@@ -253,6 +254,16 @@ export default function MapScreen({ navigation, route }) {
       {/* ── FABs ── */}
       {panelHeight < H * 0.75 && (
         <View style={[s.fabs, { bottom: panelHeight + 12 }]}>
+          {/* Voice AI button */}
+          <VoiceButton
+            lang={lang}
+            style={s.voiceFabWrap}
+            onDestinationResolved={(destId) => {
+              const building = BUILDINGS[destId];
+              if (building) selectBuilding(destId, building);
+            }}
+          />
+
           {routeWaypoints && (
             <TouchableOpacity
               style={s.fab}
@@ -366,7 +377,7 @@ const s = StyleSheet.create({
     flex: 1, fontSize: 13, fontWeight: "600", color: "rgba(0,0,0,0.45)",
   },
 
-  fabs: { position: "absolute", right: 14, gap: 10 },
+  fabs: { position: "absolute", right: 14, gap: 10, alignItems: 'center' },
   fab: {
     width: 46, height: 46, borderRadius: 23,
     backgroundColor: "rgba(255,255,255,0.95)",
@@ -374,6 +385,8 @@ const s = StyleSheet.create({
     shadowColor: "#000", shadowOpacity: 0.3, shadowRadius: 8, elevation: 6,
   },
   fabLocate: { backgroundColor: "#00C853" },
+  // VoiceButton sits above the other FABs; give it extra bottom margin
+  voiceFabWrap: { marginBottom: 4 },
 
   // Building label markers
   markerLabel: {
