@@ -27,8 +27,8 @@ export function getCompassOffset() {
   return _compassOffset;
 }
 
-// GPS smoothing — rolling weighted-average buffer (last 5 accepted fixes)
-const GPS_BUFFER_SIZE = 5;
+// GPS smoothing — 3-sample buffer with recency decay to eliminate pedestrian position lag
+const GPS_BUFFER_SIZE = 3;
 
 // GPS course blending
 // When the device is moving, Location.watchPositionAsync provides pos.coords.heading
@@ -39,14 +39,19 @@ const GPS_BUFFER_SIZE = 5;
 const COURSE_MIN_SPEED  = 0.5;  // m/s — below this: magnetometer only
 const COURSE_FULL_SPEED = 1.2;  // m/s — above this: GPS course fully trusted
 
-// Compute smoothed lat/lng from buffer using 1/accuracy weighting
+// Compute smoothed lat/lng with exponential recency weighting:
+// Most recent fix gets the highest weight so pedestrian position does not lag behind.
 function smoothedPosition(buffer) {
   if (buffer.length === 0) return null;
   let wSum = 0;
   let latSum = 0;
   let lngSum = 0;
-  for (const fix of buffer) {
-    const w = 1 / fix.accuracy;
+  const n = buffer.length;
+  for (let i = 0; i < n; i++) {
+    const fix = buffer[i];
+    // Age factor: 1.0 for newest fix, decaying for older fixes
+    const ageFactor = Math.pow(0.5, (n - 1) - i);
+    const w = (1 / Math.max(1, fix.accuracy)) * ageFactor;
     wSum   += w;
     latSum += fix.lat * w;
     lngSum += fix.lng * w;
@@ -135,10 +140,10 @@ export default function useLocation() {
         {
           accuracy: Location.Accuracy.BestForNavigation,
           timeInterval: 1000,
-          distanceInterval: 3, // 3m minimum — 0.5m caused GPS noise jitter
+          distanceInterval: 1, // 1m for responsive pedestrian tracking without freeze
         },
         pos => {
-          if (pos.coords.accuracy > 25) return; // skip readings worse than 25m accuracy
+          if (pos.coords.accuracy > 35) return; // accept fixes up to 35m (campus building proximity)
           if (active) {
             const acc   = pos.coords.accuracy;
             const speed = pos.coords.speed ?? 0;
@@ -182,7 +187,9 @@ export default function useLocation() {
           if (h != null && !isNaN(h)) {
             usingNativeHeading = true;
             const corrected = (h + _compassOffset + 360) % 360;
-            commitHeading(blendWithGpsCourse(corrected));
+            // Native sensor fusion heading (hardware gyro+accel+mag) is already optimal;
+            // do not override with noisy pedestrian GPS course when walking.
+            commitHeading(corrected);
           }
         });
       } catch (err) {

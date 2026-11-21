@@ -84,23 +84,13 @@ function waypointToARPos(wp, userLoc) {
 // Dynamic position and rotation: follows camera at [position] (1.6m in front of user)
 // and rotates around Y by [rotation] to continuously point at the destination.
 //
-// Shape: a flat arrow on the ground plane made of ViroBox only.
-//   SHAFT  = thin long rectangle (the tail/body of the arrow)
-//   HEAD   = proper filled triangle built from 5 horizontal slices stacked in Z.
-//            Each slice is a ViroBox whose width narrows toward the tip, creating
-//            a solid, clearly triangular arrowhead — no diamond or notched shape.
+// Shape: Sleek 3D Chevron Arrowhead (like Google Maps AR / Waze).
+//   - Two forward-sweeping angled arms (±26°) meeting at a sharp forward apex
+//   - Solid central wedge bridging the wings
+//   - Short, wide connecting stem flush with the rear notch (no skinny handle)
+//   - Absolutely NO square glow boxes (which render as opaque frying-pan rectangles on Android)
 function NavigationArrow({ position, rotation }) {
-  // Build a filled-triangle arrowhead from horizontal slices (wide base → narrow tip).
-  // Each slice: { z, w } where z = position along arrow axis, w = width of that slice.
-  const triSlices = [
-    { z: -0.02, w: 0.26 },   // base of triangle (widest)
-    { z: -0.07, w: 0.21 },
-    { z: -0.12, w: 0.155 },
-    { z: -0.17, w: 0.10 },
-    { z: -0.22, w: 0.05 },   // tip of triangle (narrowest)
-  ];
-  const SLICE_H = 0.035;     // thickness (Y)
-  const SLICE_D = 0.055;     // depth of each slice (Z extent)
+  const THICKNESS = 0.040; // 4cm clean 3D extrusion
 
   return (
     <ViroNode
@@ -108,34 +98,42 @@ function NavigationArrow({ position, rotation }) {
       rotation={[0, rotation, 0]}
       animation={{ name: "arrowPulse", run: true, loop: true }}
     >
-      {/* ── Shaft: straight central stem ── */}
+      {/* ── Left Wing — swept back 26° ── */}
       <ViroBox
-        scale={[0.055, SLICE_H, 0.30]}
-        position={[0, 0, 0.14]}
+        scale={[0.075, THICKNESS, 0.38]}
+        position={[-0.080, 0, -0.06]}
+        rotation={[0, 26, 0]}
         materials={["arrowGreen"]}
       />
-      {/* Shaft glow */}
+
+      {/* ── Right Wing — swept back -26° ── */}
       <ViroBox
-        scale={[0.075, 0.045, 0.30]}
-        position={[0, 0, 0.14]}
-        materials={["arrowGlow"]}
+        scale={[0.075, THICKNESS, 0.38]}
+        position={[0.080, 0, -0.06]}
+        rotation={[0, -26, 0]}
+        materials={["arrowGreen"]}
       />
 
-      {/* ── Filled-triangle arrowhead (5 slices, wide→narrow) ── */}
-      {triSlices.map((sl, i) => (
-        <ViroBox
-          key={"tri" + i}
-          scale={[sl.w, SLICE_H, SLICE_D]}
-          position={[0, 0, sl.z]}
-          materials={["arrowGreen"]}
-        />
-      ))}
-
-      {/* Arrowhead glow (single box covering the whole triangle area) */}
+      {/* ── Sharp Apex Cap — connects wings seamlessly at front tip ── */}
       <ViroBox
-        scale={[0.30, 0.048, 0.26]}
-        position={[0, 0, -0.12]}
-        materials={["arrowGlow"]}
+        scale={[0.085, THICKNESS, 0.085]}
+        position={[0, 0, -0.22]}
+        rotation={[0, 45, 0]}
+        materials={["arrowGreen"]}
+      />
+
+      {/* ── Solid Inner Wedge — bridges center so arrow is full & bold ── */}
+      <ViroBox
+        scale={[0.11, THICKNESS, 0.20]}
+        position={[0, 0, -0.07]}
+        materials={["arrowGreen"]}
+      />
+
+      {/* ── Short Wide Stem — integrates into the rear notch cleanly ── */}
+      <ViroBox
+        scale={[0.085, THICKNESS, 0.12]}
+        position={[0, 0, 0.08]}
+        materials={["arrowGreen"]}
       />
     </ViroNode>
   );
