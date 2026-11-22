@@ -25,9 +25,11 @@ import { t } from "../constants/i18n";
 import StaircasePicker from "../components/StaircasePicker";
 import ArrivalPrompt from "../components/ArrivalPrompt";
 import BearingHUD from "../components/BearingHUD";
+import CompassCalibrator from "../components/CompassCalibrator";
 import ARTutorial from "../components/ARTutorial";
 import ViroARNavScene from "../components/ViroARNavScene";
 import StatusChips from "../components/StatusChips";
+import { getCompassOffset, setCompassOffset } from "../hooks/useLocation";
 
 const { width: W, height: H } = Dimensions.get("window");
 const GREEN = "#00C853";
@@ -94,6 +96,12 @@ export default function ARScreen({ route, navigation }) {
 
   const [permission, requestPermission] = useCameraPermissions();
   const { location, heading, error: locError, gpsReady, gpsWarning, gpsQuality } = useLocation();
+  const [compassOffset, setLocalCompassOffset] = useState(getCompassOffset());
+
+  const handleCompassAdjust = (newOffset) => {
+    setCompassOffset(newOffset);
+    setLocalCompassOffset(newOffset);
+  };
 
   const [distToNext, setDistToNext] = useState(null);
   const [totalDist, setTotalDist] = useState(null);
@@ -517,7 +525,17 @@ export default function ARScreen({ route, navigation }) {
           </View>
         )}
 
-        {/* Compass calibrator removed — GPS course blend handles heading automatically */}
+        {/* Compass calibrator — software heading offset adjustment */}
+        {!isLoading && !arrived && (
+          <View style={s.calibratorWrap}>
+            <CompassCalibrator
+              offset={compassOffset}
+              onAdjust={handleCompassAdjust}
+              heading={heading}
+              lang={lang}
+            />
+          </View>
+        )}
 
         {/* Back button */}
         {!arrived && (

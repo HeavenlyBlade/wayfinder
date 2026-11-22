@@ -275,6 +275,19 @@ export function IconLayers({ size, color }) {
   );
 }
 
+// ── Clear / cancel plotted route waypoints ─────────────────────────────────
+export function IconRouteOff({ size = 20, color = "#ff4444" }) {
+  return (
+    <Icon size={size} color={color}>
+      <Circle cx="6" cy="18" r="2.5" />
+      <Circle cx="18" cy="6" r="2.5" />
+      <Path d="M6 15.5V11a4 4 0 014-4h4" />
+      <Line x1="14" y1="14" x2="22" y2="22" strokeWidth={2.5} />
+      <Line x1="22" y1="14" x2="14" y2="22" strokeWidth={2.5} />
+    </Icon>
+  );
+}
+
 // ── Navigation direction arrows (used in AR HUD) ───────────────────────────
 
 export function IconArrowUp({ size, color }) {

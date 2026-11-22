@@ -16,29 +16,36 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 const { width: W, height: H } = Dimensions.get("window");
 const GREEN    = "#00C853";
 const CAM_H    = H; // AR is now full-screen, no mini-map section
-const STORAGE  = "wayfinder_ar_tutorial_v5";
+const STORAGE  = "wayfinder_ar_tutorial_v6";
 
 const STEPS = [
   {
     // Step 1 — Overview
-    title:   "AR Navigation",
-    body:    "The top half shows your live AR camera.\n\nA green arrow will appear on the ground pointing toward your next waypoint. Follow it to reach your destination.",
-    hint:    null,
-    anchor:  null,
-  },
-  {
-    // Step 2 — AR Arrow (updated for ViroReact tap-to-place)
-    title:   "The AR Arrow",
-    body:    "Point your camera at the floor in front of you. A green 3D arrow will appear on the ground surface, pointing toward your next waypoint.\n\nFollow it and it will guide you to your destination.",
-    hint:    "The arrow appears automatically — no tapping needed. Just point at the floor.",
+    title:   "3D AR Wayfinding",
+    body:    "WAYFINDER displays a 3D green navigation arrow floating directly in front of you in your camera view.\n\nFollow the arrow along the campus walkways to reach your destination.",
+    hint:    "Hold your phone upright at chest height as you walk.",
     anchor:  "arrow",
   },
   {
+    // Step 2 — Bearing HUD & Turns
+    title:   "Bearing HUD & Turns",
+    body:    "The arc at the top displays your heading, destination direction, and upcoming turns in real time.\n\nGreen means straight ahead, while amber or red prompts you to turn left or right.",
+    hint:    "Distance to the next waypoint is displayed at the bottom-left.",
+    anchor:  null,
+  },
+  {
     // Step 3 — Calibration
-    title:   "Compass Calibration",
-    body:    "If the arrow feels off, tap the CAL button (bottom-right of camera).\n\nTap + or - to correct the heading until the arrow aligns with the real path.",
-    hint:    "Do the figure-8 motion first for best accuracy.",
+    title:   "Compass & Calibration",
+    body:    "If the arrow feels slightly misaligned, wave your phone in a figure-8 motion to calibrate the hardware sensor.\n\nYou can also tap the CAL button (bottom-right) to nudge the heading offset by ±5°.",
+    hint:    "Avoid large metal structures or electrical panels for optimal accuracy.",
     anchor:  "cal",
+  },
+  {
+    // Step 4 — Indoor Room Finder
+    title:   "Indoor Directions",
+    body:    "Once you arrive at your destination building, WAYFINDER automatically welcomes you and provides step-by-step indoor directions to your specific room, counter, or office.",
+    hint:    "Campus indoor floor maps are stored locally and work offline.",
+    anchor:  null,
   },
 ];
 
@@ -179,8 +186,8 @@ const s = StyleSheet.create({
   // Calibrator highlight
   calHighlight: {
     position: "absolute",
-    bottom: 16,
-    right: 8,
+    bottom: 72,
+    right: 10,
     alignItems: "center",
     gap: 6,
   },

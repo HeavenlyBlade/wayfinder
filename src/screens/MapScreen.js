@@ -6,7 +6,9 @@ import {
 } from "react-native";
 import {
   IconSearch,
-  IconPin, IconLayers, IconArrowLeft,
+  IconPin,
+  IconRouteOff,
+  IconArrowLeft,
 } from "../components/icons/index";
 import { SafeAreaView } from "react-native-safe-area-context";
 
@@ -21,7 +23,6 @@ import BottomPanel      from "../components/BottomPanel";
 import SearchModal      from "../components/SearchModal";
 import BuildingCard     from "../components/BuildingCard";
 import CampusMap        from "../components/CampusMap";
-import VoiceButton      from "../components/VoiceButton";
 import useLocation      from "../hooks/useLocation";
 import { useSettings }  from "../context/SettingsContext";
 import { t } from "../constants/i18n";
@@ -254,23 +255,14 @@ export default function MapScreen({ navigation, route }) {
       {/* ── FABs ── */}
       {panelHeight < H * 0.75 && (
         <View style={[s.fabs, { bottom: panelHeight + 12 }]}>
-          {/* Voice AI button */}
-          <VoiceButton
-            lang={lang}
-            style={s.voiceFabWrap}
-            onDestinationResolved={(destId) => {
-              const building = BUILDINGS[destId];
-              if (building) selectBuilding(destId, building);
-            }}
-          />
-
           {routeWaypoints && (
             <TouchableOpacity
-              style={s.fab}
+              style={[s.fab, s.fabClearRoute]}
               onPress={() => setRouteWaypoints(null)}
               activeOpacity={0.8}
+              accessibilityLabel="Clear route waypoints"
             >
-              <IconLayers size={20} color="#1a3a1a" />
+              <IconRouteOff size={20} color="#ff4444" />
             </TouchableOpacity>
           )}
           <TouchableOpacity
@@ -385,8 +377,10 @@ const s = StyleSheet.create({
     shadowColor: "#000", shadowOpacity: 0.3, shadowRadius: 8, elevation: 6,
   },
   fabLocate: { backgroundColor: "#00C853" },
-  // VoiceButton sits above the other FABs; give it extra bottom margin
-  voiceFabWrap: { marginBottom: 4 },
+  fabClearRoute: {
+    borderColor: "rgba(255,68,68,0.5)",
+    borderWidth: 1.5,
+  },
 
   // Building label markers
   markerLabel: {
