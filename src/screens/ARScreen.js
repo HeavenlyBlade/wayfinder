@@ -36,10 +36,22 @@ const ARRIVAL_DIST = 20;   // metres — accounts for GPS inaccuracy near buildi
 const ARRIVAL_CONFIRMATIONS = 3;    // consecutive readings before triggering arrival
 const APPROACHING_DIST = 40;   // metres — show "Almost there" chip
 const PREBEND_WARN_DIST = 15;   // metres — warn before sharp direction change
-const LOOKAHEAD_M = 8;    // metres ahead on the path the arrow points toward
+// Adaptive lookahead: longer distance when GPS is poor so small position errors
+// affect the bearing angle much less (target is far away, ±15m drift = small angle error).
+// When GPS is good, 8m gives precise turn guidance. When poor, 40m stabilizes the arrow.
+const LOOKAHEAD_M_GOOD = 8;    // GPS accuracy ≤ 10m
+const LOOKAHEAD_M_FAIR = 20;   // GPS accuracy 10–25m
+const LOOKAHEAD_M_POOR = 40;   // GPS accuracy > 25m (or unknown)
 const CAPTURE_RADIUS_M = 6;    // metres — snap-to-node capture radius (GPS wobble tolerance)
 const OFF_PATH_M = 25;   // metres cross-track error threshold to trigger re-route
 const OFF_PATH_CONFIRMATIONS = 3;   // consecutive off-path readings before re-route fires
+
+// Pick lookahead distance based on current GPS quality string
+function getLookaheadDist(gpsQuality) {
+  if (gpsQuality === 'good') return LOOKAHEAD_M_GOOD;
+  if (gpsQuality === 'fair') return LOOKAHEAD_M_FAIR;
+  return LOOKAHEAD_M_POOR; // 'poor' or null (not yet determined)
+}
 
 // ── Waypoint interpolation (used only for orb-trail ViroReact rendering) ─────
 // The progression logic now uses segment indices, not orb indices.
@@ -329,10 +341,11 @@ export default function ARScreen({ route, navigation }) {
     }
 
     // ── D. Lookahead arrow direction ─────────────────────────────────────
-    // Point the arrow at a point LOOKAHEAD_M metres ahead along the remaining
-    // path polyline — not directly at the next node. This keeps the arrow
-    // pointing smoothly forward along the walkway, never pointing backward.
-    const lookahead = getLookaheadPoint(wps, segIdx, LOOKAHEAD_M);
+    // Adaptive lookahead: when GPS is poor, point further ahead along the path
+    // so small position errors (~15m) cause much smaller angular errors.
+    // When GPS is good, 8m gives precise turn guidance at junctions.
+    const lookaheadDist = getLookaheadDist(gpsQuality);
+    const lookahead = getLookaheadPoint(wps, segIdx, lookaheadDist);
     const bearing = bearingTo(location.lat, location.lng, lookahead.lat, lookahead.lng);
     let angle = bearing - heading;
     if (angle > 180) angle -= 360;
@@ -364,7 +377,7 @@ export default function ARScreen({ route, navigation }) {
       setIsPreBend(false);
     }
 
-  }, [location, heading, destinationId, indoorStatus]);
+  }, [location, heading, destinationId, indoorStatus, gpsQuality]);
 
   // ── Destination info ──────────────────────────────────────────────────────
   const destBuilding = BUILDINGS[destinationId];
