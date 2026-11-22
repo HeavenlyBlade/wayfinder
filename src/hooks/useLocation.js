@@ -60,12 +60,14 @@ function smoothedPosition(buffer) {
 }
 
 export default function useLocation() {
-  const [location,   setLocation]   = useState(null);
-  const [heading,    setHeading]    = useState(0);
-  const [error,      setError]      = useState(null);
-  const [gpsReady,   setGpsReady]   = useState(false);
-  const [gpsWarning, setGpsWarning] = useState(false);
-  const [gpsQuality, setGpsQuality] = useState(null);
+  const [location,       setLocation]       = useState(null);
+  const [heading,        setHeading]        = useState(0);
+  const [error,          setError]          = useState(null);
+  const [gpsReady,       setGpsReady]       = useState(false);
+  const [gpsWarning,     setGpsWarning]     = useState(false);
+  const [gpsQuality,     setGpsQuality]     = useState(null);
+  const [compassQuality, setCompassQuality] = useState('good'); // 'good'|'fair'|'poor'
+  const [magneticField,  setMagneticField]  = useState(45);     // microteslas (µT)
 
   const subRef        = useRef(null);
   const headingSubRef = useRef(null);
@@ -187,6 +189,23 @@ export default function useLocation() {
           if (h != null && !isNaN(h)) {
             usingNativeHeading = true;
             const corrected = (h + _compassOffset + 360) % 360;
+
+            // Map sensor accuracy level:
+            // Android: 3 = HIGH, 2 = MEDIUM, 1 = LOW, 0 = UNRELIABLE
+            // iOS: >0 accuracy in degrees (<12 is good, 12-25 fair, >25 poor, <0 uncalibrated)
+            const accLevel = headingObj.accuracy;
+            let quality = 'good';
+            if (Platform.OS === 'android') {
+              if (accLevel >= 3) quality = 'good';
+              else if (accLevel === 2) quality = 'fair';
+              else quality = 'poor';
+            } else {
+              if (accLevel < 0 || accLevel > 25) quality = 'poor';
+              else if (accLevel > 12) quality = 'fair';
+              else quality = 'good';
+            }
+            setCompassQuality(quality);
+
             // Native sensor fusion heading (hardware gyro+accel+mag) is already optimal;
             // do not override with noisy pedestrian GPS course when walking.
             commitHeading(corrected);
@@ -250,6 +269,15 @@ export default function useLocation() {
       }
 
       magRef.current = Magnetometer.addListener(({ x, y, z }) => {
+        // Track overall magnetic field strength in microteslas (µT)
+        // Earth's natural magnetic field is roughly 30–60 µT
+        const fieldStrength = Math.round(Math.hypot(x, y, z));
+        setMagneticField(fieldStrength);
+        if (fieldStrength < 25 || fieldStrength > 72) {
+          // Local magnetic interference detected (rebar, electronic equipment)
+          setCompassQuality(prev => (prev === 'good' ? 'fair' : prev));
+        }
+
         if (usingNativeHeading) return; // native heading takes precedence
 
         // ── Tilt-compensated heading ──────────────────────────────────────
@@ -342,5 +370,5 @@ export default function useLocation() {
     };
   }, []);
 
-  return { location, heading, error, gpsReady, gpsWarning, gpsQuality };
+  return { location, heading, error, gpsReady, gpsWarning, gpsQuality, compassQuality, magneticField };
 }

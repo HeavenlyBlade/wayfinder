@@ -95,7 +95,16 @@ export default function ARScreen({ route, navigation }) {
   const lang = settings?.language ?? "en";
 
   const [permission, requestPermission] = useCameraPermissions();
-  const { location, heading, error: locError, gpsReady, gpsWarning, gpsQuality } = useLocation();
+  const {
+    location,
+    heading,
+    error: locError,
+    gpsReady,
+    gpsWarning,
+    gpsQuality,
+    compassQuality,
+    magneticField,
+  } = useLocation();
   const [compassOffset, setLocalCompassOffset] = useState(getCompassOffset());
 
   const handleCompassAdjust = (newOffset) => {
@@ -484,10 +493,10 @@ export default function ARScreen({ route, navigation }) {
           </View>
         )}
 
-        {/* GPS quality chip */}
+        {/* GPS quality & Compass status chips */}
         {!isLoading && !arrived && (
           <View style={[s.gpsChipWrap, { top: Platform.OS === 'android' ? 36 : 8, right: 56 }]}>
-            <StatusChips quality={gpsQuality} lang={lang} />
+            <StatusChips quality={gpsQuality} compassQuality={compassQuality} lang={lang} />
           </View>
         )}
 
@@ -525,13 +534,15 @@ export default function ARScreen({ route, navigation }) {
           </View>
         )}
 
-        {/* Compass calibrator — software heading offset adjustment */}
+        {/* Compass calibrator — software heading offset adjustment & sensor indicator */}
         {!isLoading && !arrived && (
           <View style={s.calibratorWrap}>
             <CompassCalibrator
               offset={compassOffset}
               onAdjust={handleCompassAdjust}
               heading={heading}
+              compassQuality={compassQuality}
+              magneticField={magneticField}
               lang={lang}
             />
           </View>

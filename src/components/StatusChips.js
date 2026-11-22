@@ -27,23 +27,35 @@ function Chip({ color, label }) {
   );
 }
 
-// StatusChips — shows GPS status chip.
-// When quality prop is provided ('good'|'fair'|'poor'), adjusts color and label.
-// Voice/AI/offline/AR chips removed (features not implemented).
-export default function StatusChips({ quality, lang }) {
-  const color = quality === 'good'
+// StatusChips — shows GPS status chip and Compass / Magnetometer accuracy chip.
+// When quality/compassQuality prop is provided ('good'|'fair'|'poor'), adjusts color and label.
+export default function StatusChips({ quality, compassQuality, lang }) {
+  const gpsColor = quality === 'good'
     ? '#00C853'
     : quality === 'fair'
     ? '#FFC107'
     : quality === 'poor'
     ? '#FF5252'
     : colors.primary;
-  const label = quality
+  const gpsLabel = quality
     ? t(`gps.quality.${quality}`, lang)
     : 'GPS Active';
+
+  const compColor = compassQuality === 'good'
+    ? '#00C853'
+    : compassQuality === 'fair'
+    ? '#FFC107'
+    : '#FF5252';
+  const compLabel = compassQuality === 'good'
+    ? 'Compass Good'
+    : compassQuality === 'fair'
+    ? 'Compass Fair'
+    : 'Compass Calibrate';
+
   return (
     <View style={s.row}>
-      <Chip color={color} label={label} />
+      <Chip color={gpsColor} label={gpsLabel} />
+      {compassQuality && <Chip color={compColor} label={compLabel} />}
     </View>
   );
 }
