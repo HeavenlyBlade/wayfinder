@@ -23,6 +23,7 @@ import BottomPanel      from "../components/BottomPanel";
 import SearchModal      from "../components/SearchModal";
 import BuildingCard     from "../components/BuildingCard";
 import CampusMap        from "../components/CampusMap";
+import VoiceButton      from "../components/VoiceButton";
 import useLocation      from "../hooks/useLocation";
 import { useSettings }  from "../context/SettingsContext";
 import { t } from "../constants/i18n";
@@ -265,6 +266,15 @@ export default function MapScreen({ navigation, route }) {
               <IconRouteOff size={20} color="#ff4444" />
             </TouchableOpacity>
           )}
+          {/* Voice AI button */}
+          <VoiceButton
+            lang={lang}
+            style={s.voiceFabWrap}
+            onDestinationResolved={(destId) => {
+              const building = BUILDINGS[destId];
+              if (building) selectBuilding(destId, building);
+            }}
+          />
           <TouchableOpacity
             style={[s.fab, s.fabLocate]}
             onPress={() => {/* CampusMap auto-centers on GPS */}}
@@ -370,6 +380,7 @@ const s = StyleSheet.create({
   },
 
   fabs: { position: "absolute", right: 14, gap: 10, alignItems: 'center' },
+  voiceFabWrap: { marginBottom: 2 },
   fab: {
     width: 46, height: 46, borderRadius: 23,
     backgroundColor: "rgba(255,255,255,0.95)",
