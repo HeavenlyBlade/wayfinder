@@ -100,79 +100,82 @@ export default function BuildingCard({ building, userLocation, onClose, onNaviga
     <Animated.View
       style={[s.card, { opacity: fadeIn, transform: [{ translateY: slideY }] }]}
     >
-      {/* Building image preview */}
-      <BuildingImagePreview buildingId={building.id} buildingName={building.name} style={s.imagePreview} />
+      {/* Building image preview — spans full width of card */}
+      <BuildingImagePreview buildingId={building.id} buildingName={building.name} />
 
       {/* Close button — rendered AFTER image so it stacks on top */}
       <TouchableOpacity style={s.close} onPress={onClose} activeOpacity={0.7}>
         <Text style={s.closeText}>✕</Text>
       </TouchableOpacity>
 
-      {/* Header */}
-      <View style={s.header}>
-        <View style={[s.iconWrap, { backgroundColor: (building.color ?? "#1a3a1a") + "cc" }]}>
-          <BuildingIcon iconKey={building.icon} size={22} color={colors.primary} />
-        </View>
-        <View style={{ flex: 1 }}>
-          <Text style={s.title} numberOfLines={1}>{building.name}</Text>
-          <Text style={s.sub}  numberOfLines={1}>{building.subtitle}</Text>
-        </View>
-      </View>
-
-      {/* Distance row */}
-      <View style={s.distRow}>
-        <Text style={s.distVal}>{distLabel}</Text>
-        {etaLabel ? <Text style={s.distLabel}> away · {etaLabel} walk</Text> : null}
-      </View>
-
-      {/* Facilities */}
-      {building.facilities?.length > 0 && (
-        <>
-          <Text style={s.sectionLabel}>FACILITIES</Text>
-          <View style={s.tags}>
-            {building.facilities.slice(0, 8).map((f) => (
-              <View key={f} style={s.tag}>
-                <Text style={s.tagText}>{f}</Text>
-              </View>
-            ))}
-            {building.facilities.length > 8 && (
-              <View style={[s.tag, s.tagMore]}>
-                <Text style={s.tagText}>+{building.facilities.length - 8} more</Text>
-              </View>
-            )}
+      {/* Card body content */}
+      <View style={s.body}>
+        {/* Header */}
+        <View style={s.header}>
+          <View style={[s.iconWrap, { backgroundColor: (building.color ?? "#1a3a1a") + "cc" }]}>
+            <BuildingIcon iconKey={building.icon} size={22} color={colors.primary} />
           </View>
-        </>
-      )}
+          <View style={{ flex: 1 }}>
+            <Text style={s.title} numberOfLines={1}>{building.name}</Text>
+            <Text style={s.sub}  numberOfLines={1}>{building.subtitle}</Text>
+          </View>
+        </View>
 
-      {/* Action buttons */}
-      <View style={s.actions}>
-        {/* View Floors — only shown when floor data exists */}
-        {building.floors?.length > 0 && (
-          <TouchableOpacity
-            style={s.btnFloors}
-            onPress={() => setFloorBrowserVisible(true)}
-            activeOpacity={0.85}
-          >
-            <Text style={s.btnFloorsText}>{t('map.viewFloors', lang)}</Text>
-          </TouchableOpacity>
+        {/* Distance row */}
+        <View style={s.distRow}>
+          <Text style={s.distVal}>{distLabel}</Text>
+          {etaLabel ? <Text style={s.distLabel}> away · {etaLabel} walk</Text> : null}
+        </View>
+
+        {/* Facilities */}
+        {building.facilities?.length > 0 && (
+          <>
+            <Text style={s.sectionLabel}>FACILITIES</Text>
+            <View style={s.tags}>
+              {building.facilities.slice(0, 8).map((f) => (
+                <View key={f} style={s.tag}>
+                  <Text style={s.tagText}>{f}</Text>
+                </View>
+              ))}
+              {building.facilities.length > 8 && (
+                <View style={[s.tag, s.tagMore]}>
+                  <Text style={s.tagText}>+{building.facilities.length - 8} more</Text>
+                </View>
+              )}
+            </View>
+          </>
         )}
 
-        {/* Navigate + Close row */}
-        <View style={s.actionsRow}>
-          <TouchableOpacity
-            style={s.btnPrimary}
-            onPress={() => onNavigate(building)}
-            activeOpacity={0.85}
-          >
-            <Text style={s.btnPrimaryText}>▶ {t('map.navigate', lang)}</Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={s.btnSecondary}
-            onPress={onClose}
-            activeOpacity={0.85}
-          >
-            <Text style={s.btnSecondaryText}>{t('map.close', lang)}</Text>
-          </TouchableOpacity>
+        {/* Action buttons */}
+        <View style={s.actions}>
+          {/* View Floors — only shown when floor data exists */}
+          {building.floors?.length > 0 && (
+            <TouchableOpacity
+              style={s.btnFloors}
+              onPress={() => setFloorBrowserVisible(true)}
+              activeOpacity={0.85}
+            >
+              <Text style={s.btnFloorsText}>{t('map.viewFloors', lang)}</Text>
+            </TouchableOpacity>
+          )}
+
+          {/* Navigate + Close row */}
+          <View style={s.actionsRow}>
+            <TouchableOpacity
+              style={s.btnPrimary}
+              onPress={() => onNavigate(building)}
+              activeOpacity={0.85}
+            >
+              <Text style={s.btnPrimaryText}>▶ {t('map.navigate', lang)}</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={s.btnSecondary}
+              onPress={onClose}
+              activeOpacity={0.85}
+            >
+              <Text style={s.btnSecondaryText}>{t('map.close', lang)}</Text>
+            </TouchableOpacity>
+          </View>
         </View>
       </View>
 
@@ -196,11 +199,16 @@ const s = StyleSheet.create({
     borderRadius: radius.lg,
     borderWidth: 1,
     borderColor: colors.border,
-    padding: 20,
+    overflow: "hidden",
     shadowColor: "#000",
     shadowOpacity: 0.5,
     shadowRadius: 20,
     elevation: 12,
+  },
+  body: {
+    paddingHorizontal: 20,
+    paddingTop: 14,
+    paddingBottom: 20,
   },
   close: {
     position: "absolute",
@@ -293,12 +301,4 @@ const s = StyleSheet.create({
     borderColor: colors.border,
   },
   btnSecondaryText: { fontSize: 13, fontWeight: "700", color: colors.textSecondary },
-
-  imagePreview: {
-    marginHorizontal: -20,
-    marginTop: -20,
-    marginBottom: 14,
-    borderTopLeftRadius: radius.lg,
-    borderTopRightRadius: radius.lg,
-  },
 });

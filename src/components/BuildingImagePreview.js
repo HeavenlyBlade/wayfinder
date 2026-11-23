@@ -53,9 +53,8 @@ const s = StyleSheet.create({
     overflow: 'hidden',
   },
   image: {
-    flex: 1,
     width: '100%',
-    height: undefined,
+    height: '100%',
   },
   placeholder: {
     flex: 1,
