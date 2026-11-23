@@ -9,8 +9,10 @@ const HEADING_SAMPLES = 8;
 // Storage key for the user-adjustable compass offset
 const COMPASS_OFFSET_KEY = 'wayfinder_compass_offset';
 
-// Default offset — set to 0; users can fine-tune via the CAL button in AR screen.
-const DEFAULT_COMPASS_OFFSET = 0;
+// Default offset — calibrated to 170° to compensate for Android upright portrait
+// camera axis vs sensor frame reversal (+180°) and local magnetic declination (-10°).
+// Users can still fine-tune via the CAL button in AR screen.
+const DEFAULT_COMPASS_OFFSET = 170;
 
 // Load persisted compass offset — falls back to calibrated default if not set
 let _compassOffset = DEFAULT_COMPASS_OFFSET;

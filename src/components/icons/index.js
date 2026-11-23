@@ -275,6 +275,14 @@ export function IconLayers({ size, color }) {
   );
 }
 
+export function IconCheck({ size = 24, color = "#00C853" }) {
+  return (
+    <Icon size={size} color={color}>
+      <Polyline points="20 6 9 17 4 12" />
+    </Icon>
+  );
+}
+
 // ── Clear / cancel plotted route waypoints ─────────────────────────────────
 export function IconRouteOff({ size = 20, color = "#ff4444" }) {
   return (

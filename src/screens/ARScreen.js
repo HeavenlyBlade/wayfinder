@@ -6,6 +6,7 @@ import {
   Dimensions,
   TouchableOpacity,
   Platform,
+  Image,
 } from "react-native";
 import { useCameraPermissions } from "expo-camera";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -18,8 +19,8 @@ import { getHardcodedRoute } from "../constants/hardcodedRoutes";
 import { getIndoorStatus, TWO_STAIRCASE_BUILDINGS } from "../utils/indoorDetection";
 import { NODES } from "../constants/campusGraph";
 import { BUILDINGS } from "../constants/buildings";
-import { ENTRANCE_IMAGES } from "../data/buildingImages";
-import { IconArrowLeft } from "../components/icons/index";
+import { ENTRANCE_IMAGES, BUILDING_IMAGES } from "../data/buildingImages";
+import { IconArrowLeft, IconCheck, IconSearch } from "../components/icons/index";
 import { useSettings } from "../context/SettingsContext";
 import { t } from "../constants/i18n";
 import StaircasePicker from "../components/StaircasePicker";
@@ -448,6 +449,7 @@ export default function ARScreen({ route, navigation }) {
         heading={heading}
         waypoints={orbTrailRef.current.slice(0, 5)}
         userLocation={location}
+        arrived={arrived}
       />
 
       {/* ── HUD overlay ── */}
@@ -572,37 +574,80 @@ export default function ARScreen({ route, navigation }) {
         </View>
       )}
 
-      {/* ── Arrived overlay — full screen ── */}
+      {/* ── Arrived overlay — polished celebratory card ── */}
       {arrived && (
         <View style={s.arrivedOverlay}>
-          <Text style={s.arrivedIcon}>OK</Text>
-          <Text style={s.arrivedTitle}>{t('ar.arrived', lang)}</Text>
-          <Text style={s.arrivedSub}>{destName}</Text>
-          <View style={s.arrivedBtns}>
-            {!NO_INDOOR_PROMPT.has(destinationId) && (
-              <TouchableOpacity
-                style={s.arrivedBtn}
-                onPress={() => {
-                  if (TWO_STAIRCASE_BUILDINGS.has(destinationId) && !selectedStaircase) {
-                    setStaircasePickerVisible(true);
-                  } else {
-                    setArrivalPromptVisible(true);
-                  }
-                }}
-                activeOpacity={0.85}
-              >
-                <Text style={s.arrivedBtnText}>{t('ar.findRoom', lang)}</Text>
-              </TouchableOpacity>
+          <View style={s.arrivedCard}>
+            {/* Success icon badge with glowing halo */}
+            <View style={s.arrivedBadgeWrap}>
+              <View style={s.arrivedBadgeGlow} />
+              <View style={s.arrivedBadge}>
+                <IconCheck size={32} color="#071209" />
+              </View>
+            </View>
+
+            {/* Arrival celebration titles */}
+            <Text style={s.arrivedTitle}>{t('ar.arrived', lang)}</Text>
+            <Text style={s.arrivedDestName}>{destName}</Text>
+
+            {/* Status pill */}
+            <View style={s.arrivedStatusPill}>
+              <View style={s.arrivedStatusDot} />
+              <Text style={s.arrivedStatusText}>Destination Reached • 0m</Text>
+            </View>
+
+            {/* Building preview photo if available */}
+            {BUILDING_IMAGES[destinationId] && (
+              <View style={s.arrivedPhotoWrap}>
+                <Image
+                  source={BUILDING_IMAGES[destinationId]}
+                  style={s.arrivedPhoto}
+                  resizeMode="cover"
+                />
+              </View>
             )}
-            <TouchableOpacity
-              style={[s.arrivedBtn, s.arrivedBtnBack]}
-              onPress={() => navigation.goBack()}
-              activeOpacity={0.85}
-            >
-              <Text style={[s.arrivedBtnText, { color: 'rgba(255,255,255,0.6)' }]}>
-                {t('ar.backToMap', lang)}
-              </Text>
-            </TouchableOpacity>
+
+            {/* Action buttons */}
+            <View style={s.arrivedBtns}>
+              {!NO_INDOOR_PROMPT.has(destinationId) ? (
+                <>
+                  <TouchableOpacity
+                    style={s.arrivedBtnPrimary}
+                    onPress={() => {
+                      if (TWO_STAIRCASE_BUILDINGS.has(destinationId) && !selectedStaircase) {
+                        setStaircasePickerVisible(true);
+                      } else {
+                        setArrivalPromptVisible(true);
+                      }
+                    }}
+                    activeOpacity={0.85}
+                  >
+                    <IconSearch size={18} color="#071209" />
+                    <Text style={s.arrivedBtnPrimaryText}>{t('ar.findRoom', lang)}</Text>
+                  </TouchableOpacity>
+
+                  <TouchableOpacity
+                    style={s.arrivedBtnSecondary}
+                    onPress={() => navigation.goBack()}
+                    activeOpacity={0.85}
+                  >
+                    <Text style={s.arrivedBtnSecondaryText}>
+                      {t('ar.backToMap', lang)}
+                    </Text>
+                  </TouchableOpacity>
+                </>
+              ) : (
+                <TouchableOpacity
+                  style={s.arrivedBtnPrimary}
+                  onPress={() => navigation.goBack()}
+                  activeOpacity={0.85}
+                >
+                  <Text style={s.arrivedBtnPrimaryText}>
+                    {t('ar.backToMap', lang)}
+                  </Text>
+                </TouchableOpacity>
+              )}
+            </View>
           </View>
         </View>
       )}
@@ -804,27 +849,143 @@ const s = StyleSheet.create({
     color: GREEN,
   },
 
-  // Arrived overlay — full screen
+  // Arrived overlay — polished celebratory card
   arrivedOverlay: {
     ...StyleSheet.absoluteFillObject,
-    backgroundColor: "rgba(7,18,9,0.92)",
+    backgroundColor: "rgba(7, 18, 9, 0.88)",
+    alignItems: "center",
+    justifyContent: "center",
+    paddingHorizontal: 20,
+    zIndex: 100,
+  },
+  arrivedCard: {
+    width: "100%",
+    maxWidth: 360,
+    backgroundColor: "rgba(18, 32, 22, 0.96)",
+    borderRadius: 24,
+    paddingHorizontal: 22,
+    paddingVertical: 24,
+    alignItems: "center",
+    borderWidth: 1.5,
+    borderColor: "rgba(0, 200, 83, 0.35)",
+    shadowColor: "#000",
+    shadowOpacity: 0.5,
+    shadowRadius: 16,
+    elevation: 12,
+  },
+  arrivedBadgeWrap: {
+    position: "relative",
+    marginBottom: 12,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  arrivedBadgeGlow: {
+    position: "absolute",
+    width: 76,
+    height: 76,
+    borderRadius: 38,
+    backgroundColor: "rgba(0, 200, 83, 0.22)",
+  },
+  arrivedBadge: {
+    width: 60,
+    height: 60,
+    borderRadius: 30,
+    backgroundColor: GREEN,
+    alignItems: "center",
+    justifyContent: "center",
+    shadowColor: GREEN,
+    shadowOpacity: 0.5,
+    shadowRadius: 10,
+    elevation: 6,
+  },
+  arrivedTitle: {
+    fontSize: 22,
+    fontWeight: "900",
+    color: "#ffffff",
+    letterSpacing: 0.3,
+    textAlign: "center",
+  },
+  arrivedDestName: {
+    fontSize: 17,
+    fontWeight: "800",
+    color: GREEN,
+    marginTop: 4,
+    textAlign: "center",
+  },
+  arrivedStatusPill: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "rgba(0, 200, 83, 0.12)",
+    borderRadius: 999,
+    paddingHorizontal: 12,
+    paddingVertical: 5,
+    marginTop: 10,
+    borderWidth: 1,
+    borderColor: "rgba(0, 200, 83, 0.3)",
+    gap: 6,
+  },
+  arrivedStatusDot: {
+    width: 7,
+    height: 7,
+    borderRadius: 4,
+    backgroundColor: GREEN,
+  },
+  arrivedStatusText: {
+    fontSize: 11,
+    fontWeight: "700",
+    color: "#b0f2c2",
+  },
+  arrivedPhotoWrap: {
+    width: "100%",
+    height: 125,
+    borderRadius: 14,
+    overflow: "hidden",
+    marginTop: 14,
+    borderWidth: 1,
+    borderColor: "rgba(255, 255, 255, 0.15)",
+  },
+  arrivedPhoto: {
+    width: "100%",
+    height: "100%",
+  },
+  arrivedBtns: {
+    width: "100%",
+    flexDirection: "column",
+    gap: 10,
+    marginTop: 18,
+  },
+  arrivedBtnPrimary: {
+    flexDirection: "row",
+    backgroundColor: GREEN,
+    borderRadius: 999,
+    paddingVertical: 14,
     alignItems: "center",
     justifyContent: "center",
     gap: 8,
-    zIndex: 10,
+    shadowColor: GREEN,
+    shadowOpacity: 0.4,
+    shadowRadius: 8,
+    elevation: 4,
   },
-  arrivedIcon: { fontSize: 48 },
-  arrivedTitle: { fontSize: 22, fontWeight: "900", color: GREEN },
-  arrivedSub: { fontSize: 14, color: "rgba(255,255,255,0.5)" },
-  arrivedBtns: { flexDirection: "column", gap: 8, marginTop: 12, width: W - 64 },
-  arrivedBtn: {
-    backgroundColor: GREEN,
+  arrivedBtnPrimaryText: {
+    fontSize: 15,
+    fontWeight: "800",
+    color: "#071209",
+  },
+  arrivedBtnSecondary: {
+    backgroundColor: "rgba(255, 255, 255, 0.08)",
     borderRadius: 999,
     paddingVertical: 13,
     alignItems: "center",
+    justifyContent: "center",
+    borderWidth: 1,
+    borderColor: "rgba(255, 255, 255, 0.2)",
   },
-  arrivedBtnBack: { backgroundColor: "rgba(255,255,255,0.08)" },
-  arrivedBtnText: { fontSize: 14, fontWeight: "800", color: "#071209" },
+  arrivedBtnSecondaryText: {
+    fontSize: 14,
+    fontWeight: "700",
+    color: "#ffffff",
+  },
 
   // Permission screens
   permIcon: { fontSize: 52 },

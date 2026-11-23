@@ -172,7 +172,7 @@ function DestinationPin({ pos }) {
 }
 
 function NavScene(props) {
-  const { angleDiff, heading, waypoints, userLocation } =
+  const { angleDiff, heading, waypoints, userLocation, arrived } =
     props?.sceneNavigator?.viroAppProps ?? {};
 
   const [isTracking, setIsTracking] = useState(false);
@@ -264,7 +264,7 @@ function NavScene(props) {
       onCameraTransformUpdate={handleCameraTransform}
     >
 
-      {isTracking && (USE_ARROWS ? (
+      {isTracking && !arrived && (USE_ARROWS ? (
         <>
           {/* Directional navigation arrow — dynamically follows user and points forward */}
           <NavigationArrow position={arrowPos} rotation={arrowRot} />
@@ -316,13 +316,13 @@ function NavScene(props) {
   );
 }
 
-export default function ViroARNavScene({ angleDiff, heading, waypoints, userLocation, style }) {
+export default function ViroARNavScene({ angleDiff, heading, waypoints, userLocation, arrived, style }) {
   return (
     <ViroARSceneNavigator
       style={style}
       autofocus={Platform.OS === "ios"}
       initialScene={{ scene: NavScene }}
-      viroAppProps={{ angleDiff, heading, waypoints, userLocation }}
+      viroAppProps={{ angleDiff, heading, waypoints, userLocation, arrived }}
     />
   );
 }
