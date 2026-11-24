@@ -23,6 +23,7 @@ import {
   Animated,
   ActivityIndicator,
   Platform,
+  Linking,
 } from 'react-native';
 import useVoiceCommand from '../hooks/useVoiceCommand';
 
@@ -118,6 +119,16 @@ export default function VoiceButton({ onDestinationResolved, lang = 'en', style 
           <Text style={[s.replyText, state === 'error' && s.errorText]} numberOfLines={3}>
             {error ?? result?.reply ?? 'Unknown error'}
           </Text>
+          {/* Open Settings nudge when mic is permanently denied */}
+          {state === 'error' && error === 'Microphone permission denied' && (
+            <TouchableOpacity
+              style={s.openSettingsBtn}
+              onPress={() => Linking.openSettings()}
+              activeOpacity={0.85}
+            >
+              <Text style={s.openSettingsText}>Open Settings → Allow Mic</Text>
+            </TouchableOpacity>
+          )}
           {result?.destinationId && (
             <Text style={s.destChip}>→ {result.destinationId.replace(/_/g, ' ')}</Text>
           )}
@@ -191,6 +202,21 @@ const s = StyleSheet.create({
     fontSize: 12,
     color: 'rgba(255,255,255,0.4)',
     fontWeight: '700',
+  },
+
+  // Open Settings button (shown when mic permanently denied)
+  openSettingsBtn: {
+    marginTop: 6,
+    backgroundColor: 'rgba(0,200,83,0.15)',
+    borderRadius: 8,
+    paddingVertical: 6,
+    paddingHorizontal: 10,
+    alignItems: 'center',
+  },
+  openSettingsText: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: GREEN,
   },
 
   // FAB

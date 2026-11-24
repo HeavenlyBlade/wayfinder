@@ -57,12 +57,21 @@ export default function useVoiceCommand() {
   const recordingRef   = useRef(null);
   const autoStopTimer  = useRef(null);
   const permissionRef  = useRef(false);           // cached mic permission
+  const stateRef       = useRef('idle');           // mirrors state for use inside callbacks
+
+  // Helper: set state and keep ref in sync
+  function setStateSync(s) {
+    stateRef.current = s;
+    setState(s);
+  }
 
   // ── Request mic permission (idempotent) ──────────────────────────────────
   async function ensurePermission() {
     if (permissionRef.current) return true;
-    const { status } = await Audio.requestPermissionsAsync();
+    const { status, canAskAgain } = await Audio.requestPermissionsAsync();
     permissionRef.current = status === 'granted';
+    // Track if permanently denied so VoiceButton can show "Open Settings" hint
+    permissionRef.permanentlyDenied = !permissionRef.current && !canAskAgain;
     return permissionRef.current;
   }
 
@@ -116,16 +125,17 @@ export default function useVoiceCommand() {
 
   // ── Start recording ───────────────────────────────────────────────────────
   const startRecording = useCallback(async (language = null) => {
-    if (state === 'recording' || state === 'processing') return;
+    // Use ref instead of state to avoid stale-closure issues
+    if (stateRef.current === 'recording' || stateRef.current === 'processing') return;
 
     setError(null);
     setResult(null);
-    setState('idle');
+    setStateSync('idle');
 
     const granted = await ensurePermission();
     if (!granted) {
       setError('Microphone permission denied');
-      setState('error');
+      setStateSync('error');
       return;
     }
 
@@ -137,7 +147,7 @@ export default function useVoiceCommand() {
 
       const { recording } = await Audio.Recording.createAsync(RECORDING_OPTIONS);
       recordingRef.current = recording;
-      setState('recording');
+      setStateSync('recording');
 
       // Auto-stop after MAX_RECORD_MS
       autoStopTimer.current = setTimeout(() => {
@@ -145,9 +155,9 @@ export default function useVoiceCommand() {
       }, MAX_RECORD_MS);
     } catch (e) {
       setError(`Could not start recording: ${e.message}`);
-      setState('error');
+      setStateSync('error');
     }
-  }, [state]);
+  }, []);  // stable — uses stateRef instead of state
 
   // ── Stop recording and process ────────────────────────────────────────────
   const stopRecording = useCallback(async (language = null) => {
@@ -201,10 +211,10 @@ export default function useVoiceCommand() {
       }
 
       setResult(res);
-      setState('done');
+      setStateSync('done');
     } catch (e) {
       setError(`Processing error: ${e.message}`);
-      setState('error');
+      setStateSync('error');
     }
   }, []);
 
@@ -222,7 +232,7 @@ export default function useVoiceCommand() {
     }
     setResult(null);
     setError(null);
-    setState('idle');
+    setStateSync('idle');
   }, []);
 
   return { startRecording, stopRecording, reset, state, result, error };

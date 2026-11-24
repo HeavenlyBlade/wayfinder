@@ -35,8 +35,8 @@ import { getCompassOffset, setCompassOffset } from "../hooks/useLocation";
 const { width: W, height: H } = Dimensions.get("window");
 const GREEN = "#00C853";
 
-const ARRIVAL_DIST = 20;   // metres — accounts for GPS inaccuracy near buildings
-const ARRIVAL_CONFIRMATIONS = 3;    // consecutive readings before triggering arrival
+const ARRIVAL_DIST = 30;   // metres — wider radius to account for GPS drift near concrete buildings
+const ARRIVAL_CONFIRMATIONS = 2;    // 2 consecutive readings (was 3) for faster, forgiving arrival
 const APPROACHING_DIST = 40;   // metres — show "Almost there" chip
 const PREBEND_WARN_DIST = 15;   // metres — warn before sharp direction change
 // Adaptive lookahead: longer distance when GPS is poor so small position errors
