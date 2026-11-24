@@ -16,7 +16,7 @@
 
 import { useState, useRef, useCallback } from 'react';
 import { Audio } from 'expo-av';
-import * as FileSystem from 'expo-file-system';
+import * as FileSystem from 'expo-file-system/legacy';
 import { API_BASE } from '../constants/api';
 import { resolveDestination, buildReply } from '../utils/offlineVoice';
 
@@ -77,8 +77,7 @@ export default function useVoiceCommand() {
 
   // ── Upload audio and call AI backend ─────────────────────────────────────
   async function callBackend(uri, language) {
-    const info = await FileSystem.getInfoAsync(uri);
-    if (!info.exists) throw new Error('Recording file not found');
+    if (!uri) throw new Error('Recording file not found');
 
     const form = new FormData();
     form.append('audio', {
